@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "pages": {
+    "/openwiki/architecture/application-flow.md": {
+      "gitHead": "bdb39c4c4b079c5731f724faf89012de3b51bd23",
+      "sourceFingerprint": "sha256:31df84022cf3cbad14a7cd34501d0ee62899c8ff5ef6b70f3c4e34572a369c19",
+      "pageVersion": "sha256:246e772c9a835dc7877c17476ec4edc8d4e992ea4b65da81b7d2b2395c876791",
+      "completedBy": "copilot",
+      "completedRunId": "0f98f644-a79d-4de2-a052-9a9b722cc1f6"
+    },
+    "/openwiki/gameplay/levels-and-generation.md": {
+      "gitHead": "bdb39c4c4b079c5731f724faf89012de3b51bd23",
+      "sourceFingerprint": "sha256:31df84022cf3cbad14a7cd34501d0ee62899c8ff5ef6b70f3c4e34572a369c19",
+      "pageVersion": "sha256:72894cfd046ae361de5292218f6180e9c2d42176fb549198e3e9395deefb255e",
+      "completedBy": "copilot",
+      "completedRunId": "0f98f644-a79d-4de2-a052-9a9b722cc1f6"
+    },
+    "/openwiki/gameplay/rules-and-state.md": {
+      "pageVersion": "sha256:322a581847400dd7376d487a2fc7d2b7ce13de10108fe278f2048acda840bd8f",
+      "completedBy": "copilot",
+      "completedRunId": "30563b1a-a8e6-4d73-b522-17922c7a56b3",
+      "gitHead": "bdb39c4c4b079c5731f724faf89012de3b51bd23",
+      "sourceFingerprint": "sha256:6779eb6aba0b70605d4c0217f38aa53c51b102cc115b50e134f1132a93f05643"
+    },
+    "/openwiki/presentation/board-interaction.md": {
+      "pageVersion": "sha256:2151f5cfe7750749ec8951f32aa666679015fe4d55f20b041b3e02d6fb59d3df",
+      "completedBy": "copilot",
+      "completedRunId": "30563b1a-a8e6-4d73-b522-17922c7a56b3",
+      "gitHead": "bdb39c4c4b079c5731f724faf89012de3b51bd23",
+      "sourceFingerprint": "sha256:6779eb6aba0b70605d4c0217f38aa53c51b102cc115b50e134f1132a93f05643"
+    },
+    "/openwiki/quickstart.md": {
+      "pageVersion": "sha256:c4e635ccf11472218df03dff33ca007a9e15c8faefbabadff8640555abf4767a",
+      "completedBy": "copilot",
+      "completedRunId": "30563b1a-a8e6-4d73-b522-17922c7a56b3",
+      "gitHead": "bdb39c4c4b079c5731f724faf89012de3b51bd23",
+      "sourceFingerprint": "sha256:6779eb6aba0b70605d4c0217f38aa53c51b102cc115b50e134f1132a93f05643"
+    }
+  }
+}

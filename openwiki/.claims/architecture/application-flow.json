@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:246e772c9a835dc7877c17476ec4edc8d4e992ea4b65da81b7d2b2395c876791",
+  "claims": [
+    {
+      "id": "claim_641df57620bf461a9437860dba7988e6",
+      "statement": "The Godot project starts at `scenes/app_root.tscn` and registers `AppRouter` and `AppState` as autoload singletons.",
+      "evidence": [
+        {
+          "resource": "repo://project.godot#L11-L20",
+          "version": "repo-lines-v1:sha256:ffe568aa34e640ce4967ce210610822173748dc41c25aa72c512771389b9765f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjMzc3ZmRmMjdlYmZlNTZkYzE1NjdmNmI3YTdhMmFhMjI3YjkzODlmMGE3YzUxZGI4MDAyOGY3NGQ2ZDk4OTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzOTUwZjRhMDAwZDk1MjA2NWFkMWNlZTgxOTA4ZjA0NzFjMTY0NWIzMGY4YzIxNzc4ZDRlMTY1Yzg2Yzg5MjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwY2NlZmQ3ZTFhZmU3MjVkOTdlMDRlOTVjYzBlNmE4OWZjZGU3N2I2Y2U5MTZjNWMwZTllZmM4NGRkMmEyMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NjJmN2QzNzk2Njk3ZGVlMmY0YWM1NWExZGMwZjc3ZjBiMjcxY2IxNzQzNTQ2ZGUxMjhjMTljMDg5OTkzZjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6e19f027107a442fb5af574ce9a3e341",
+      "statement": "AppRoot listens for route changes, defaults to the main menu when no route exists, replaces the hosted screen on navigation, and configures gameplay with dictionary payloads.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/app/app_root.gd#L16-L36",
+          "version": "repo-lines-v1:sha256:126a52a737ba24a152519a482e35d134b9a8b96ce18c8cb18dd247957a303393:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NWFiMDc0NTNlYmFhOTk5NDkzNDdmMDc4MmIxZTM1MDMwMzE4Mzc2MDA2MTJmODgwNjA1ZGE0MzM1NGVlOGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlMjQ2MDY0YWE4YzZlYTNlYjk1OTBiMGE5NjgyN2I1MDQ5NjM5NDM5Zjg5OTEwMTlmN2QzYmVmM2Q3MjcxYWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2MWQ0YWU1Nzg4YWEzYzQ3OTgxM2I1Y2ExYThiNGQ4NDBjZjg0N2Q1NWZkNzdlODJkNTVjMDUzNGNmMzMyZDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4e7e304322fe43a086921d701978d40c",
+      "statement": "AppRouter stores the current route and payload in memory and emits a route_changed signal whenever navigate() updates them.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/autoload/app_router.gd#L3-L12",
+          "version": "repo-lines-v1:sha256:4589789fe5b4ce14de0bb790573d3c8373940226cc673ddeddded9416898e178:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2Yzc4NzRjNzFmZTgyZTliMTJjMzQ5ODAzZDJlODI5ZTAzYzQxZjJhZGY5N2U1YTJkMjQ1NjBiZDFlNTUzNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5N2ZkZmQ0ZTk5ZTk5NTgxYmI1MzdlODcyNTQ0Y2NjYzc0YjYwYzYxYWJjYzFjZTgyODg2NDRkYzMxYTE3ZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5ZjY2ZTE5NTRkMTM2ZjRiMzYyNDI5OTAyYjI3Zjg2ZDczYmM2ZGNlZTgyNjdjOGU5YmY3NzMwNDI0ZTE4ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_33ffaabaa43d488d9442593fd24276ec",
+      "statement": "Level selection emits four implemented level IDs: level_1, level_2_descent, random, and random_backward.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/app/app_root.gd#L49-L58",
+          "version": "repo-lines-v1:sha256:aba462e016455117b3639235d06b412d67e4669ed12fbf7270866be8b819330e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNTNmNmYyMDE1ZDQwNjRhY2QxMDE4ZGQ4ZmFlY2EzNTM5MWQ4MWEyMTJiZWI0MmQwNDkzYWQ4MjRiMzk1NDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkY2RiZmFmNDFjODA4N2Y3N2ZiNjZmYWY4Mzg5NDA0ZjE4YTZkNWM5NmYxZjM4YjEwZjc1NGQ4YTMyZDgxZDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkNzAzMjU2MTg1ZGQ1ZDk4OTEwMTI4NzAzODIyNzA5NTlkMzBiNWMxNjY1MzhlMWZkZjk2NWEwMTYwNDA2OGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5YmM0ODljNGM4ZDIyY2NjM2VkMjMzYWNhMjZjMGJlMjY5ZWFhNWQwYzU0ODM4MmYzYWYyY2FlMGE1MWEwNWEifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/level_select_screen.gd#L14-L29",
+          "version": "repo-lines-v1:sha256:90b500cd26d261497e2429304f11eece0dfd72dcf9d83840469c71a5592a57da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NWFiMDc0NTNlYmFhOTk5NDkzNDdmMDc4MmIxZTM1MDMwMzE4Mzc2MDA2MTJmODgwNjA1ZGE0MzM1NGVlOGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYWMxOGEzYjU0OTg2OTA0YzI3NzhhNDBjZjVkZWM0ZmViYzU2MmNlNWRhOThlNTY3MmMxZWM2NzY5YWI2MTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyZTQ1MTAyODU3MzY4YjAzNGVjMGRiZTNjY2NmNDAzMjhlM2FlY2E4ODFiMjE3YjIxZDdmMDNmNTE0ZTZhOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1c55f8e5beb8463c97ce94b89b778a7c",
+      "statement": "AppState holds language, music, and SFX preference values in the singleton and updates them through apply_settings(); no disk persistence is implemented in this state owner.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/autoload/app_state.gd#L3-L16",
+          "version": "repo-lines-v1:sha256:a3763f8ce2c3f43862be8152cf5a84b98d70e1e6d35433122d40ae771417321e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkY2Q0MTY1ZGY4MzY4ODllZjE2MjMwOGZiMDAyZDcyMzkyM2JlOGZlNGJhZmM5NjY1NjY1Njg2YzgwMjhkMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1NmE2NGE4ZmNlNTlhZjE5MjAyMTc0M2Q2ZGY0ZmRkN2I2YjE3NjYyZGQ5YTVjNzNlYzUwNjNmMTVkMGIzODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5ZjY2ZTE5NTRkMTM2ZjRiMzYyNDI5OTAyYjI3Zjg2ZDczYmM2ZGNlZTgyNjdjOGU5YmY3NzMwNDI0ZTE4ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-13T10:18:16.069Z"
+  }
+}

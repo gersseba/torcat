@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:c4e635ccf11472218df03dff33ca007a9e15c8faefbabadff8640555abf4767a",
+  "claims": [
+    {
+      "id": "claim_cd81612ea12e4685a11f210f83e623a0",
+      "statement": "The configured Godot main scene is scenes/app_root.tscn and the project sets a 720×1280 viewport, canvas-item stretch, portrait orientation, and the Compatibility renderer.",
+      "evidence": [
+        {
+          "resource": "repo://project.godot#L11-L33",
+          "version": "repo-lines-v1:sha256:60145e43d58efd75f5d86ea214508509aec727448cea4837255b7a1be9c46346:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjMzc3ZmRmMjdlYmZlNTZkYzE1NjdmNmI3YTdhMmFhMjI3YjkzODlmMGE3YzUxZGI4MDAyOGY3NGQ2ZDk4OTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljNzAzODA3ZGYzZTYxZWU0ZTUwNjZhNTQ3MjBmZTZiN2Y1ZWI2ZGViOTNmNmJlMzgzMTE0ZGMyYzhlN2JmM2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwY2NlZmQ3ZTFhZmU3MjVkOTdlMDRlOTVjYzBlNmE4OWZjZGU3N2I2Y2U5MTZjNWMwZTllZmM4NGRkMmEyMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_387e13ded80e4dedb01cd40489e0b92c",
+      "statement": "The level-select screen offers the prototype, descent, random, and random-backward IDs, which the factory maps to two JSON files and two procedural variants.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L7-L25",
+          "version": "repo-lines-v1:sha256:400e4ef73610dd86d5a6189ef4c60c9947a327a15e0687eb16b638f72ead21f8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0MTBmODg5YzhhYWEwYmEwZGU3ZGM4MjRkZTA2NGViZmQ2MGQ3Yjg4ODg1MmZhYTE1OTFhNWQ2MGNiMjYzYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiYjVkNDNhZWYyMDFiY2IwNGUwYWUyYzgwMzE3NDYxZTNhMGZmMGY1YjUwMzIyYmVhYjVkM2YxZWQ2ZmFjNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmMWVmNjgzNmRmNjQ4NjFmY2FhNjNkYjBhYzQ2MGY1MWQ1OGVhMzhjMzhmZTUwYjg4OWZjZjA0ZDkzM2ZjYjMifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/level_select_screen.gd#L14-L29",
+          "version": "repo-lines-v1:sha256:90b500cd26d261497e2429304f11eece0dfd72dcf9d83840469c71a5592a57da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NWFiMDc0NTNlYmFhOTk5NDkzNDdmMDc4MmIxZTM1MDMwMzE4Mzc2MDA2MTJmODgwNjA1ZGE0MzM1NGVlOGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYWMxOGEzYjU0OTg2OTA0YzI3NzhhNDBjZjVkZWM0ZmViYzU2MmNlNWRhOThlNTY3MmMxZWM2NzY5YWI2MTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyZTQ1MTAyODU3MzY4YjAzNGVjMGRiZTNjY2NmNDAzMjhlM2FlY2E4ODFiMjE3YjIxZDdmMDNmNTE0ZTZhOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ee009876a0a144b69332b59e01664404",
+      "statement": "Gameplay supports character selection and two-click destination preview/confirmation, arrow or WASD movement, Tab character switching, wheel zoom, right-drag panning, Space recentering, and attacks from the tile adjacent to an enemy without moving onto its tile.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L121-L174",
+          "version": "repo-lines-v1:sha256:7e97a560b14edb294998c3322b8b2cdace6569859f898a7dba35a7ae35c13ad0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxMjIzZTQ3NzZlNzRiOTI2NmIxZTY3MDg4YTcyNDllMTVjMGYxYTczMjkyM2MzMjdkM2ZiOWZkYjQyYzJjZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4MmI2NmE3N2Q4NDVmZjNiYjBkMzQ2ZGNjMWYyMzkxMzcxNzVhNjQzMWQwMjQ2ZGQ0ODgwYjE1YWI0ZjU3MDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjYTJjZmYzOWJhODQxZGFkYWE5ZWVkYTMxMTZkMDY3NGMzNGMwYmVkYWUwNjViOTUzNThjYmI4ODFhNGFmMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZDQ4MzJmNjA1OTJiODkzNzY2NGEwODMzNjUzM2I1Y2JlNmUzOTQwM2ZiY2JiNDgxNzcwNjRmNWQyYzczY2UifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L400-L429",
+          "version": "repo-lines-v1:sha256:07e483f0716a49f5af0ffd00b4383a1f17aed45e36787fb5297d4762d56f5607:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhZDlmNTkxYzdjNjk5OWUxYjlkNGVkMzY3YTljM2UzOTU3ZGM3NGZkNjc0ZGRhZTZlMWRiNTZmNzM1ZGJjNTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyMzQzZTY2MzI0ZTFiZmMwNDQ5YmI0NmVlMGRjOWFhNzBhYTEzNzFiNjA0N2YzNzQzNjAxM2RiZThhZWY3MzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxMjI1YmM4MGFhN2I4OTAxN2U4NzkyYmI0YTVjZGI2NmQyMGM3N2U5ZGZkYWJhZDUwZjA5OGQ0M2Y2MjEzNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5YmZlYmI4OGQxMWM5MjNhN2YzODlkNTUxZDYzMmVhZTM0MDFkMjI3ZjI5ZGM1OGQ2OWQzZjcyNzdlODNlMjQifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L67-L118",
+          "version": "repo-lines-v1:sha256:df0c75d4201c97623c9cce8b173ece107d720ef5c5becca498c4754ddf654901:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyNjU5NmVlZTdjZTQzYjA4Mzg4Y2IwNGM4ZGY3NDI0YTcyZjFmMGZiYzBiYThkMjVhNjA3Y2IzOGEzYmYxODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMzE0NTFkYjBiMWY4ZWUyNDgzNzRjZmI2NTg3Y2Q3ODQ4Mjk2MTA5OTExNzhkY2QwNDBkMzgwZGQ0ZTFlM2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NjRhYWQ5MzlhY2UwODQ0M2FjYWEzYjU4ZDQ3ZTE5ZjdmMTdlOTE5NjM0OTIyMDIwYzBjOTA0YmY0MTFmMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzM2NiMmNhYjFmNDBhMmQ1OTc2YTkzMjcxODgzYzNmOGFkNWIzYzhmOTIzMGI4ZTYyMzA3NGUxOTYwYzc5ZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c9f45871f7fd4d7fa29f410b12c082da",
+      "statement": "The project migration plan records implementation of the gameplay interaction loop, procedural generation, and parity work as completed milestones.",
+      "evidence": [
+        {
+          "resource": "repo://MIGRATION_PLAN.md#L1-L40",
+          "version": "repo-lines-v1:sha256:73a65ff85540bdd45a8444c1f31489a8a63de365ef4d80a334d5514ec01903e4:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiYmQzNzQ2ODZiNTJkNzFmMGZkODhlZGI0ZGIxMzJlNDNkOTZhNDRmMWRmMzdkOTg4MGM1ZmExMjFlNTU0YTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzZjM2NGZiOTk5ODg2ZmY2YjExYTJiOTI3MzE2MTZlNWVmZGVhYmY5YTFkYmJjODViYWQwODA1YWY4ZTk4ODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmZmUxMjgzOGVkNWE3MTFlNzBiNWQ4ZjNlYzUyNjkxMTcxMDNkYjIwNGViOWMzMTNiMmMyNjg0N2ZlNDJkYjQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-13T10:32:33.131Z"
+  }
+}

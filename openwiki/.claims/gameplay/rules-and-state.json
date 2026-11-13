@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:322a581847400dd7376d487a2fc7d2b7ce13de10108fe278f2048acda840bd8f",
+  "claims": [
+    {
+      "id": "claim_6f4c36e1af2b44768e909f75019a0245",
+      "statement": "GameState stores the board, characters, enemies, rewards, traversal data, selection, event text, and terminal flags; its state-copy helpers copy nested player/entity objects and arrays or dictionaries containing copyable objects.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_state.gd#L1-L217",
+          "version": "repo-lines-v1:sha256:2dec0527d64e24009108bd685f71c3b53d227fa999c34910a137cd1def942fa3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjE3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3NjA3MTQ4ZWIzNmJhNjQwY2Y3ZjA0NTRjNmQxOTQ2ZmM1ZjhjODc1ZGVhZDNkYjY3ZWNiY2EzYjkxMjNjNzllIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1NGM0ZDQ3NDU2Y2Y5ZDFkYjg2MTU5NjY1ZWZhNGFhOTZjYTA0ZmMxYmQ0NzEwMjExYTAxYmNiNjM1MjVlY2U0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_ad3cafc4c9934aaeb269d299a9eb9a7a",
+      "statement": "GameEngine movement stops once a state is terminal, rejects dead characters and invalid or blocked steps, permits elevation changes only over a traversable edge, and attacks an enemy on the next tile without moving onto it.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_engine.gd#L14-L55",
+          "version": "repo-lines-v1:sha256:a44349e7a8252803b9c09edeb231ee814920559b98baa64b246143139096fc0f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2ODMzYjcxMTkyYTI2N2RiMzE1YzU4ZDM1OWQ5M2ZiNzQ2NTEzMGZlYTE1YzBiNjNiOTIzMmRlZTYxMzJjZjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2ZjI4MjkzNjAxNzJhNDM2M2NkODdjNjcyODM1OWM5ZTBlMjMzNGM2NTE0MWMzYWRlOGNkNTZmMTE4ODJiZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5ZjkzMDgzYzE5NzEyMWI5ODI3MDBiYThhZmFiZDE3MjJjZjFkM2U3NDA0NTA5ZTgwZWZhMjcyNDdmNjJmMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZTRiYzVmNDdhMWNmMTdhNDI5NTJhYzc3MjcwMDAxNzcwMzEyNjI4ZmE0YzExNDgzZWJmNWY0MGE2OTBjODgifQ"
+        },
+        {
+          "resource": "repo://scripts/domain/game_engine.gd#L175-L186",
+          "version": "repo-lines-v1:sha256:9df3a24503009544e2b16091c162570296fd2c195a9993ab1af9340fd304b6a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1ZjM3MTU1ZTYwYzAxOTNmNTIwMmNhNDI4Y2ZlMGYxODlmNGJlZGY1N2U1YTliYjQyYmQ3NThiY2ViMTg5OWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZTEzZTYxYTc5OWE5ZDJjNjAwY2MzMDMxZGRiYzFkMzhmOTlkMTdlZTlmMjU2NjMxNjQ5YTlhY2EwN2MzZTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NDgxZTAzNDM5ZWRlMDNkZmQ2NjI4M2VlMWYxYzQ1NGM0MzUxMGQ2MzM4YmU0ZTIzZGY2NDRjZTY1YzI5MGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2YmIxOWUwZDdhZDExZmUyNTkwY2E4NDUxNzBlZmEzYjEzNzAyNjRlMjA3ZGNkZTE4Nzk3ZDI1NTRlODk2ZTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_457d5c84356c4530862d44ca4bb3a8ef",
+      "statement": "Pathfinding searches cardinal neighbors breadth-first using the same traversal check, and path execution verifies its start position then applies each step through the normal move function until it fails or reaches a terminal state.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_engine.gd#L58-L111",
+          "version": "repo-lines-v1:sha256:bef6cf022f1cec0c3e1c2f033dc635fd68966b0d46d3befb8ee97f5500c9850f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmOTEyODBjMjdjMGJiMmI5ZGU5NzUzYWYyOWNjODIxNzg1OTRiYzM4NTExZTM1Y2U1YzVmMWIxYTRkYzY4NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkYmYxOTk4YmJiNjU1YzRlNDA1ZjEwZGE4NmRkMTM2ZTk1NGU4ZjM0OGViODQ5MjMzMGU4OTU5OTdiMjFiMzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0NjQzM2ExZGU0ZDBiNjJmZTVmYjhiMDdmMzQyMzAzOTc1ODBlNWFhMWFhYjQ5MmVmMzY4MWU4ZTMxNDViY2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4550e0bad8ec434cbf94b9ad9e696337",
+      "statement": "Items and lootables are applied and removed before combat; item and loot power are added to the active character.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_engine.gd#L113-L136",
+          "version": "repo-lines-v1:sha256:6a897f42cd9d4876450e1dbef8c010d3718e6372d7f4eb5d3d17c864a78247ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkMzMzZThhNDUzOTQ2Y2MyOTU0MmEzYzkzMzQ3YmU3M2U4ODc5ZGRlZjQyZTMxZDQ3YzhkMDQ4NGU2MWMwMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMzNGNkZWMyNWRkOGY0Mzg0MmZiNGYyNDVlM2JkY2JhZGNkOTU4ZGEzOTI4NDk5MjUxMWM4OWIyNTUyOGFiYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1Y2Y4YWE4MTFlODRhNmQwODEwZmJjOTkyYTc4ZjJjYjQxZmQ3MDU2MzE5YTEyMzY4OGJlODZhYTBlYjM3YTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ca3d8989f96b456f98f27376beb11c5d",
+      "statement": "Combat requires the active character's power to be strictly greater than enemy power; victory adds the enemy's power and removes it while leaving the character at its prior adjacent tile, and a loss marks the character dead in place and can end the run.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_engine.gd#L137-L161",
+          "version": "repo-lines-v1:sha256:69f9069c54ec943a135e5c8b12b2b6135aac5662b6def05d8528d1f74f98c36b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5ZGMwZTIzMjI3ZmRhZWE0ZmIwMzc3Y2E1NjBhYmVlYmNhNWQ3ZjgxNmMwNmQ3NWUxZTdhZTRhZDA4ZGNkM2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwOTQzYzA0NzZlNDVlNDA0YmVhZTQyZTE3MTFmNDNkNmNhZGVlZGQwYTRjMGJlZDI2MjAwMGE5NWJmMDc4NmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmNTIyMzMwZmU0NGE5YWI1NTYyMzY0Yjc4ZmU1MzEzOTZiNDY2ZjBlY2RlZmRiMTk5MTQ2ODJhMTBkOGZmZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhOGUyYzgxMjJhYTRhNzMzY2E4ODIwMjQ5MmFlYmQ4MGQ2YmRmN2E1MTFiZTY0NTJkYmM4OTAzMjBhZjUyNzMifQ"
+        },
+        {
+          "resource": "repo://scripts/domain/game_engine.gd#L37-L44",
+          "version": "repo-lines-v1:sha256:96743e7a60818cd7745403db345bc302dbb53e7377552881a4de6e82bae231b5:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZiMjQwMTg3NmEyMzk5OWI4NWI0M2I1ZDhmNGRjNjQ3MWQ1M2FlOGUxMjk2MDdlNGZlOTNjMDI3NTJmNTQ2ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzJlN2Q4YWI4MTEyMTJmOGZkOTUzOTY5MjFiOGE0YWY0MGM4OGUzMWYxNjNkYmE1Mjk1NDU4ZGFiNjFmMTQzNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNjYzJmYzY2OGNkYTY5Nzc1OGY3OGI5MWE4OWU2MjM3MGNjOTZkMGIxNmJmNzE3NGY3MDEwMTQ0NDhiYjBhYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzk1MzU2OWU2NjRmZGIyMzA5ODVlYjY2NTVmM2RkMTk4MWQ5MzBkZjljNmU3ODRlNjQxMjk3OTIzZjNlYWEwZSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-13T10:32:33.131Z"
+  }
+}

@@ -1,0 +1,122 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/screens/gameplay_screen.gd" id="1_3dpka"]
+[ext_resource type="Texture2D" path="res://resources/assets/ui/chrome/secondary_button.png" id="2_button"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button"]
+texture = ExtResource("2_button")
+texture_margin_left = 64.0
+texture_margin_top = 48.0
+texture_margin_right = 64.0
+texture_margin_bottom = 48.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[node name="GameplayScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_3dpka")
+
+[node name="BoardRoot" type="Node2D" parent="."]
+unique_name_in_owner = true
+
+[node name="GroundLayer" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 0
+
+[node name="OverlayLayer" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 1
+
+[node name="MarkerLayer" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 2
+
+[node name="BoardCamera" type="Camera2D" parent="BoardRoot"]
+unique_name_in_owner = true
+enabled = true
+zoom = Vector2(1.25, 1.25)
+
+[node name="UiLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="HudContainer" type="MarginContainer" parent="UiLayer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 164.0
+grow_horizontal = 2
+
+[node name="HudRow" type="HBoxContainer" parent="UiLayer/HudContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BackButton" type="Button" parent="UiLayer/HudContainer/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(128, 64)
+text = "Back"
+theme_override_styles/normal = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover = SubResource("StyleBoxTexture_button")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
+
+[node name="EventPanel" type="PanelContainer" parent="UiLayer/HudContainer/HudRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EventLabel" type="Label" parent="UiLayer/HudContainer/HudRow/EventPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tap a reachable tile to preview a move."
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="RecenterButton" type="Button" parent="UiLayer/HudContainer/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(144, 64)
+text = "Center"
+theme_override_styles/normal = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover = SubResource("StyleBoxTexture_button")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
+
+[node name="ResultPanel" type="PanelContainer" parent="UiLayer"]
+visible = false
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -60.0
+offset_right = 180.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UiLayer/ResultPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResultLabel" type="Label" parent="UiLayer/ResultPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Victory"
+horizontal_alignment = 1
+
+[node name="ResultSubLabel" type="Label" parent="UiLayer/ResultPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Press Back to return to menu."
+horizontal_alignment = 1

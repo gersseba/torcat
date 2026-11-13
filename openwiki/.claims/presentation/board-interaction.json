@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:2151f5cfe7750749ec8951f32aa666679015fe4d55f20b041b3e02d6fb59d3df",
+  "claims": [
+    {
+      "id": "claim_92fec3c435564bee9c1d4fb46ca65110",
+      "statement": "Board clicks select either character, preview a reachable path on the first target click, execute it on a second click on that target, and clear the preview with feedback and camera shake when no valid path exists.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L121-L174",
+          "version": "repo-lines-v1:sha256:7e97a560b14edb294998c3322b8b2cdace6569859f898a7dba35a7ae35c13ad0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxMjIzZTQ3NzZlNzRiOTI2NmIxZTY3MDg4YTcyNDllMTVjMGYxYTczMjkyM2MzMjdkM2ZiOWZkYjQyYzJjZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4MmI2NmE3N2Q4NDVmZjNiYjBkMzQ2ZGNjMWYyMzkxMzcxNzVhNjQzMWQwMjQ2ZGQ0ODgwYjE1YWI0ZjU3MDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjYTJjZmYzOWJhODQxZGFkYWE5ZWVkYTMxMTZkMDY3NGMzNGMwYmVkYWUwNjViOTUzNThjYmI4ODFhNGFmMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZDQ4MzJmNjA1OTJiODkzNzY2NGEwODMzNjUzM2I1Y2JlNmUzOTQwM2ZiY2JiNDgxNzcwNjRmNWQyYzczY2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aa5275aebd944f95ac4b77d276a6c5e8",
+      "statement": "Keyboard arrows and WASD call direct one-step movement, Tab switches characters, Space recenters the camera, right-drag pans it, and wheel input changes zoom within a 1×–2× range.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L185-L211",
+          "version": "repo-lines-v1:sha256:735ce666ecd2a0e745349cb042e955ce2831c73ee27192bb7314fd0a10249177:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiZTBiNWRlMGNlOTUyMTNkZmJmNGFjOTQ3OWUzYTE3Y2YwYTQzYmU2OTYxOGExNzBhMWVhZjg5OWQ2Yzk1MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTQzOTUxN2I5ZDJhOGI1MDM4ZGZmZmZmYzkyNjBkZDY3MTRhOGVhOTI3MDc2NTc2N2U4NTUzYjdkNzE4M2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NjRhYWQ5MzlhY2UwODQ0M2FjYWEzYjU4ZDQ3ZTE5ZjdmMTdlOTE5NjM0OTIyMDIwYzBjOTA0YmY0MTFmMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwMjMzNTE3MjQyOTkwMmUzYTZmYTYxOGExYmU3ZDZjZjgyYmMyN2IwNTA4MTlhYTA2YWE5MzdlYzBhNWFkODMifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L247-L264",
+          "version": "repo-lines-v1:sha256:531fa6879dea7aea813a37e3626c06dad1f27063d4df0c04c40e4ea365de3fbf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5MjQ4MzgzYTliMjcyMTkwYzllY2E4NzRlNjEzNzM3MmI5YTRlNmVkM2Q1OWIxMDhkN2I0ZmE5YzYzYTljNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5ZTU4NzU1YzliNWIwMDQ3OGJjOTlmMTYzZTAwMzcxOTlhMGY3ODZiZTUyN2YyZDQ5OTExNTRkZDNlNDk1MDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFiNzk2OGQ2YWNlMWQ4MmQyMzNhMDNmY2QyMjZjYjMzMmJkYWVlYWI3MTBmYjMxMDk1YTQ4MmNhNGU0Y2UwY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwOGFkZTE5NTc3ODYxYmEyZmE5ZWMxODhjZDllZmI4NjY0NDI3ZjVlOWJjNTRmZmIyM2ExMWQwYjY4NDZlY2EifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L67-L118",
+          "version": "repo-lines-v1:sha256:df0c75d4201c97623c9cce8b173ece107d720ef5c5becca498c4754ddf654901:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyNjU5NmVlZTdjZTQzYjA4Mzg4Y2IwNGM4ZGY3NDI0YTcyZjFmMGZiYzBiYThkMjVhNjA3Y2IzOGEzYmYxODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMzE0NTFkYjBiMWY4ZWUyNDgzNzRjZmI2NTg3Y2Q3ODQ4Mjk2MTA5OTExNzhkY2QwNDBkMzgwZGQ0ZTFlM2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NjRhYWQ5MzlhY2UwODQ0M2FjYWEzYjU4ZDQ3ZTE5ZjdmMTdlOTE5NjM0OTIyMDIwYzBjOTA0YmY0MTFmMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzM2NiMmNhYjFmNDBhMmQ1OTc2YTkzMjcxODgzYzNmOGFkNWIzYzhmOTIzMGI4ZTYyMzA3NGUxOTYwYzc5ZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a94ce374bd4947719c6a449306d7b555",
+      "statement": "GameplayScreen delegates pathfinding and movement to GameEngine, renders the current state before animation, and commits and renders the resulting state after successful movement or attack animation.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L154-L169",
+          "version": "repo-lines-v1:sha256:0945a79f796f9478bf5f392e89925c7c64ed471f71e2f5c284826ff8a97fdb4b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkMzI5MjNmYzQ5MmI3NDIwOTFhYTYxZTljZGE0YjcwNGYxMjY2MjQ1M2JjMjM4ZGE1M2E0NzNkM2U2NjY3YTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTQzOTUxN2I5ZDJhOGI1MDM4ZGZmZmZmYzkyNjBkZDY3MTRhOGVhOTI3MDc2NTc2N2U4NTUzYjdkNzE4M2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNDlhMTA1YjkxYjYzMzNmZDVhZjAyNTM0YWQ0NzM1Yjg0ZTRhZmM2Y2EzYmQyNDBmNjY4NDk3OWVkZDA1NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0YTRmNWU1ZDQ4MjMyZDU5ZmIyZDUwOWY4NTM4ZDEzNGIxYWQwYTRhYjIwYmU3OGNlZjVlYjBhNzAzMDAxYTUifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L185-L211",
+          "version": "repo-lines-v1:sha256:735ce666ecd2a0e745349cb042e955ce2831c73ee27192bb7314fd0a10249177:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiZTBiNWRlMGNlOTUyMTNkZmJmNGFjOTQ3OWUzYTE3Y2YwYTQzYmU2OTYxOGExNzBhMWVhZjg5OWQ2Yzk1MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTQzOTUxN2I5ZDJhOGI1MDM4ZGZmZmZmYzkyNjBkZDY3MTRhOGVhOTI3MDc2NTc2N2U4NTUzYjdkNzE4M2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4NjRhYWQ5MzlhY2UwODQ0M2FjYWEzYjU4ZDQ3ZTE5ZjdmMTdlOTE5NjM0OTIyMDIwYzBjOTA0YmY0MTFmMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwMjMzNTE3MjQyOTkwMmUzYTZmYTYxOGExYmU3ZDZjZjgyYmMyN2IwNTA4MTlhYTA2YWE5MzdlYzBhNWFkODMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b8c56b06d0b443b199f116df401af333",
+      "statement": "BoardRenderer builds a shared atlas-backed TileSet, clears all three board layers on each render, and separates ground, overlays, and entity markers across the layers.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/rendering/board_renderer.gd#L31-L122",
+          "version": "repo-lines-v1:sha256:584b5d33372a796b2805d83b4a37df1c288263a6071b86376b93387a28cc7e70:eyJzZWxlY3RlZExpbmVDb3VudCI6OTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhN2FmYjhlYzA2ZjNiNTBjYjgyNjI2MmI0YTNhZmEzN2Y1ZjNkZDdjM2NmNWFlODEyMGFiMzJiNjEzNTMzNTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5ZjkzMDgzYzE5NzEyMWI5ODI3MDBiYThhZmFiZDE3MjJjZjFkM2U3NDA0NTA5ZTgwZWZhMjcyNDdmNjJmMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg1MWE5OGFkMDdjM2YzMzI0ZmE1NzE2NDBiM2RmMDZkZjgzY2MyNjM3NTMwMmIwNzk0YTY1Zjg3Y2U2YTBjZDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1c190d3a50cf4c57b328e4d0f0e6489b",
+      "statement": "Tile images are loaded from terrain, blocker, and glyph resources, normalized to 64×64, and missing tile imagery uses a colored fallback.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/rendering/board_renderer.gd#L93-L179",
+          "version": "repo-lines-v1:sha256:86a948d6e7363b8393b9ff3c0214a018148d4f147daae47d454ea360f1cd7239:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjNWJmMjgyODI0ZDQyMmFhYTI2MGE5OGUwYjU1NDRiOGJjZWVkNGE3MDM3ZWJiYzkwZDEyNTU1YjA3YzhhODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFiNzk2OGQ2YWNlMWQ4MmQyMzNhMDNmY2QyMjZjYjMzMmJkYWVlYWI3MTBmYjMxMDk1YTQ4MmNhNGU0Y2UwY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2NmI5MmJiMTk1NWNmNTE3YmFjNTk5N2QwODAzYjg5YzI5ZDE3MGRkZGY5ZjdlOGU0Njk3MjJiNTZlZDIzZmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ac8bc305c15a4d9cb7ab402c8bf20f14",
+      "statement": "Ground texture variation is deterministic from board coordinates, while cliff overlays account for lower neighboring cells and omit edges with traversable connections.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/rendering/board_renderer.gd#L180-L222",
+          "version": "repo-lines-v1:sha256:d64c92648f87c71db649a9c95b5afa3bc24b25871ad1e86f54daef79da65d112:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0MzhiMjQ1ODBhYjkxZDhkMTA2ZDE2NTc3OGRjYWQ5NjIyMDcyNGQ1YWYwNmFkYzZkMDU3NDA0Y2VkMzE2ZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzZjU0ZDUwZmRhOGM2ODc1ZDllMDg2YWJmYThjOGVjMjVlZmZmYTQyZGVkMWQ2MGRjZTYzNzJmN2UzM2VjOTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYwZDRiNDhmZWM1MDk0MzIyMjE2NzZlY2JlZWNlM2QzOTkxYmRmNDZhN2UyNjYzZGJjNGM2NzIyOGE2YWRjNTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_72f2560d6a1a4da2a570a93213feca6b",
+      "statement": "BoardTheme defines semantic role colors and maps tile IDs or presentation tags to roles; BoardRenderer uses the theme when selecting a fallback color.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/rendering/board_renderer.gd#L162-L178",
+          "version": "repo-lines-v1:sha256:d4cffade90e5d7b1739412ed76618125ed737edd67a7794f8a98cefaf4a676cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExZGVjNTViY2FkNzExMTlmZGRhZWFhYTZhMWNjZGJjY2FkMTllMGI5ZTZhZWZhYzNkN2E3MzUzZTZjYjc2NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzZjkwNTI4ZDc3N2M2ODcyYTRkNWRjMjk1ZjNjMDM1N2M4YjVlNGI4YTA2YzhiOTM1NmExNTk0NWIyNjExZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwNDQxMWUwODhhYWZlMWU1ODVmMTBmNTY1OWU0ZjFjYjg5YmI1NDA3ZjgzNGJiOTZlYzA1NWFiODFhY2FkYjcifQ"
+        },
+        {
+          "resource": "repo://scripts/rendering/board_theme.gd#L1-L78",
+          "version": "repo-lines-v1:sha256:f5e38a2f7d764aa81707a41e2485edcb285cfe6bcca54578785b1cfdf6bfdf02:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxYjFkZjQ0YmU2NGM0ZjAzMDkzNjI3MmJjYTY0Y2Y3MzdlZmMzYzM4YTQ5NWYyMmRlOGFmYzBjNTg3MzZlMWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyOGMzNTA3MGIyNjA3NWU3NjI1MmE5ZTFkZTVhNjY1YTllOWRmODFiNTQxNjNjOTU0N2JkMjhmMzBjZDdjNDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNWJiNzYzMGU5MGUxYzk3MjFlZTFkYzliODRkZGE2M2Y0OTYyZWFmYzIzNWRlMDVjZTM4YzU3OTY2YzExMGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b72a04a6b83045b78fcb94af0645e857",
+      "statement": "When a route reaches an enemy, GameplayScreen moves only to the preceding tile, turns to face the enemy, plays the matching attack animation without tweening onto the enemy tile, and commits the resulting state after the animation.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L154-L169",
+          "version": "repo-lines-v1:sha256:0945a79f796f9478bf5f392e89925c7c64ed471f71e2f5c284826ff8a97fdb4b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkMzI5MjNmYzQ5MmI3NDIwOTFhYTYxZTljZGE0YjcwNGYxMjY2MjQ1M2JjMjM4ZGE1M2E0NzNkM2U2NjY3YTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTQzOTUxN2I5ZDJhOGI1MDM4ZGZmZmZmYzkyNjBkZDY3MTRhOGVhOTI3MDc2NTc2N2U4NTUzYjdkNzE4M2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNDlhMTA1YjkxYjYzMzNmZDVhZjAyNTM0YWQ0NzM1Yjg0ZTRhZmM2Y2EzYmQyNDBmNjY4NDk3OWVkZDA1NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0YTRmNWU1ZDQ4MjMyZDU5ZmIyZDUwOWY4NTM4ZDEzNGIxYWQwYTRhYjIwYmU3OGNlZjVlYjBhNzAzMDAxYTUifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L195-L211",
+          "version": "repo-lines-v1:sha256:961a1cb6a815d16fc8d11744b99a89f4dbb5849b3af5de5b932a66ccef67bf9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczMjkyYjYwODAxMzY1ODE0NTM4MTMwZWJmMzIwMmI2Mzc4ZDc4MTQ0YmJjOTFjZjM3NDJkMjI0YWUwZGRhZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTQzOTUxN2I5ZDJhOGI1MDM4ZGZmZmZmYzkyNjBkZDY3MTRhOGVhOTI3MDc2NTc2N2U4NTUzYjdkNzE4M2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjYTA1OWQzMThjNjBhMTQ0YjhiZTc4YThhNTIzZGU5MTkwMWUyNzkyYzNkMWU5YjYxOTJjNDk3OWQxNzMwZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwMjMzNTE3MjQyOTkwMmUzYTZmYTYxOGExYmU3ZDZjZjgyYmMyN2IwNTA4MTlhYTA2YWE5MzdlYzBhNWFkODMifQ"
+        },
+        {
+          "resource": "repo://scripts/screens/gameplay_screen.gd#L400-L429",
+          "version": "repo-lines-v1:sha256:07e483f0716a49f5af0ffd00b4383a1f17aed45e36787fb5297d4762d56f5607:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhZDlmNTkxYzdjNjk5OWUxYjlkNGVkMzY3YTljM2UzOTU3ZGM3NGZkNjc0ZGRhZTZlMWRiNTZmNzM1ZGJjNTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyMzQzZTY2MzI0ZTFiZmMwNDQ5YmI0NmVlMGRjOWFhNzBhYTEzNzFiNjA0N2YzNzQzNjAxM2RiZThhZWY3MzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxMjI1YmM4MGFhN2I4OTAxN2U4NzkyYmI0YTVjZGI2NmQyMGM3N2U5ZGZkYWJhZDUwZjA5OGQ0M2Y2MjEzNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5YmZlYmI4OGQxMWM5MjNhN2YzODlkNTUxZDYzMmVhZTM0MDFkMjI3ZjI5ZGM1OGQ2OWQzZjcyNzdlODNlMjQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-13T10:32:33.131Z"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "meta": { "id": "level_2_descent", "name": "Cliffside Descent", "width": 12, "height": 12, "theme": "elevation_topdown", "version": 2 },
+  "tileDefinitions": [
+    { "id": "meadow", "heightLevel": 0, "assetKey": "meadow", "presentationTag": "ground" },
+    { "id": "meadow_flowers", "heightLevel": 0, "assetKey": "meadow_flowers", "presentationTag": "ground" },
+    { "id": "meadow_patch", "heightLevel": 0, "assetKey": "meadow_patch", "presentationTag": "ground" },
+    { "id": "ridge_low", "heightLevel": 1, "assetKey": "ridge_low", "presentationTag": "ground" },
+    { "id": "ridge_mid", "heightLevel": 2, "assetKey": "ridge_mid", "presentationTag": "ground" },
+    { "id": "ridge_high", "heightLevel": 3, "assetKey": "ridge_high", "presentationTag": "ground" },
+    { "id": "resupply_tile", "heightLevel": 1, "assetKey": "resupply", "presentationTag": "utility" }
+  ],
+  "logicTiles": [
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"]
+  ],
+  "assignedTiles": [
+    ["meadow","meadow_flowers","meadow","meadow_patch","meadow","meadow_flowers","meadow","meadow","meadow_patch","meadow","meadow_flowers","meadow"],
+    ["meadow","ridge_high","ridge_high","ridge_high","ridge_high","ridge_high","meadow","meadow","meadow","meadow_patch","meadow","meadow"],
+    ["meadow_flowers","ridge_high","ridge_high","ridge_high","ridge_high","ridge_high","meadow","meadow","meadow_flowers","meadow","meadow","meadow"],
+    ["meadow","ridge_high","ridge_high","ridge_high","ridge_high","ridge_high","ridge_mid","ridge_mid","ridge_mid","meadow","meadow","meadow"],
+    ["meadow","meadow","meadow","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","meadow","meadow"],
+    ["meadow_patch","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","ridge_mid","meadow","meadow"],
+    ["meadow","meadow","meadow","ridge_mid","ridge_mid","ridge_mid","ridge_low","ridge_low","ridge_low","ridge_mid","meadow_flowers","meadow"],
+    ["meadow","meadow","meadow_patch","meadow","ridge_mid","ridge_mid","ridge_low","resupply_tile","ridge_low","ridge_mid","ridge_low","meadow"],
+    ["meadow","meadow","meadow","meadow","meadow","ridge_mid","ridge_low","ridge_low","ridge_low","ridge_mid","ridge_low","meadow_patch"],
+    ["meadow","meadow","meadow","meadow","ridge_mid","ridge_mid","ridge_low","ridge_low","ridge_low","ridge_low","ridge_low","meadow"],
+    ["meadow","meadow","meadow","meadow","meadow","meadow","meadow","meadow_flowers","meadow","ridge_low","ridge_low","meadow"],
+    ["meadow","meadow","meadow","meadow_patch","meadow","meadow","meadow","meadow","meadow","meadow","meadow","meadow"]
+  ],
+  "traversableEdges": [
+    { "from": { "x": 5, "y": 3 }, "to": { "x": 6, "y": 3 }, "kind": "RAMP" },
+    { "from": { "x": 9, "y": 7 }, "to": { "x": 10, "y": 7 }, "kind": "RAMP" },
+    { "from": { "x": 6, "y": 9 }, "to": { "x": 6, "y": 10 }, "kind": "STAIRS" }
+  ],
+  "blockers": [
+    { "id": "Blocker-Tree-1-5", "assetKey": "tree_oak_large", "position": { "x": 1, "y": 5 }, "blocksMovement": true },
+    { "id": "Blocker-Log-8-9", "assetKey": "log_fallen", "position": { "x": 8, "y": 9 }, "blocksMovement": true },
+    { "id": "Blocker-Bush-3-10", "assetKey": "bush_dense", "position": { "x": 3, "y": 10 }, "blocksMovement": true }
+  ],
+  "entities": [
+    { "id": "Enemy-4-2", "type": "ENEMY", "position": { "x": 4, "y": 2 }, "power": 2 },
+    { "id": "Enemy-6-4", "type": "ENEMY", "position": { "x": 6, "y": 4 }, "power": 3 },
+    { "id": "Enemy-8-6", "type": "ENEMY", "position": { "x": 8, "y": 6 }, "power": 4 },
+    { "id": "Enemy-9-10", "type": "ENEMY", "position": { "x": 9, "y": 10 }, "power": 5 },
+    { "id": "Boss", "type": "ENEMY", "position": { "x": 10, "y": 10 }, "power": 16 },
+    { "id": "Item-3-2", "type": "ITEM", "position": { "x": 3, "y": 2 }, "power": 1 },
+    { "id": "Item-7-5", "type": "ITEM", "position": { "x": 7, "y": 5 }, "power": 2 },
+    { "id": "Item-8-8", "type": "ITEM", "position": { "x": 8, "y": 8 }, "power": 2 },
+    { "id": "Loot-2-3", "type": "LOOT", "position": { "x": 2, "y": 3 }, "snackReward": 2, "powerReward": 0 },
+    { "id": "Loot-6-7", "type": "LOOT", "position": { "x": 6, "y": 7 }, "snackReward": 2, "powerReward": 1 },
+    { "id": "Loot-10-9", "type": "LOOT", "position": { "x": 10, "y": 9 }, "snackReward": 1, "powerReward": 1 },
+    { "id": "Resupply-4-4", "type": "RESUPPLY", "position": { "x": 4, "y": 4 } },
+    { "id": "Resupply-7-7", "type": "RESUPPLY", "position": { "x": 7, "y": 7 } }
+  ],
+  "initialState": {
+    "tortoise": { "x": 2, "y": 2 },
+    "tortoisePower": 3,
+    "tortoiseSnacks": 16,
+    "tortoiseMaxSnacks": 16,
+    "cat": { "x": 3, "y": 2 },
+    "catPower": 2,
+    "catSnacks": 16,
+    "catMaxSnacks": 16,
+    "moveSnackCost": 1,
+    "lastEvent": "Use ramps and stairs to descend and defeat the boss."
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "meta": { "id": "level_1", "name": "Meadow Ruins", "width": 10, "height": 10, "theme": "prototype", "version": 1 },
+  "tileDefinitions": [
+    { "id": "grass", "heightLevel": 0, "assetKey": "grass", "presentationTag": "ground" },
+    { "id": "wall", "heightLevel": 1, "assetKey": "wall", "presentationTag": "blocker" },
+    { "id": "resupply", "heightLevel": 0, "assetKey": "resupply", "presentationTag": "utility" },
+    { "id": "path", "heightLevel": 0, "assetKey": "path", "presentationTag": "ground_alt" }
+  ],
+  "logicTiles": [
+    ["PASSABLE","PASSABLE","PASSABLE","IMPASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","IMPASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","IMPASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","IMPASSABLE","IMPASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
+    ["PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"]
+  ],
+  "assignedTiles": [
+    ["grass","grass","grass","wall","grass","grass","grass","grass","grass","grass"],
+    ["grass","path","path","wall","path","path","path","path","resupply","grass"],
+    ["grass","grass","grass","wall","grass","grass","grass","grass","grass","grass"],
+    ["grass","grass","grass","grass","grass","grass","wall","wall","grass","grass"],
+    ["grass","path","path","path","path","path","path","path","path","grass"],
+    ["grass","grass","grass","grass","grass","grass","grass","grass","grass","grass"],
+    ["grass","grass","grass","grass","grass","grass","grass","grass","grass","grass"],
+    ["grass","grass","grass","grass","grass","grass","grass","grass","grass","grass"],
+    ["grass","grass","grass","grass","grass","grass","grass","grass","grass","grass"],
+    ["grass","grass","grass","grass","grass","grass","grass","grass","grass","grass"]
+  ],
+  "entities": [
+    { "id": "Enemy-4-1", "type": "ENEMY", "position": { "x": 4, "y": 1 }, "power": 2 },
+    { "id": "Enemy-6-5", "type": "ENEMY", "position": { "x": 6, "y": 5 }, "power": 4 },
+    { "id": "Boss", "type": "ENEMY", "position": { "x": 8, "y": 8 }, "power": 6 },
+    { "id": "Item-2-1", "type": "ITEM", "position": { "x": 2, "y": 1 }, "power": 1 },
+    { "id": "Item-5-5", "type": "ITEM", "position": { "x": 5, "y": 5 }, "power": 2 },
+    { "id": "Loot-1-4", "type": "LOOT", "position": { "x": 1, "y": 4 }, "snackReward": 2, "powerReward": 0 },
+    { "id": "Loot-7-6", "type": "LOOT", "position": { "x": 7, "y": 6 }, "snackReward": 1, "powerReward": 1 },
+    { "id": "Resupply-8-1", "type": "RESUPPLY", "position": { "x": 8, "y": 1 } }
+  ],
+  "initialState": {
+    "tortoise": { "x": 1, "y": 1 },
+    "tortoisePower": 3,
+    "tortoiseSnacks": 12,
+    "tortoiseMaxSnacks": 12,
+    "cat": { "x": 2, "y": 1 },
+    "catPower": 2,
+    "catSnacks": 12,
+    "catMaxSnacks": 12,
+    "moveSnackCost": 1,
+    "lastEvent": "Move with the controls."
+  }
+}

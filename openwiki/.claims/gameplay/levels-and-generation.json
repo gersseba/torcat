@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:72894cfd046ae361de5292218f6180e9c2d42176fb549198e3e9395deefb255e",
+  "claims": [
+    {
+      "id": "claim_3dfa873bca3541af9d46a18109a2c9f7",
+      "statement": "GameWorldFactory routes level_1 and level_2_descent to the two JSON level files and routes random and random_backward to separate procedural variants.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L7-L25",
+          "version": "repo-lines-v1:sha256:400e4ef73610dd86d5a6189ef4c60c9947a327a15e0687eb16b638f72ead21f8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0MTBmODg5YzhhYWEwYmEwZGU3ZGM4MjRkZTA2NGViZmQ2MGQ3Yjg4ODg1MmZhYTE1OTFhNWQ2MGNiMjYzYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiYjVkNDNhZWYyMDFiY2IwNGUwYWUyYzgwMzE3NDYxZTNhMGZmMGY1YjUwMzIyYmVhYjVkM2YxZWQ2ZmFjNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmMWVmNjgzNmRmNjQ4NjFmY2FhNjNkYjBhYzQ2MGY1MWQ1OGVhMzhjMzhmZTUwYjg4OWZjZjA0ZDkzM2ZjYjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e1c43bba0f2542b38d6a53e78a61cd24",
+      "statement": "JSON level construction validates positive dimensions and exact grid dimensions, maps logic tiles to passability and tile definitions to height and presentation metadata, and loads supported traversal edges, blockers, and entity types into GameState.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L42-L159",
+          "version": "repo-lines-v1:sha256:197a50808856bbb6e16f9f937072ea50da9aee32add2076f8487352a0ab1adde:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4YjE2MjJjMmQwMThhODVlNGFjMDM2ZTUxYzcyNGVhOTNhMDZjYzJjOTlmODIxOWUyMjlmODc2NDU5NjdjZTlmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyZjgwMDdjMzY3NGEyYmIzNjYyMjEyYzI1MGY1OTU3ZmUwNzVlMWI0NWJkYjFjNjM3Mzk1YjdhODg5MTM4YjE2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5MDk3MmFkYjMyNjljOTIxODZjNWYxYjNkNTk5MGM4Y2VkZDgxZjI2NWNkNDJkNGMxMmE4NDYyNzY1N2E0NjVhIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_c42ce2a7beec4131a495a7ac40a07a6d",
+      "statement": "World normalization removes non-player objects that overlap player positions, blocked cells, or earlier accepted non-player objects.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L175-L233",
+          "version": "repo-lines-v1:sha256:5d205d97ce29e6e66930f053379e685aa043779957c45b98818d05d7921d6904:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2OTlmNDNjNWFiYmI0OTljMGM1NTY5ZTMxMjgyYzc3MzE4YjYwMmZmMDgxNTA3YmMwYmEwMzU0N2ZkMjA2NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMDE2ODA3ZDkyOTk4MmIxMDFjM2IzODI3NDMyMTM3NGViNWI5NzI1MDg5YWFiNjc3N2QyZDZlMDVmZDI4MzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NTU0OWZlYjVkNDA3MjMzMmUzOTEzODZmMDM1MDYyZjI2ZmI1YmZhMjg4MmY0YmI2M2ZjNGFmNmJlY2VlZGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7d07889e3416482291e742afcc036675",
+      "statement": "Procedural generation randomizes a 10–14 by 10–14 candidate map, tries at most 240 candidates, and falls back to a fixed layout when none are accepted.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L262-L271",
+          "version": "repo-lines-v1:sha256:c02e7957bf29d0df8ff0b2e8cb0b2f9114538e812ea1698c6e5804f0eede6de7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0ZTMyODIyM2E4ODBlMzVmMWJhMjY3ZGM4MWFjZmIwNGY5NTkyYWMyNzNmN2UwZmNkMDU1YjYyZjIxYmNhNTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkM2Y1NDBlNTY0NmQxZjhlYTY1NDg5ODk3NmJmNjZhNGFkZTQ1ZDFhYzg0MjA2ZTdjMzE0ZDYxNjI1MThlMWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllM2Q4ODI0Y2YyYjcyMDk5MTgwNGY3MDkxMDA0NWZlNGJkZmNkMDc1NDBiYjY5YTQ0MzdjMjQxZWI1ZjdhZGIifQ"
+        },
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L472-L513",
+          "version": "repo-lines-v1:sha256:f1091197a54c14356adff8cc54815a95d74f2c508b983e3591bd3da9667f6c13:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1ZGNkZTUzMDJiNWQ1ZTY1YWM3NDhhMTJiNmQzZjNlNDVlMGFkNzIzNmY5NjdjZTk3NjdlZmVjNzYwZGMxMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNmI0YTNjYzA2YWE4ODRkZmE2YTVmMWE0Y2E2ZDVlYWM0YjgwMGRlNGIwMmRmNGQ4MWMzMTg3OTA0M2IwYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhNjBlZTRhMTg3OGI0MWQ4OTYyYThhZjcxODczN2QyODhjOTZiMTRhYWFjZDdiNjZiNmVlZmFlY2FiZGM0MjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6359826487994c599da37d0d2e339990",
+      "statement": "A procedural candidate must pass difficulty and boss-power bounds and a tortoise-only breadth-first solvability search that stops after 80,000 visited states.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L273-L418",
+          "version": "repo-lines-v1:sha256:2811ce2eb0782739bbe873e20e5f9af27a3ee644249ebf084055511dc50bcd90:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmZmEzNWU4NWVjZWMyOTcxYThkY2RjMTA2MTIxYWJkMmJmMTI3NmI3YjdlZDYzZDQzZjkxMmY5MjY3ODgzMjRkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxNzhmY2FhZWUzZjA2NmRkN2Q3NmUxZThjNDdhMWIzNWRlZjNjNjk3Y2JiYTYxMzgzNjU4OGQwMDQxMThhYmU2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxN2E1OTczMzEyNDhlYzU5OTBlNzRkMTM5NTgzMjIzN2RlYTM2MGY0YzUwZDNjODQ4MDJjZWQyNjRlMjhjY2RjIn0"
+        },
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L419-L441",
+          "version": "repo-lines-v1:sha256:4841a5e8e3749b684150e977b6a09f2dbba47bb6481b3535e419ee47b50cdd40:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5MmEwMTg0YjlkZDdhNzMxMWU5ZDY2NmEyMDU1YjM4YzQ3MDdmZDg4ZTZhNjRkYjkwMDUyNWM5YmI3ODk0NmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkM2Y1NDBlNTY0NmQxZjhlYTY1NDg5ODk3NmJmNjZhNGFkZTQ1ZDFhYzg0MjA2ZTdjMzE0ZDYxNjI1MThlMWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkOGVmMjU3NmYyZmVkNzYwYmVhOGEzNmY4ZGZhMmQ3NmMxOTE2MTA1ZDEyYTFhMTBlNzMzZThjY2Y1MDFiNTQifQ"
+        },
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L514-L531",
+          "version": "repo-lines-v1:sha256:091e72ccb4c5f899f292c968026a961d1ffb41a430f5aa1e8abcf2f2f308ea54:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1NTJmOGRmNmZiNzgxOTYxNTkwNGJiOTU5ZGQ1ODIzMzEzMTExOGYyOGI1ZDI3ZTI4ZDg5NWJiYzIxMGYxZWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkM2Y1NDBlNTY0NmQxZjhlYTY1NDg5ODk3NmJmNjZhNGFkZTQ1ZDFhYzg0MjA2ZTdjMzE0ZDYxNjI1MThlMWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwZTFhMDAyMTAxNmJlYzhmZTgyNjIzMDQ5MTYyZDYzZDIyZDdiZDZhN2QwNmIxMDgyZTcwODgyZDBjNDI1YzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6341e1ec84c643e3abd0ccb721aadc42",
+      "statement": "File-open and invalid-JSON errors are surfaced with push_error and produce fallback state; invalid dimensions and malformed grid shapes also produce fallback state with an explanatory last_event.",
+      "evidence": [
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L250-L260",
+          "version": "repo-lines-v1:sha256:9772b96e7a242eb22b731bd9eec5aa63c3e90a0352eb5e8ce04d9cd2d2f748ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxNmMyZWE0ZDBiMGRhMTc4ZmMzZjM1MjRlN2Y2Y2Q0MDVjOGVkOWY2OGEwMjU5ZDNhYzVhOWQ3MGY5MDgzMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1Y2FjNDAwZTE5ODc3ZTc1OGQ3Yzg5NWNjYjFiNDYzMjg2ODYzZDNhZjM0NmQ3OTc0N2RmNWU5NTI4ZTIxZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjN2E3NmVhMjE5ZGUwZGNiZWZmMWM5NDRhYzE4NTVjZmM1OTBjZWU1ZWE3MmZlMmVmMDM0NjYxODRlZWJmYmEifQ"
+        },
+        {
+          "resource": "repo://scripts/domain/game_world_factory.gd#L27-L61",
+          "version": "repo-lines-v1:sha256:1d7ffdd51cc92a02d0447cf98ed6f4053850e159635197b34ae5054eaf5be9ef:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MjRiOTFiOTM1YmQ2OTIxMmVlMzMxNGU2ZTZjMTgwOWUyNDk0YTU3MDZjZTQ1N2NhMjg5Y2ViOTdjYzg0ZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4YmE3M2FlZTkwNzlmODNkZTJhZjAxNzZlNjM3ZWRlZjU1MmNhZGQzOGE1ODQwNjBhYjQ5YTZlNTY4M2Y0ZjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhNGU0Y2Y0ODliMTI3M2VmNzVlNDI2NDcyNWY2MzUyOTRiMWYyN2I4NDIxMzk1OWQ3ODE3YWRhMjA5OWE3YzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlMzYyNWI2YzFjODM5ZTBjMGY5M2RmNjY1NzNjZTJjNjFjMmY4OGIwYWY1YjZmMWJmMmUwNzkwNmJmMzZhOWUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-11-13T10:18:16.069Z"
+  }
+}

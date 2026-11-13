@@ -1,0 +1,630 @@
+class_name GameWorldFactory
+extends RefCounted
+
+const GS = preload("res://scripts/domain/game_state.gd")
+const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
+
+const LEVEL_PATHS := {
+	"level_1": "res://resources/levels/prototype_level.json",
+	"level_2_descent": "res://resources/levels/level_descent.json",
+}
+
+
+func create_world(level_id: String):
+	match level_id:
+		"random":
+			return _create_procedural_world(false)
+		"random_backward":
+			return _create_procedural_world(true)
+		_:
+			var path: String = LEVEL_PATHS.get(level_id, LEVEL_PATHS["level_1"])
+			var state = _create_world_from_file(path)
+			if not LEVEL_PATHS.has(level_id):
+				state.last_event = "Unknown level id '%s'. Prototype level loaded." % level_id
+			return state
+
+
+func _create_world_from_file(path: String):
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_error("Failed to open level file: %s" % path)
+		return _create_fallback_state("Failed to load level file.")
+
+	var raw_text: String = file.get_as_text()
+	var parsed: Variant = JSON.parse_string(raw_text)
+	if not (parsed is Dictionary):
+		push_error("Invalid level JSON in: %s" % path)
+		return _create_fallback_state("Invalid level JSON.")
+
+	return _create_world_from_definition(parsed)
+
+
+func _create_world_from_definition(definition: Dictionary):
+	var meta: Dictionary = definition.get("meta", {})
+	var width: int = int(meta.get("width", 0))
+	var height: int = int(meta.get("height", 0))
+	if width <= 0 or height <= 0:
+		return _create_fallback_state("Invalid level dimensions.")
+
+	var tile_definitions: Dictionary = _parse_tile_definitions(definition.get("tileDefinitions", []))
+	if tile_definitions.is_empty():
+		return _create_fallback_state("No tile definitions found.")
+
+	var logic_tiles: Array = definition.get("logicTiles", [])
+	var assigned_tiles: Array = definition.get("assignedTiles", [])
+	if logic_tiles.size() != height or assigned_tiles.size() != height:
+		return _create_fallback_state("Grid height mismatch in level.")
+
+	var blocked_tiles: Dictionary = {}
+	var tile_cells: Dictionary = {}
+	for y in range(height):
+		var logic_row: Array = logic_tiles[y]
+		var assigned_row: Array = assigned_tiles[y]
+		if logic_row.size() != width or assigned_row.size() != width:
+			return _create_fallback_state("Grid width mismatch in level row %d." % y)
+
+		for x in range(width):
+			var pos := Vector2i(x, y)
+			var logic_token: String = str(logic_row[x]).to_upper()
+			var logic = GS.TileLogicType.PASSABLE
+			if logic_token == "IMPASSABLE":
+				logic = GS.TileLogicType.IMPASSABLE
+				blocked_tiles[pos] = true
+
+			var tile_id: String = str(assigned_row[x])
+			var tile_def: Dictionary = tile_definitions.get(tile_id, {"heightLevel": 0})
+			var height_level: int = int(tile_def.get("heightLevel", 0))
+			tile_cells[pos] = GS.TileCellState.new(
+				tile_id,
+				logic,
+				height_level,
+				str(tile_def.get("assetKey", tile_id)),
+				str(tile_def.get("presentationTag", "ground"))
+			)
+
+	var initial_state: Dictionary = definition.get("initialState", {})
+	var tortoise_pos: Vector2i = _read_pos(initial_state.get("tortoise", initial_state.get("player", {"x": 0, "y": 0})))
+	var cat_pos: Vector2i = _read_pos(initial_state.get("cat", {"x": tortoise_pos.x, "y": tortoise_pos.y}))
+	var tortoise_power: int = int(initial_state.get("tortoisePower", initial_state.get("playerPower", 3)))
+	var cat_power: int = int(initial_state.get("catPower", tortoise_power))
+	var last_event: String = str(initial_state.get("lastEvent", "Move with the controls."))
+
+	var state = GS.new(
+		width,
+		height,
+		GS.PlayerState.new(tortoise_pos, tortoise_power, true),
+		GS.PlayerState.new(cat_pos, cat_power, true)
+	)
+	state.tile_cells = tile_cells
+	state.blocked_tiles = blocked_tiles
+	state.last_event = last_event
+
+	for edge_variant in definition.get("traversableEdges", []):
+		var edge: Dictionary = edge_variant
+		var from: Vector2i = _read_pos(edge.get("from", {"x": 0, "y": 0}))
+		var to: Vector2i = _read_pos(edge.get("to", {"x": 0, "y": 0}))
+		if not _are_orthogonal_neighbors(from, to):
+			continue
+		if not _is_within_bounds(from, width, height) or not _is_within_bounds(to, width, height):
+			continue
+		var kind_token: String = str(edge.get("kind", "STAIRS")).to_upper()
+		var kind = GS.TraversalKind.STAIRS
+		if kind_token == "RAMP":
+			kind = GS.TraversalKind.RAMP
+		state.traversable_edges.append(GS.TraversableEdge.of(from, to, kind))
+
+	for blocker_variant in definition.get("blockers", []):
+		var blocker: Dictionary = blocker_variant
+		var position: Vector2i = _read_pos(blocker.get("position", {"x": 0, "y": 0}))
+		if not _is_within_bounds(position, width, height):
+			continue
+		var blocks_movement: bool = bool(blocker.get("blocksMovement", true))
+		state.blockers_by_pos[position] = GS.BlockerPlacement.new(str(blocker.get("assetKey", "unknown")), blocks_movement)
+		if blocks_movement:
+			state.blocked_tiles[position] = true
+
+	for entity_variant in definition.get("entities", []):
+		var entity: Dictionary = entity_variant
+		var entity_type: String = str(entity.get("type", "")).to_upper()
+		var position: Vector2i = _read_pos(entity.get("position", {"x": 0, "y": 0}))
+		if not _is_within_bounds(position, width, height):
+			continue
+
+		match entity_type:
+			"ENEMY":
+				state.enemies_by_pos[position] = GS.Enemy.new(
+					str(entity.get("id", "enemy")),
+					position,
+					int(entity.get("power", 0))
+				)
+			"ITEM":
+				state.items_by_pos[position] = GS.Item.new(
+					str(entity.get("id", "item")),
+					position,
+					int(entity.get("power", 0))
+				)
+			"LOOT":
+				state.lootables_by_pos[position] = GS.LootableObject.new(
+					str(entity.get("id", "loot")),
+					position,
+					int(entity.get("powerReward", 0))
+				)
+			"RESUPPLY":
+				state.resupply_points[position] = true
+			_:
+				pass
+
+	return _normalize_state(state)
+
+
+func _parse_tile_definitions(entries: Array) -> Dictionary:
+	var definitions: Dictionary = {}
+	for entry_variant in entries:
+		var entry: Dictionary = entry_variant
+		var tile_id: String = str(entry.get("id", ""))
+		if tile_id.is_empty():
+			continue
+		definitions[tile_id] = {
+			"heightLevel": int(entry.get("heightLevel", 0)),
+			"assetKey": str(entry.get("assetKey", tile_id)),
+			"presentationTag": str(entry.get("presentationTag", "ground")),
+		}
+	return definitions
+
+
+func _normalize_state(state):
+	var player_tiles: Dictionary = {
+		state.player.position: true,
+		state.cat.position: true,
+	}
+	var occupied_non_players: Dictionary = {}
+
+	var normalized_enemies: Dictionary = {}
+	for enemy_pos in state.enemies_by_pos.keys():
+		if _accept_non_player_pos(enemy_pos, state, player_tiles, occupied_non_players):
+			normalized_enemies[enemy_pos] = state.enemies_by_pos[enemy_pos]
+
+	var normalized_items: Dictionary = {}
+	for item_pos in state.items_by_pos.keys():
+		if _accept_non_player_pos(item_pos, state, player_tiles, occupied_non_players):
+			normalized_items[item_pos] = state.items_by_pos[item_pos]
+
+	var normalized_lootables: Dictionary = {}
+	for loot_pos in state.lootables_by_pos.keys():
+		if _accept_non_player_pos(loot_pos, state, player_tiles, occupied_non_players):
+			normalized_lootables[loot_pos] = state.lootables_by_pos[loot_pos]
+
+	var normalized_resupply: Dictionary = {}
+	for resupply_pos in state.resupply_points.keys():
+		if _accept_non_player_pos(resupply_pos, state, player_tiles, occupied_non_players):
+			normalized_resupply[resupply_pos] = true
+
+	var normalized_blockers: Dictionary = {}
+	for blocker_pos in state.blockers_by_pos.keys():
+		if not player_tiles.has(blocker_pos) and not occupied_non_players.has(blocker_pos):
+			normalized_blockers[blocker_pos] = state.blockers_by_pos[blocker_pos]
+
+	var next = state.duplicate_state()
+	next.enemies_by_pos = normalized_enemies
+	next.items_by_pos = normalized_items
+	next.lootables_by_pos = normalized_lootables
+	next.resupply_points = normalized_resupply
+	next.blockers_by_pos = normalized_blockers
+	return next
+
+
+func _accept_non_player_pos(
+	pos: Vector2i,
+	state,
+	player_tiles: Dictionary,
+	occupied_non_players: Dictionary
+) -> bool:
+	if player_tiles.has(pos):
+		return false
+	if state.blocked_tiles.has(pos):
+		return false
+	if not _is_within_bounds(pos, state.width, state.height):
+		return false
+	if occupied_non_players.has(pos):
+		return false
+	occupied_non_players[pos] = true
+	return true
+
+
+func _read_pos(value: Variant) -> Vector2i:
+	if value is Dictionary:
+		return Vector2i(int(value.get("x", 0)), int(value.get("y", 0)))
+	return Vector2i.ZERO
+
+
+func _are_orthogonal_neighbors(a: Vector2i, b: Vector2i) -> bool:
+	var dx: int = absi(a.x - b.x)
+	var dy: int = absi(a.y - b.y)
+	return (dx == 1 and dy == 0) or (dx == 0 and dy == 1)
+
+
+func _is_within_bounds(pos: Vector2i, width: int, height: int) -> bool:
+	return pos.x >= 0 and pos.x < width and pos.y >= 0 and pos.y < height
+
+
+func _create_fallback_state(message: String):
+	var state = GS.new(
+		1,
+		1,
+		GS.PlayerState.new(Vector2i.ZERO, 1, true),
+		GS.PlayerState.new(Vector2i.ZERO, 1, true)
+	)
+	state.tile_cells[Vector2i.ZERO] = GS.TileCellState.new("fallback", GS.TileLogicType.PASSABLE, 0)
+	state.last_event = message
+	return state
+
+
+func _create_procedural_world(backward_variant: bool):
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var attempts: int = 240
+	for _i in range(attempts):
+		var candidate = _build_procedural_candidate(rng, backward_variant)
+		if candidate != null and _is_procedural_candidate_solvable(candidate):
+			return candidate
+	return _build_guaranteed_procedural_fallback(backward_variant)
+
+
+func _build_procedural_candidate(rng: RandomNumberGenerator, backward_variant: bool):
+	var width: int = rng.randi_range(10, 14)
+	var height: int = rng.randi_range(10, 14)
+	var corners: Array[Vector2i] = [
+		Vector2i(1, 1),
+		Vector2i(width - 2, 1),
+		Vector2i(1, height - 2),
+		Vector2i(width - 2, height - 2),
+	]
+	var anchor: Vector2i = corners[rng.randi_range(0, corners.size() - 1)]
+	var walkable_ratio: float = rng.randf_range(0.68, 0.82)
+	var blocked_tiles := _generate_blocked_tiles(width, height, anchor, walkable_ratio, 0.34, rng)
+	var open_tiles: Array[Vector2i] = _all_tiles(width, height).filter(func(p: Vector2i) -> bool: return not blocked_tiles.has(p))
+	if open_tiles.size() < 18:
+		return null
+	var distance_from_anchor: Dictionary = _distances_from(anchor, width, height, blocked_tiles)
+	if distance_from_anchor.is_empty():
+		return null
+	var farthest: Vector2i = anchor
+	var max_dist: int = -1
+	for pos in distance_from_anchor.keys():
+		var d: int = int(distance_from_anchor[pos])
+		if d > max_dist:
+			max_dist = d
+			farthest = pos
+	if max_dist < 5:
+		return null
+
+	var boss_pos: Vector2i = farthest if not backward_variant else anchor
+	var player_spawn: Vector2i = anchor if not backward_variant else farthest
+	var cat_spawn := Vector2i(min(player_spawn.x + 1, width - 1), player_spawn.y)
+	if blocked_tiles.has(cat_spawn):
+		cat_spawn = Vector2i(max(player_spawn.x - 1, 0), player_spawn.y)
+	if blocked_tiles.has(cat_spawn):
+		cat_spawn = player_spawn
+
+	var state = GS.new(
+		width,
+		height,
+		GS.PlayerState.new(player_spawn, rng.randi_range(3, 5), true),
+		GS.PlayerState.new(cat_spawn, 2, true)
+	)
+	state.cat.power = maxi(1, state.player.power - 1)
+	state.selected_character_id = GS.CharacterId.TORTOISE
+	state.last_event = "Procedural level generated."
+
+	for y in range(height):
+		for x in range(width):
+			var pos := Vector2i(x, y)
+			if blocked_tiles.has(pos):
+				state.blocked_tiles[pos] = true
+				state.tile_cells[pos] = GS.TileCellState.new("wall", GS.TileLogicType.IMPASSABLE, 0, "wall", "blocker")
+				if rng.randf() < 0.45:
+					var blocker_asset_keys: Array[String] = ["tree_oak_large", "log_fallen", "bush_dense"]
+					var blocker_key: String = blocker_asset_keys[rng.randi_range(0, blocker_asset_keys.size() - 1)]
+					state.blockers_by_pos[pos] = GS.BlockerPlacement.new(blocker_key, true)
+			else:
+				var tile_roll: float = rng.randf()
+				var tile_id := "meadow"
+				if tile_roll > 0.82:
+					tile_id = "meadow_flowers"
+				elif tile_roll > 0.64:
+					tile_id = "meadow_patch"
+				state.tile_cells[pos] = GS.TileCellState.new(tile_id, GS.TileLogicType.PASSABLE, 0, tile_id, "ground")
+
+	var reserved: Dictionary = {
+		player_spawn: true,
+		cat_spawn: true,
+		boss_pos: true,
+	}
+
+	var available_tiles: Array[Vector2i] = []
+	for y in range(height):
+		for x in range(width):
+			var pos := Vector2i(x, y)
+			if reserved.has(pos):
+				continue
+			if state.blocked_tiles.has(pos):
+				continue
+			available_tiles.append(pos)
+	if available_tiles.size() < 12:
+		return null
+
+	var distance_from_boss: Dictionary = _distances_from(boss_pos, width, height, state.blocked_tiles)
+	if distance_from_boss.is_empty() or not distance_from_boss.has(player_spawn):
+		return null
+	available_tiles.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var da: int = int(distance_from_boss.get(a, 0))
+		var db: int = int(distance_from_boss.get(b, 0))
+		return da > db if backward_variant else da < db
+	)
+
+	var enemy_count: int = rng.randi_range(6, 9)
+	var regular_enemy_count: int = maxi(1, enemy_count - 1)
+	var item_count: int = rng.randi_range(3, 5)
+	var loot_count: int = rng.randi_range(4, 7)
+	var resupply_count: int = rng.randi_range(2, 3)
+	var regular_enemies: Array = []
+	var total_regular_enemy_power: int = 0
+	for i in range(min(regular_enemy_count, available_tiles.size())):
+		var enemy_pos: Vector2i = available_tiles.pop_front()
+		reserved[enemy_pos] = true
+		var power_bonus: int = 1 if backward_variant and int(distance_from_boss.get(enemy_pos, 0)) <= 3 else 0
+		var enemy_power: int = clampi(rng.randi_range(3, 7) + power_bonus, 3, 9)
+		regular_enemies.append(GS.Enemy.new("enemy_%d" % i, enemy_pos, enemy_power))
+		total_regular_enemy_power += enemy_power
+
+	var item_power_total: int = 0
+	for i in range(min(item_count, available_tiles.size())):
+		var item_pos: Vector2i = available_tiles.pop_back()
+		if reserved.has(item_pos):
+			continue
+		reserved[item_pos] = true
+		var item_power: int = rng.randi_range(1, 3)
+		item_power_total += item_power
+		state.items_by_pos[item_pos] = GS.Item.new("item_%d" % i, item_pos, item_power)
+
+	for i in range(min(loot_count, available_tiles.size())):
+		var loot_pos: Vector2i = available_tiles.pop_back()
+		if reserved.has(loot_pos):
+			continue
+		reserved[loot_pos] = true
+		state.lootables_by_pos[loot_pos] = GS.LootableObject.new("loot_%d" % i, loot_pos, 0)
+
+	for i in range(min(resupply_count, available_tiles.size())):
+		var resupply_pos: Vector2i = available_tiles.pop_back()
+		if reserved.has(resupply_pos):
+			continue
+		reserved[resupply_pos] = true
+		state.resupply_points[resupply_pos] = true
+
+	for enemy in regular_enemies:
+		state.enemies_by_pos[enemy.position] = enemy
+	var boss_power: int = state.player.power + total_regular_enemy_power + item_power_total - 1
+	if boss_power < 8 or boss_power > 48:
+		return null
+	state.enemies_by_pos[boss_pos] = GS.Enemy.new("Boss", boss_pos, boss_power)
+
+	state = _normalize_state(state)
+	var difficulty: int = _estimate_difficulty(state)
+	if difficulty < 44 or difficulty > 138:
+		return null
+	state.last_event = "Procedural %s level ready." % ("backward" if backward_variant else "forward")
+	return state
+
+
+func _is_procedural_candidate_solvable(state) -> bool:
+	var engine = GAME_ENGINE_SCRIPT.new()
+	var queue: Array = [state]
+	var visited: Dictionary = {}
+	visited[_solvability_key(state)] = true
+	var max_visited_states: int = 80_000
+
+	while not queue.is_empty() and visited.size() <= max_visited_states:
+		var current = queue.pop_front()
+		if current.victory:
+			return true
+		if current.game_over:
+			continue
+		for direction in GAME_ENGINE_SCRIPT.Direction.values():
+			var next = engine.move(current, direction, GS.CharacterId.TORTOISE)
+			var key: String = _solvability_key(next)
+			if visited.has(key):
+				continue
+			visited[key] = true
+			queue.push_back(next)
+	return false
+
+
+func _solvability_key(state) -> String:
+	var enemy_keys: Array[String] = []
+	for pos in state.enemies_by_pos.keys():
+		enemy_keys.append("%d,%d" % [pos.x, pos.y])
+	enemy_keys.sort()
+	var item_keys: Array[String] = []
+	for pos in state.items_by_pos.keys():
+		item_keys.append("%d,%d" % [pos.x, pos.y])
+	item_keys.sort()
+	var loot_keys: Array[String] = []
+	for pos in state.lootables_by_pos.keys():
+		loot_keys.append("%d,%d" % [pos.x, pos.y])
+	loot_keys.sort()
+	return "%d,%d|%d,%d|%d|%d|%d|%d|%s|%s|%s|%d|%d" % [
+		state.player.position.x,
+		state.player.position.y,
+		state.cat.position.x,
+		state.cat.position.y,
+		state.player.power,
+		state.cat.power,
+		int(state.player.alive),
+		int(state.cat.alive),
+		",".join(enemy_keys),
+		",".join(item_keys),
+		",".join(loot_keys),
+		int(state.game_over),
+		int(state.victory),
+	]
+
+
+func _build_guaranteed_procedural_fallback(backward_variant: bool):
+	var width: int = 10
+	var height: int = 10
+	var player_spawn: Vector2i = Vector2i(1, 8) if backward_variant else Vector2i(1, 1)
+	var cat_spawn: Vector2i = Vector2i(2, player_spawn.y)
+	var boss_pos: Vector2i = Vector2i(8, 1) if backward_variant else Vector2i(8, 8)
+	var state = GS.new(
+		width,
+		height,
+		GS.PlayerState.new(player_spawn, 4, true),
+		GS.PlayerState.new(cat_spawn, 3, true)
+	)
+	state.selected_character_id = GS.CharacterId.TORTOISE
+	for y in range(height):
+		for x in range(width):
+			var pos := Vector2i(x, y)
+			state.tile_cells[pos] = GS.TileCellState.new("meadow", GS.TileLogicType.PASSABLE, 0, "meadow", "ground")
+	var enemy_positions: Array[Vector2i] = [
+		Vector2i(3, 2), Vector2i(5, 2), Vector2i(2, 5), Vector2i(6, 5), Vector2i(4, 7),
+	]
+	for i in range(enemy_positions.size()):
+		var enemy_pos: Vector2i = enemy_positions[i]
+		state.enemies_by_pos[enemy_pos] = GS.Enemy.new("Enemy-%d" % i, enemy_pos, 4 + (i % 3))
+	state.items_by_pos[Vector2i(2, 3)] = GS.Item.new("Item-0", Vector2i(2, 3), 2)
+	state.items_by_pos[Vector2i(7, 3)] = GS.Item.new("Item-1", Vector2i(7, 3), 2)
+	state.items_by_pos[Vector2i(3, 7)] = GS.Item.new("Item-2", Vector2i(3, 7), 3)
+	var boss_power: int = state.player.power
+	for enemy in state.enemies_by_pos.values():
+		boss_power += enemy.power
+	for item in state.items_by_pos.values():
+		boss_power += item.power_bonus
+	boss_power -= 1
+	state.enemies_by_pos[boss_pos] = GS.Enemy.new("Boss", boss_pos, boss_power)
+	state.lootables_by_pos[Vector2i(4, 1)] = GS.LootableObject.new("Loot-0", Vector2i(4, 1), 0)
+	state.lootables_by_pos[Vector2i(1, 6)] = GS.LootableObject.new("Loot-1", Vector2i(1, 6), 0)
+	state.lootables_by_pos[Vector2i(7, 7)] = GS.LootableObject.new("Loot-2", Vector2i(7, 7), 0)
+	state.resupply_points[Vector2i(8, 1)] = true
+	state.resupply_points[Vector2i(1, 8)] = true
+	state.last_event = "Procedural level generated (fallback)."
+	return state
+
+
+func _estimate_difficulty(state) -> int:
+	var area: int = state.width * state.height
+	var wall_ratio: float = float(state.blocked_tiles.size()) / float(area)
+	var enemy_power: int = 0
+	for enemy in state.enemies_by_pos.values():
+		enemy_power += enemy.power
+	var item_power: int = 0
+	for item in state.items_by_pos.values():
+		item_power += item.power_bonus
+	for lootable in state.lootables_by_pos.values():
+		item_power += lootable.power_reward
+	var distance_pressure: int = 0
+	for pos in state.enemies_by_pos.keys():
+		var d: int = absi(pos.x - state.player.position.x) + absi(pos.y - state.player.position.y)
+		distance_pressure = maxi(distance_pressure, d)
+	return int(round(wall_ratio * 24.0 + state.enemies_by_pos.size() * 3.0 + enemy_power * 2.0 + distance_pressure * 1.4 - item_power * 2.0 - state.player.power * 3.0))
+
+
+func _generate_blocked_tiles(
+	width: int,
+	height: int,
+	anchor: Vector2i,
+	walkable_ratio: float,
+	wall_cluster_chance: float,
+	rng: RandomNumberGenerator
+) -> Dictionary:
+	var blocked: Dictionary = {}
+	var all_tiles: Array[Vector2i] = _all_tiles(width, height)
+	all_tiles.shuffle()
+	var target_blocked: int = maxi(0, int(float(all_tiles.size()) * (1.0 - walkable_ratio)))
+	for tile in all_tiles:
+		if tile == anchor or blocked.has(tile):
+			continue
+		blocked[tile] = true
+		if not _is_connected_open_tiles(width, height, anchor, blocked):
+			blocked.erase(tile)
+			continue
+		if blocked.size() >= target_blocked:
+			break
+		if rng.randf() < wall_cluster_chance:
+			var neighbors: Array[Vector2i] = _neighbors(tile)
+			neighbors.shuffle()
+			for i in range(min(2, neighbors.size())):
+				var neighbor: Vector2i = neighbors[i]
+				if not _is_within_bounds(neighbor, width, height):
+					continue
+				if neighbor == anchor or blocked.has(neighbor):
+					continue
+				blocked[neighbor] = true
+				if not _is_connected_open_tiles(width, height, anchor, blocked):
+					blocked.erase(neighbor)
+		if blocked.size() >= target_blocked:
+			break
+	return blocked
+
+
+func _distances_from(start: Vector2i, width: int, height: int, blocked_tiles: Dictionary) -> Dictionary:
+	var distances: Dictionary = {start: 0}
+	var queue: Array[Vector2i] = [start]
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		var current_dist: int = int(distances[current])
+		for next in _neighbors(current):
+			if distances.has(next):
+				continue
+			if not _is_within_bounds(next, width, height):
+				continue
+			if blocked_tiles.has(next):
+				continue
+			distances[next] = current_dist + 1
+			queue.push_back(next)
+	return distances
+
+
+func _is_connected_open_tiles(width: int, height: int, anchor: Vector2i, blocked_tiles: Dictionary) -> bool:
+	if blocked_tiles.has(anchor):
+		return false
+	var open_tile_count: int = 0
+	for y in range(height):
+		for x in range(width):
+			var pos := Vector2i(x, y)
+			if not blocked_tiles.has(pos):
+				open_tile_count += 1
+	var visited: Dictionary = {anchor: true}
+	var queue: Array[Vector2i] = [anchor]
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		for next in _neighbors(current):
+			if visited.has(next):
+				continue
+			if not _is_within_bounds(next, width, height):
+				continue
+			if blocked_tiles.has(next):
+				continue
+			visited[next] = true
+			queue.push_back(next)
+	return visited.size() == open_tile_count
+
+
+func _neighbors(pos: Vector2i) -> Array[Vector2i]:
+	return [
+		Vector2i(pos.x + 1, pos.y),
+		Vector2i(pos.x - 1, pos.y),
+		Vector2i(pos.x, pos.y + 1),
+		Vector2i(pos.x, pos.y - 1),
+	]
+
+
+func _all_tiles(width: int, height: int) -> Array[Vector2i]:
+	var tiles: Array[Vector2i] = []
+	tiles.resize(width * height)
+	var i: int = 0
+	for y in range(height):
+		for x in range(width):
+			tiles[i] = Vector2i(x, y)
+			i += 1
+	return tiles
