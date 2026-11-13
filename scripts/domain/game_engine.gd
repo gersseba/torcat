@@ -60,7 +60,7 @@ func find_path(state, start: Vector2i, target: Vector2i) -> Array:
 		return []
 	if not _is_within_bounds(target, state.width, state.height):
 		return []
-	if _is_blocked(state, target):
+	if state.is_blocked(target):
 		return []
 	if start == target:
 		return [start]
@@ -165,15 +165,8 @@ func _is_within_bounds(pos: Vector2i, width: int, height: int) -> bool:
 	return pos.x >= 0 and pos.x < width and pos.y >= 0 and pos.y < height
 
 
-func _is_blocked(state, pos: Vector2i) -> bool:
-	if state.blocked_tiles.has(pos):
-		return true
-	var blocker = state.blockers_by_pos.get(pos)
-	return blocker != null and blocker.blocks_movement
-
-
 func _can_traverse(state, from: Vector2i, to: Vector2i) -> bool:
-	if _is_blocked(state, to):
+	if state.is_blocked(to):
 		return false
 	var from_cell = state.tile_cells.get(from)
 	var to_cell = state.tile_cells.get(to)

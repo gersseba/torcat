@@ -29,9 +29,29 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 z_index = 0
 
+[node name="ElevationNorth" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 1
+
+[node name="ElevationEast" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 1
+
+[node name="ElevationSouth" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 1
+
+[node name="ElevationWest" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 1
+
 [node name="OverlayLayer" type="TileMapLayer" parent="BoardRoot"]
 unique_name_in_owner = true
 z_index = 1
+
+[node name="PreviewLayer" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 2
 
 [node name="MarkerLayer" type="TileMapLayer" parent="BoardRoot"]
 unique_name_in_owner = true

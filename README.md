@@ -26,12 +26,24 @@ the tortoise's missing west-facing passive idle is mirrored from the east.
 Cat attacks use a claw slash effect; tortoise attacks use a bump impact. Both
 effects appear between the attacker and the targeted enemy at the attack's
 impact frame.
+Power indicators follow their characters while moving. Green brush strokes
+identify characters, blue identifies items and loot, and wine red identifies
+enemies. During an attack, the attacker's and target's indicators fade out
+and return afterward if their owners remain on the board.
+
+Cliffside Descent uses rocky borders to mark height changes. Ramps and stairs
+mark crossings where characters can move between heights; other cliff edges
+cannot be crossed. Elevation stays on the flat board, so taps and movement use
+the same grid as other levels.
 
 Run the gameplay input and animation regression test with:
 
 ```text
 godot --headless --path . --script res://tests/gameplay_selection_test.gd
 godot --headless --path . --script res://tests/attack_effects_test.gd
+godot --headless --path . --script res://tests/power_indicators_test.gd
+godot --headless --path . --script res://tests/power_attack_fade_test.gd
+godot --headless --path . --script res://tests/elevation_rendering_test.gd
 ```
 
 ## Mobile and web configuration

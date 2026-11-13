@@ -9,11 +9,16 @@ const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const CAT_SLASH_TEXTURE := preload("res://resources/assets/vfx/slash.png")
 const TORTOISE_BUMP_TEXTURE := preload("res://resources/assets/vfx/bump.png")
+const PLAYER_POWER_TEXTURE := preload("res://resources/assets/ui/power/player.png")
+const ITEM_POWER_TEXTURE := preload("res://resources/assets/ui/power/item.png")
+const ENEMY_POWER_TEXTURE := preload("res://resources/assets/ui/power/enemy.png")
 
 const TILE_SIZE := 64.0
+const POWER_TEXT_COLOR := Color("f7e8c1")
 const WALK_FRAME_COUNT := 8
 const WALK_FRAME_DURATION := 0.11
 const ATTACK_FRAME_DURATION := 0.055
+const POWER_INDICATOR_FADE_DURATION := 0.1
 const CHARACTER_IDLE_FRAME_DURATION := 0.18
 const PASSIVE_TRANSITION_FRAME_DURATION := 0.16
 const PASSIVE_IDLE_FRAME_DURATION := 0.22
@@ -31,6 +36,10 @@ const ATTACK_IMPACT_FRAMES := {
 @onready var _board_camera: Camera2D = %BoardCamera
 @onready var _ground_layer: TileMapLayer = %GroundLayer
 @onready var _overlay_layer: TileMapLayer = %OverlayLayer
+@onready var _preview_layer: TileMapLayer = %PreviewLayer
+@onready var _elevation_layers: Array[TileMapLayer] = [
+	%ElevationNorth, %ElevationEast, %ElevationSouth, %ElevationWest,
+]
 @onready var _marker_layer: TileMapLayer = %MarkerLayer
 @onready var _result_panel: PanelContainer = %ResultPanel
 @onready var _result_label: Label = %ResultLabel
@@ -56,6 +65,9 @@ var _touch_gesture_active: bool = false
 var _pinch_start_distance: float = 0.0
 var _pinch_start_zoom: float = 1.25
 var _character_sprites: Dictionary = {}
+var _character_power_labels: Dictionary = {}
+var _enemy_power_labels: Dictionary = {}
+var _power_styles: Dictionary = {}
 var _facing_by_character: Dictionary = {
 	GS.CharacterId.TORTOISE: "south",
 	GS.CharacterId.CAT: "south",
@@ -71,6 +83,15 @@ var _attack_effect: Sprite2D
 func _ready() -> void:
 	_board_renderer = BOARD_RENDERER_SCRIPT.new()
 	_engine = GAME_ENGINE_SCRIPT.new()
+	var textures := {
+		"player": PLAYER_POWER_TEXTURE,
+		"item": ITEM_POWER_TEXTURE,
+		"enemy": ENEMY_POWER_TEXTURE,
+	}
+	for category in textures:
+		var style := StyleBoxTexture.new()
+		style.texture = textures[category]
+		_power_styles[category] = style
 	_create_character_sprite(GS.CharacterId.TORTOISE, "tortoise")
 	_create_character_sprite(GS.CharacterId.CAT, "cat")
 	_create_attack_effect()
@@ -415,6 +436,8 @@ func _render_state() -> void:
 		_ground_layer,
 		_overlay_layer,
 		_marker_layer,
+		_elevation_layers,
+		_preview_layer,
 		_preview_path,
 		_state.selected_character_id
 	)
@@ -439,6 +462,11 @@ func _create_character_sprite(character_id: int, character_name: String) -> void
 	sprite.frame = 0
 	_board_root.add_child(sprite)
 	_character_sprites[character_id] = sprite
+	var label := _create_power_label("player")
+	label.name = "PowerLabel"
+	label.scale = Vector2.ONE / sprite.scale
+	sprite.add_child(label)
+	_character_power_labels[character_id] = label
 
 
 func _build_character_frames(character_name: String) -> SpriteFrames:
@@ -765,7 +793,7 @@ func _animate_character_path(character_id: int, path: Array, attack_positions: D
 		_facing_by_character[character_id] = direction
 		sprite.position = _tile_center_world(from_pos)
 		if attack_positions.get(to_pos, false):
-			await _animate_attack(character_id, sprite, direction)
+			await _animate_attack(character_id, sprite, direction, to_pos)
 			break
 		_play_character_animation(character_id, "walk_%s" % direction)
 		var tween := create_tween()
@@ -775,11 +803,21 @@ func _animate_character_path(character_id: int, path: Array, attack_positions: D
 	_reset_character_animation_timer(character_id)
 
 
-func _animate_attack(character_id: int, sprite: AnimatedSprite2D, direction: String) -> void:
+func _animate_attack(
+	character_id: int,
+	sprite: AnimatedSprite2D,
+	direction: String,
+	target_pos: Variant = null
+) -> void:
 	var animation_name := "attack_%s" % direction
 	if not sprite.sprite_frames.has_animation(animation_name):
 		push_error("Missing attack animation: %s" % animation_name)
 		return
+	var player_label: Label = _character_power_labels[character_id]
+	var enemy_label: Label = _enemy_power_labels.get(target_pos)
+	_fade_power_label(player_label, 0.0)
+	if enemy_label != null:
+		_fade_power_label(enemy_label, 0.0)
 	var effect_updater := _update_attack_effect.bind(character_id, sprite, direction)
 	sprite.frame_changed.connect(effect_updater)
 	_prepare_attack_effect(character_id, sprite, direction)
@@ -788,6 +826,19 @@ func _animate_attack(character_id: int, sprite: AnimatedSprite2D, direction: Str
 	await get_tree().create_timer(frame_count * ATTACK_FRAME_DURATION).timeout
 	sprite.frame_changed.disconnect(effect_updater)
 	_attack_effect.visible = false
+	_fade_power_label(player_label, 1.0)
+	if is_instance_valid(enemy_label):
+		_fade_power_label(enemy_label, 1.0)
+
+
+func _fade_power_label(label: Label, opacity: float) -> void:
+	if label.has_meta("power_fade"):
+		var previous: Tween = label.get_meta("power_fade")
+		if previous.is_running():
+			previous.kill()
+	var tween := label.create_tween()
+	label.set_meta("power_fade", tween)
+	tween.tween_property(label, "modulate:a", opacity, POWER_INDICATOR_FADE_DURATION)
 
 
 func _create_attack_effect() -> void:
@@ -830,38 +881,57 @@ func _update_attack_effect(character_id: int, sprite: AnimatedSprite2D, directio
 
 
 func _render_power_labels() -> void:
+	var enemy_labels := _enemy_power_labels.values()
 	for child in _marker_layer.get_children():
-		if child is Label:
+		if child is Label and not enemy_labels.has(child):
 			child.free()
-	_add_power_label(_state.player.position, str(_state.player.power), Color("315b3c"))
-	_add_power_label(_state.cat.position, str(_state.cat.power), Color("315b3c"))
+	for position in _enemy_power_labels.keys():
+		if not _state.enemies_by_pos.has(position):
+			_enemy_power_labels[position].free()
+			_enemy_power_labels.erase(position)
+	for character_id in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
+		var sprite: AnimatedSprite2D = _character_sprites[character_id]
+		var label: Label = _character_power_labels[character_id]
+		_set_power_label_value(label, str(_state.character_state(character_id).power))
+		label.position = Vector2(-label.size.x * 0.5, -44.0) / sprite.scale
 	for position in _state.enemies_by_pos:
-		_add_power_label(position, str(_state.enemies_by_pos[position].power), Color("7d2f2f"))
+		if not _enemy_power_labels.has(position):
+			_enemy_power_labels[position] = _add_power_label(position, str(_state.enemies_by_pos[position].power), "enemy")
+		else:
+			var label: Label = _enemy_power_labels[position]
+			_set_power_label_value(label, str(_state.enemies_by_pos[position].power))
+			label.position = _tile_center_world(position) - Vector2(label.size.x * 0.5, 44.0)
 	for position in _state.items_by_pos:
-		_add_power_label(position, str(_state.items_by_pos[position].power_bonus), Color("31557d"))
+		_add_power_label(position, str(_state.items_by_pos[position].power_bonus), "item")
 	for position in _state.lootables_by_pos:
-		_add_power_label(position, str(_state.lootables_by_pos[position].power_reward), Color("31557d"))
+		_add_power_label(position, str(_state.lootables_by_pos[position].power_reward), "item")
 
 
-func _add_power_label(tile_pos: Vector2i, value: String, color: Color) -> void:
+func _create_power_label(category: String) -> Label:
 	var label := Label.new()
-	label.text = value
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.position = _tile_center_world(tile_pos) - Vector2(13, 44)
-	label.size = Vector2(26, 26)
-	label.z_index = 4
+	label.z_index = 6
+	label.z_as_relative = false
+	label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color.WHITE)
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.corner_radius_top_left = 13
-	style.corner_radius_top_right = 13
-	style.corner_radius_bottom_left = 13
-	style.corner_radius_bottom_right = 13
-	label.add_theme_stylebox_override("normal", style)
+	label.add_theme_color_override("font_color", POWER_TEXT_COLOR)
+	label.add_theme_stylebox_override("normal", _power_styles[category])
+	return label
+
+
+func _set_power_label_value(label: Label, value: String) -> void:
+	label.text = value
+	label.size = Vector2(maxf(48.0, label.get_minimum_size().x + 8.0), 26.0)
+
+
+func _add_power_label(tile_pos: Vector2i, value: String, category: String) -> Label:
+	var label := _create_power_label(category)
 	_marker_layer.add_child(label)
+	_set_power_label_value(label, value)
+	label.position = _tile_center_world(tile_pos) - Vector2(label.size.x * 0.5, 44.0)
+	return label
 
 
 func _direction_name(direction) -> String:

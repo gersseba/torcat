@@ -174,6 +174,13 @@ func character_state(character_id: CharacterId) -> PlayerState:
 	return player if character_id == CharacterId.TORTOISE else cat
 
 
+func is_blocked(pos: Vector2i) -> bool:
+	if blocked_tiles.has(pos):
+		return true
+	var blocker: BlockerPlacement = blockers_by_pos.get(pos)
+	return blocker != null and blocker.blocks_movement
+
+
 func with_character_state(character_id: CharacterId, next_state: PlayerState):
 	var next = duplicate_state()
 	if character_id == CharacterId.TORTOISE:

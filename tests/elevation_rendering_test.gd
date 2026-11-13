@@ -1,0 +1,110 @@
+extends SceneTree
+
+const GS = preload("res://scripts/domain/game_state.gd")
+const ENGINE = preload("res://scripts/domain/game_engine.gd")
+const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
+var failures := 0
+
+
+func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _check(condition: bool, message: String) -> void:
+	if not condition:
+		failures += 1
+		push_error(message)
+
+
+func _check_edge(screen: GameplayScreen, pos: Vector2i, direction: int, token: String) -> void:
+	var actual := screen._elevation_layers[direction].get_cell_atlas_coords(pos)
+	var expected: Vector2i = screen._board_renderer._atlas_coords_by_role[token] if not token.is_empty() else Vector2i(-1, -1)
+	_check(actual == expected, "Unexpected %s edge at %s: %s" % [token, pos, actual])
+
+
+func _run() -> void:
+	var app: Node = load("res://scenes/app_root.tscn").instantiate()
+	root.add_child(app)
+	await process_frame
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1"})
+	await process_frame
+	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	if screen == null:
+		push_error("Gameplay screen was not found")
+		quit(1)
+		return
+
+	var center := Vector2i(1, 1)
+	var state = GS.new(3, 3, GS.PlayerState.new(center, 3), GS.PlayerState.new(Vector2i(0, 0), 2))
+	for y in range(3):
+		for x in range(3):
+			var pos := Vector2i(x, y)
+			state.tile_cells[pos] = GS.TileCellState.new("meadow", GS.TileLogicType.PASSABLE, 1 if pos == center else 0)
+	state.blockers_by_pos[center] = GS.BlockerPlacement.new("bush_dense", false)
+	state.traversable_edges = [
+		GS.TraversableEdge.of(center, center + Vector2i.UP, GS.TraversalKind.RAMP),
+		GS.TraversableEdge.of(center, center + Vector2i.RIGHT, GS.TraversalKind.STAIRS),
+	]
+	screen._state = state
+	screen._preview_path = [Vector2i(0, 0), center]
+	screen._render_state()
+	_check_edge(screen, center, 0, "ramp_n")
+	_check_edge(screen, center, 1, "stairs_e")
+	_check_edge(screen, center, 2, "cliff_s")
+	_check_edge(screen, center, 3, "cliff_w")
+	_check_edge(screen, center + Vector2i.UP, 2, "")
+	_check(screen._overlay_layer.get_cell_atlas_coords(center) == screen._board_renderer._atlas_coords_by_role["blocker_bush"], "Blocker must not erase elevation edges")
+	_check(screen._preview_layer.get_cell_atlas_coords(center) == screen._board_renderer._atlas_coords_by_role["selection"], "Selection must coexist with blocker and elevation")
+	var engine := ENGINE.new()
+	_check(engine._can_traverse(state, center, center + Vector2i.UP), "Ramp must allow ascent and descent")
+	_check(engine._can_traverse(state, center + Vector2i.UP, center), "Ramp must work in both directions")
+	_check(not engine._can_traverse(state, center, center + Vector2i.DOWN), "Cliff must block traversal")
+	_check(not engine.find_path(state, center, center + Vector2i.DOWN).is_empty(), "Pathfinding must route around an inaccessible cliff")
+
+	state.traversable_edges = [
+		GS.TraversableEdge.of(center, center + Vector2i.DOWN, GS.TraversalKind.RAMP),
+		GS.TraversableEdge.of(center, center + Vector2i.LEFT, GS.TraversalKind.STAIRS),
+	]
+	screen._render_state()
+	_check_edge(screen, center, 0, "cliff_n")
+	_check_edge(screen, center, 1, "cliff_e")
+	_check_edge(screen, center, 2, "ramp_s")
+	_check_edge(screen, center, 3, "stairs_w")
+	state.blocked_tiles[center + Vector2i.DOWN] = true
+	screen._render_state()
+	_check_edge(screen, center, 2, "cliff_s")
+	_check(not engine._can_traverse(state, center, center + Vector2i.DOWN), "Blocked crossing must not be presented as a ramp")
+	state.blocked_tiles.erase(center + Vector2i.DOWN)
+	state.tile_cells[center + Vector2i.UP].height_level = 1
+	state.tile_cells[center + Vector2i.RIGHT].logic = GS.TileLogicType.IMPASSABLE
+	screen._render_state()
+	_check_edge(screen, center, 0, "")
+	_check_edge(screen, center, 1, "")
+
+	state.tile_cells[center].height_level = 0
+	state.tile_cells[center + Vector2i.DOWN].height_level = -1
+	screen._render_state()
+	_check_edge(screen, center, 2, "ramp_s")
+
+	var descent = FACTORY.new().create_world("level_2_descent")
+	screen._state = descent
+	screen._preview_path.clear()
+	screen._render_state()
+	for edge in descent.traversable_edges:
+		var a_height: int = descent.tile_cells[edge.a].height_level
+		var b_height: int = descent.tile_cells[edge.b].height_level
+		var high: Vector2i = edge.a if a_height > b_height else edge.b
+		var low: Vector2i = edge.b if a_height > b_height else edge.a
+		var direction: int = screen._board_renderer.EDGE_DIRECTIONS.find(low - high)
+		_check(direction >= 0, "Descent crossing must connect adjacent heights")
+		if direction >= 0:
+			var kind := "ramp" if edge.kind == GS.TraversalKind.RAMP else "stairs"
+			_check_edge(screen, high, direction, "%s_%s" % [kind, screen._board_renderer.EDGE_NAMES[direction]])
+			_check(engine._can_traverse(descent, high, low) and engine._can_traverse(descent, low, high), "Descent crossing must match movement rules")
+			screen._preview_path = [low, high]
+			screen._render_state()
+			_check_edge(screen, high, direction, "%s_%s" % [kind, screen._board_renderer.EDGE_NAMES[direction]])
+			_check(screen._preview_layer.get_cell_source_id(high) != -1, "Path preview must be visible over elevation")
+
+	print("Elevation rendering tests: %d failure(s)" % failures)
+	quit(1 if failures else 0)
