@@ -96,6 +96,11 @@ func _create_world_from_definition(definition: Dictionary):
 		GS.PlayerState.new(cat_pos, cat_power, true)
 	)
 	state.tile_cells = tile_cells
+	state.cat_pounces_max = int(initial_state.get("catPounces", GS.DEFAULT_POUNCE_USES))
+	if state.cat_pounces_max < 0:
+		push_error("catPounces must not be negative.")
+		return _create_fallback_state("Invalid cat pounce count.")
+	state.cat_pounces_remaining = state.cat_pounces_max
 	state.blocked_tiles = blocked_tiles
 	state.last_event = last_event
 
@@ -132,16 +137,29 @@ func _create_world_from_definition(definition: Dictionary):
 
 		match entity_type:
 			"ENEMY":
+				var species := str(entity.get("species", "mouse"))
+				if species not in ["mouse", "goose", "hedgehog", "badger", "snake"]:
+					push_error("Unknown enemy species: %s" % species)
+					return _create_fallback_state("Invalid enemy species.")
 				state.enemies_by_pos[position] = GS.Enemy.new(
 					str(entity.get("id", "enemy")),
 					position,
-					int(entity.get("power", 0))
+					int(entity.get("power", 0)),
+					species
 				)
 			"ITEM":
 				state.items_by_pos[position] = GS.Item.new(
 					str(entity.get("id", "item")),
 					position,
 					int(entity.get("power", 0))
+				)
+			"SHELL_ITEM":
+				var shell_bonus: int = int(entity.get("power", 0))
+				if shell_bonus <= 0:
+					push_error("Shell item power must be positive.")
+					return _create_fallback_state("Invalid shell item power.")
+				state.shell_items_by_pos[position] = GS.Item.new(
+					str(entity.get("id", "shell_item")), position, shell_bonus
 				)
 			"LOOT":
 				state.lootables_by_pos[position] = GS.LootableObject.new(
@@ -189,6 +207,11 @@ func _normalize_state(state):
 		if _accept_non_player_pos(item_pos, state, player_tiles, occupied_non_players):
 			normalized_items[item_pos] = state.items_by_pos[item_pos]
 
+	var normalized_shell_items: Dictionary = {}
+	for item_pos in state.shell_items_by_pos.keys():
+		if _accept_non_player_pos(item_pos, state, player_tiles, occupied_non_players):
+			normalized_shell_items[item_pos] = state.shell_items_by_pos[item_pos]
+
 	var normalized_lootables: Dictionary = {}
 	for loot_pos in state.lootables_by_pos.keys():
 		if _accept_non_player_pos(loot_pos, state, player_tiles, occupied_non_players):
@@ -207,6 +230,7 @@ func _normalize_state(state):
 	var next = state.duplicate_state()
 	next.enemies_by_pos = normalized_enemies
 	next.items_by_pos = normalized_items
+	next.shell_items_by_pos = normalized_shell_items
 	next.lootables_by_pos = normalized_lootables
 	next.resupply_points = normalized_resupply
 	next.blockers_by_pos = normalized_blockers
@@ -266,8 +290,28 @@ func _create_procedural_world(backward_variant: bool):
 	for _i in range(attempts):
 		var candidate = _build_procedural_candidate(rng, backward_variant)
 		if candidate != null and _is_procedural_candidate_solvable(candidate):
+			_add_procedural_shell_items(candidate)
 			return candidate
-	return _build_guaranteed_procedural_fallback(backward_variant)
+	var fallback = _build_guaranteed_procedural_fallback(backward_variant)
+	_add_procedural_shell_items(fallback)
+	return fallback
+
+
+func _add_procedural_shell_items(state) -> void:
+	var distances := _distances_from(state.player.position, state.width, state.height, state.blocked_tiles)
+	var positions: Array = distances.keys()
+	positions.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return int(distances[a]) < int(distances[b])
+	)
+	for pos in positions:
+		if pos == state.player.position or pos == state.cat.position:
+			continue
+		if state.enemies_by_pos.has(pos) or state.items_by_pos.has(pos) or state.lootables_by_pos.has(pos) or state.resupply_points.has(pos) or state.blockers_by_pos.has(pos):
+			continue
+		state.shell_items_by_pos[pos] = GS.Item.new("shell_%d" % state.shell_items_by_pos.size(), pos, 3)
+		if state.shell_items_by_pos.size() == 2:
+			return
+	push_error("Procedural level has fewer than two available shell item tiles.")
 
 
 func _build_procedural_candidate(rng: RandomNumberGenerator, backward_variant: bool):
@@ -374,7 +418,7 @@ func _build_procedural_candidate(rng: RandomNumberGenerator, backward_variant: b
 		reserved[enemy_pos] = true
 		var power_bonus: int = 1 if backward_variant and int(distance_from_boss.get(enemy_pos, 0)) <= 3 else 0
 		var enemy_power: int = clampi(rng.randi_range(3, 7) + power_bonus, 3, 9)
-		regular_enemies.append(GS.Enemy.new("enemy_%d" % i, enemy_pos, enemy_power))
+		regular_enemies.append(GS.Enemy.new("enemy_%d" % i, enemy_pos, enemy_power, ["mouse", "goose", "hedgehog"][i % 3]))
 		total_regular_enemy_power += enemy_power
 
 	var item_power_total: int = 0
@@ -406,7 +450,7 @@ func _build_procedural_candidate(rng: RandomNumberGenerator, backward_variant: b
 	var boss_power: int = state.player.power + total_regular_enemy_power + item_power_total - 1
 	if boss_power < 8 or boss_power > 48:
 		return null
-	state.enemies_by_pos[boss_pos] = GS.Enemy.new("Boss", boss_pos, boss_power)
+	state.enemies_by_pos[boss_pos] = GS.Enemy.new("Boss", boss_pos, boss_power, "snake" if backward_variant else "badger")
 
 	state = _normalize_state(state)
 	var difficulty: int = _estimate_difficulty(state)
@@ -491,7 +535,7 @@ func _build_guaranteed_procedural_fallback(backward_variant: bool):
 	]
 	for i in range(enemy_positions.size()):
 		var enemy_pos: Vector2i = enemy_positions[i]
-		state.enemies_by_pos[enemy_pos] = GS.Enemy.new("Enemy-%d" % i, enemy_pos, 4 + (i % 3))
+		state.enemies_by_pos[enemy_pos] = GS.Enemy.new("Enemy-%d" % i, enemy_pos, 4 + (i % 3), ["mouse", "goose", "hedgehog"][i % 3])
 	state.items_by_pos[Vector2i(2, 3)] = GS.Item.new("Item-0", Vector2i(2, 3), 2)
 	state.items_by_pos[Vector2i(7, 3)] = GS.Item.new("Item-1", Vector2i(7, 3), 2)
 	state.items_by_pos[Vector2i(3, 7)] = GS.Item.new("Item-2", Vector2i(3, 7), 3)
@@ -501,7 +545,7 @@ func _build_guaranteed_procedural_fallback(backward_variant: bool):
 	for item in state.items_by_pos.values():
 		boss_power += item.power_bonus
 	boss_power -= 1
-	state.enemies_by_pos[boss_pos] = GS.Enemy.new("Boss", boss_pos, boss_power)
+	state.enemies_by_pos[boss_pos] = GS.Enemy.new("Boss", boss_pos, boss_power, "snake" if backward_variant else "badger")
 	state.lootables_by_pos[Vector2i(4, 1)] = GS.LootableObject.new("Loot-0", Vector2i(4, 1), 0)
 	state.lootables_by_pos[Vector2i(1, 6)] = GS.LootableObject.new("Loot-1", Vector2i(1, 6), 0)
 	state.lootables_by_pos[Vector2i(7, 7)] = GS.LootableObject.new("Loot-2", Vector2i(7, 7), 0)

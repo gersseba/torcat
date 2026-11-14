@@ -53,6 +53,7 @@ var _tile_role_by_id := {
 	"meadow_flowers": ROLE_GROUND_ALT,
 	"meadow_patch": ROLE_GROUND_ALT,
 	"path": ROLE_GROUND_ALT,
+	"rubble": ROLE_GROUND_ALT,
 	"ridge_low": ROLE_ELEVATION,
 	"ridge_mid": ROLE_ELEVATION,
 	"ridge_high": ROLE_ELEVATION,

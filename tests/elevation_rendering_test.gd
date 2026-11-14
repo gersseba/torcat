@@ -26,7 +26,7 @@ func _run() -> void:
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
 	await process_frame
-	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1"})
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
 	await process_frame
 	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
 	if screen == null:
@@ -106,5 +106,24 @@ func _run() -> void:
 			_check_edge(screen, high, direction, "%s_%s" % [kind, screen._board_renderer.EDGE_NAMES[direction]])
 			_check(screen._preview_layer.get_cell_source_id(high) != -1, "Path preview must be visible over elevation")
 
+	_check_atlas_uses_imported_textures(screen)
 	print("Elevation rendering tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)
+
+
+func _check_atlas_uses_imported_textures(screen: GameplayScreen) -> void:
+	var renderer = screen._board_renderer
+	var atlas_source := renderer._tile_set.get_source(renderer._source_id) as TileSetAtlasSource
+	var atlas: Image = atlas_source.texture.get_image()
+	for token in ["ground_a", "path", "wall", "rubble", "resupply", "blocker_tree", "tortoise", "shell_item"]:
+		var coords: Vector2i = renderer._atlas_coords_by_role[token]
+		var tile := atlas.get_region(Rect2i(coords * renderer.TILE_SIZE, renderer.TILE_SIZE))
+		var opaque_colors := {}
+		for y in range(0, tile.get_height(), 4):
+			for x in range(0, tile.get_width(), 4):
+				var color := tile.get_pixel(x, y)
+				if color.a > 0.5:
+					opaque_colors[color.to_rgba32()] = true
+		_check(opaque_colors.size() > 4, "Atlas tile %s must come from its imported texture, not a flat fallback" % token)
+	var rubble := renderer._image_for_token("rubble") as Image
+	_check(rubble.get_format() == Image.FORMAT_RGBA8 and rubble.get_size() == renderer.TILE_SIZE, "Tile textures are normalized to 64x64 RGBA8")

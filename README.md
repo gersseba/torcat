@@ -23,9 +23,34 @@ while the other character transitions into its passive pose and periodically
 plays a passive idle animation. These animations do not interrupt movement or
 attacks. Artwork comes from the characters' PixelLab idle and passive states;
 the tortoise's missing west-facing passive idle is mirrored from the east.
+An attacker defeats an enemy when its power is equal to or greater than the
+enemy's power, gaining the enemy's power.
 Cat attacks use a claw slash effect; tortoise attacks use a bump impact. Both
 effects appear between the attacker and the targeted enemy at the attack's
 impact frame.
+Mouse, goose and hedgehog enemies and the badger and snake bosses face the
+attacker and flinch on impact, including pounces and Shell Charges; the
+hedgehog briefly curls into a spiky ball and unrolls. Level JSON
+enemies can specify `species` as `mouse`, `goose`, `hedgehog`, `badger`, or
+`snake`; older levels default to `mouse`.
+The cat starts with three pounces per level (level JSON may override this
+with `initialState.catPounces`). Select the cat, tap **Pounce**, then tap a
+highlighted cardinal destination up to two tiles away twice to confirm.
+Tap **Cancel pounce** to cancel for free. Pounce ignores intervening tiles and
+elevation, but cannot land on a blocker or the tortoise. Landing collects items
+and loot. Pouncing on an enemy subtracts the cat's power from the enemy and
+returns the cat to its starting tile; no power is awarded, even on a defeat.
+Pounce uses do not replenish during the level.
+The tortoise starts each level with zero shell power. Only the tortoise can
+collect shell charms, which add to its reserve; the cat leaves them in place.
+Select the tortoise and tap **Shell Charge**, then tap a highlighted adjacent
+enemy twice to preview and confirm. Cancel for free. The charge replaces a
+normal attack and follows normal terrain and elevation rules. Its strength is
+tortoise power plus shell power; equality wins, while an insufficient charge
+defeats the tortoise. The enemy's power is subtracted from the shell reserve
+(minimum zero), whether the attack wins or loses. On victory the tortoise
+gains the enemy's power normally, not the temporary shell bonus. Authored levels
+can place charms using entities of type `SHELL_ITEM` with positive `power`.
 Power indicators follow their characters while moving. Green brush strokes
 identify characters, blue identifies items and loot, and wine red identifies
 enemies. During an attack, the attacker's and target's indicators fade out
@@ -36,6 +61,75 @@ mark crossings where characters can move between heights; other cliff edges
 cannot be crossed. Elevation stays on the flat board, so taps and movement use
 the same grid as other levels.
 
+## Cutscenes and level scripts
+
+Levels can include story moments through an optional `events` array in their
+level JSON. Each event has an `id`, a `trigger`, an `actions` list and an
+optional `once` flag, which defaults to `true`. Events are validated when the
+level loads; invalid or duplicate events are reported and skipped.
+
+Triggers:
+
+- `level_start`
+- `enter_tile`: requires `position` or an `area` of `{x, y, w, h}`. An optional
+  `character` of `any`, `tortoise` or `cat` limits which character triggers it.
+  It fires only for the tile where the character's move ends; tiles it passes
+  over do not count.
+- `enemy_defeated`: requires an `enemy` id.
+- `victory`: fires whether the last enemy falls in combat or is removed by a
+  script action.
+
+Actions run one after another. While they run, board input and the ability
+buttons are locked, and the result panel waits until the script has finished.
+After a victory, the result panel shows a **Continue** button.
+
+| Action | Fields |
+| --- | --- |
+| `say` | `speaker` (`tortoise`, `cat`, `enemy:<id>` or `narrator`), `text`, optional `name` and `duration` |
+| `camera` | `actor` or `position`, optional `zoom` (0.75–2.5) and `duration` |
+| `camera_reset` | optional `duration` |
+| `wait` | `duration` |
+| `shake` | optional `strength` and `duration` |
+| `move` | `actor`, `path` of adjacent free tiles |
+| `face` | `actor`, `direction` |
+| `animate` | `actor`, `animation` (a character animation prefix, or `flinch` for enemies), optional `direction` |
+| `spawn_enemy` | `id`, `species`, `power`, `position` |
+| `remove_enemy` | `id` |
+| `set_tile` | `position`, optional `tile`, `passable`, `height`, `assetKey` and `presentationTag` |
+| `message` | `text` for the HUD |
+
+`set_tile` can open blocked tiles. For example, level 1 replaces a wall with
+the walkable `rubble` tile (`resources/assets/tiles/rubble.png`).
+
+Speech bubbles follow their speaker on screen. They flip below the speaker when
+the speaker is near the HUD, and the narrator's bubble is centered near the
+bottom of the screen. The first tap completes the typewriter text; the next tap
+continues to the next action.
+
+Cutscenes play outside levels, on their own `cutscene` route. A level
+declares them at the top level of its JSON, for example
+`"cutscenes": {"intro": "meadow_intro", "outro": "meadow_victory"}`. The intro
+plays after the level is selected and before gameplay starts. The outro plays
+when the player taps **Continue** after a victory, and then returns to level
+select. If a level has no cutscene of that kind, the game goes straight on.
+
+Cutscenes live in `resources/cutscenes/<id>.json`. Each has a default `image`
+and a list of `shots`. A shot can override `image` and defines a `from` and `to`
+view, each with a normalized `focus` point and a `zoom` of at least 1, where 1
+means the image just covers the screen. A shot also has a `duration`, a `text`,
+an optional `speaker` and an optional `auto` advance delay. The camera eases
+between the two views, staying within the image so no black edges show.
+Captions type out on a wooden plank panel. Tapping completes and then advances
+the caption, and **Skip** ends the cutscene. Any text field can be a plain
+string or an object with `en` and `de` keys.
+
+Cutscene images are 512x288 pixel-art panoramas in `resources/assets/cutscenes/`.
+They are scaled with nearest-neighbor filtering, and on a portrait screen each
+shot shows about a third of the panorama's width.
+
+Tests and tools can pass `"scripts": false` in the gameplay payload to load a
+level without its events.
+
 Run the gameplay input and animation regression test with:
 
 ```text
@@ -44,6 +138,11 @@ godot --headless --path . --script res://tests/attack_effects_test.gd
 godot --headless --path . --script res://tests/power_indicators_test.gd
 godot --headless --path . --script res://tests/power_attack_fade_test.gd
 godot --headless --path . --script res://tests/elevation_rendering_test.gd
+godot --headless --path . --script res://tests/combat_power_test.gd
+godot --headless --path . --script res://tests/pounce_test.gd
+godot --headless --path . --script res://tests/shell_charge_test.gd
+godot --headless --path . --script res://tests/enemy_reactions_test.gd
+godot --headless --path . --script res://tests/level_script_test.gd
 ```
 
 ## Mobile and web configuration

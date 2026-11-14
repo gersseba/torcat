@@ -19,7 +19,7 @@ func _run() -> void:
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
 	await process_frame
-	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1"})
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
 	await process_frame
 	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
 	if screen == null:

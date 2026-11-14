@@ -1,5 +1,6 @@
 {
   "meta": { "id": "level_2_descent", "name": "Cliffside Descent", "width": 12, "height": 12, "theme": "elevation_topdown", "version": 2 },
+  "cutscenes": { "intro": "descent_intro" },
   "tileDefinitions": [
     { "id": "meadow", "heightLevel": 0, "assetKey": "meadow", "presentationTag": "ground" },
     { "id": "meadow_flowers", "heightLevel": 0, "assetKey": "meadow_flowers", "presentationTag": "ground" },
@@ -48,19 +49,61 @@
     { "id": "Blocker-Bush-3-10", "assetKey": "bush_dense", "position": { "x": 3, "y": 10 }, "blocksMovement": true }
   ],
   "entities": [
-    { "id": "Enemy-4-2", "type": "ENEMY", "position": { "x": 4, "y": 2 }, "power": 2 },
-    { "id": "Enemy-6-4", "type": "ENEMY", "position": { "x": 6, "y": 4 }, "power": 3 },
-    { "id": "Enemy-8-6", "type": "ENEMY", "position": { "x": 8, "y": 6 }, "power": 4 },
-    { "id": "Enemy-9-10", "type": "ENEMY", "position": { "x": 9, "y": 10 }, "power": 5 },
-    { "id": "Boss", "type": "ENEMY", "position": { "x": 10, "y": 10 }, "power": 16 },
+    { "id": "Enemy-4-2", "type": "ENEMY", "species": "mouse", "position": { "x": 4, "y": 2 }, "power": 2 },
+    { "id": "Enemy-6-4", "type": "ENEMY", "species": "goose", "position": { "x": 6, "y": 4 }, "power": 3 },
+    { "id": "Enemy-8-6", "type": "ENEMY", "species": "hedgehog", "position": { "x": 8, "y": 6 }, "power": 4 },
+    { "id": "Enemy-9-10", "type": "ENEMY", "species": "goose", "position": { "x": 9, "y": 10 }, "power": 5 },
+    { "id": "Boss", "type": "ENEMY", "species": "snake", "position": { "x": 10, "y": 10 }, "power": 16 },
     { "id": "Item-3-2", "type": "ITEM", "position": { "x": 3, "y": 2 }, "power": 1 },
     { "id": "Item-7-5", "type": "ITEM", "position": { "x": 7, "y": 5 }, "power": 2 },
     { "id": "Item-8-8", "type": "ITEM", "position": { "x": 8, "y": 8 }, "power": 2 },
+    { "id": "Shell-1", "type": "SHELL_ITEM", "position": { "x": 2, "y": 1 }, "power": 3 },
+    { "id": "Shell-2", "type": "SHELL_ITEM", "position": { "x": 7, "y": 4 }, "power": 3 },
     { "id": "Loot-2-3", "type": "LOOT", "position": { "x": 2, "y": 3 }, "snackReward": 2, "powerReward": 0 },
     { "id": "Loot-6-7", "type": "LOOT", "position": { "x": 6, "y": 7 }, "snackReward": 2, "powerReward": 1 },
     { "id": "Loot-10-9", "type": "LOOT", "position": { "x": 10, "y": 9 }, "snackReward": 1, "powerReward": 1 },
     { "id": "Resupply-4-4", "type": "RESUPPLY", "position": { "x": 4, "y": 4 } },
     { "id": "Resupply-7-7", "type": "RESUPPLY", "position": { "x": 7, "y": 7 } }
+  ],
+  "events": [
+    {
+      "id": "descent_intro",
+      "trigger": { "type": "level_start" },
+      "actions": [
+        { "type": "camera", "actor": "enemy:Boss", "zoom": 1.4, "duration": 1.4 },
+        { "type": "say", "speaker": "enemy:Boss", "text": { "en": "Ssssixteen coils of power. Come down, little sssnacks.", "de": "Sssechzehn Windungen voller Kraft. Kommt herab, kleine Hapssse." } },
+        { "type": "camera", "actor": "cat", "zoom": 1.5, "duration": 1.2 },
+        { "type": "say", "speaker": "cat", "text": { "en": "Sixteen?! We're going to need every trick we have.", "de": "Sechzehn?! Da brauchen wir jeden Trick, den wir kennen." } },
+        { "type": "camera_reset", "duration": 0.6 }
+      ]
+    },
+    {
+      "id": "hedgehog_defeated",
+      "trigger": { "type": "enemy_defeated", "enemy": "Enemy-8-6" },
+      "actions": [
+        { "type": "say", "speaker": "cat", "text": { "en": "Ow, ow, ow. Who covers themselves in spikes?", "de": "Au, au, au. Wer bedeckt sich denn bitte mit Stacheln?" } }
+      ]
+    },
+    {
+      "id": "snake_reveal",
+      "trigger": { "type": "enter_tile", "area": { "x": 7, "y": 8, "w": 5, "h": 4 } },
+      "actions": [
+        { "type": "camera", "actor": "enemy:Boss", "zoom": 1.6, "duration": 0.8 },
+        { "type": "face", "actor": "enemy:Boss", "direction": "west" },
+        { "type": "shake", "strength": 10, "duration": 0.4 },
+        { "type": "say", "speaker": "enemy:Boss", "text": { "en": "Closer... closer... my club hassss been waiting.", "de": "Näher ... näher ... meine Keule hat ssschon gewartet." } },
+        { "type": "say", "speaker": "tortoise", "text": { "en": "Too strong to face head-on. Wear it down with Pounces, then finish it with the shell.", "de": "Zu stark für einen Frontalangriff. Mit Sprüngen schwächen, dann mit dem Panzer erledigen." } }
+      ]
+    },
+    {
+      "id": "descent_victory",
+      "trigger": { "type": "victory" },
+      "actions": [
+        { "type": "wait", "duration": 0.4 },
+        { "type": "say", "speaker": "cat", "text": { "en": "The gorge is ours! Next time, I pick the path.", "de": "Die Schlucht gehört uns! Nächstes Mal suche ich den Weg aus." } },
+        { "type": "say", "speaker": "tortoise", "text": { "en": "Next time, we take the stairs slowly.", "de": "Nächstes Mal nehmen wir die Treppe langsam." } }
+      ]
+    }
   ],
   "initialState": {
     "tortoise": { "x": 2, "y": 2 },

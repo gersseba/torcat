@@ -1,0 +1,35 @@
+{
+  "id": "meadow_victory",
+  "image": "res://resources/assets/cutscenes/meadow_victory.png",
+  "shots": [
+    {
+      "from": { "focus": [0.75, 0.6], "zoom": 1.15 },
+      "to": { "focus": [0.9, 0.65], "zoom": 1.0 },
+      "duration": 6.0,
+      "text": {
+        "en": "The badger scrambled off into the brambles, leaving his helmet behind.",
+        "de": "Der Dachs flüchtete ins Dornengestrüpp und ließ seinen Helm zurück."
+      }
+    },
+    {
+      "from": { "focus": [0.55, 0.55], "zoom": 1.0 },
+      "to": { "focus": [0.33, 0.62], "zoom": 1.2 },
+      "duration": 7.0,
+      "speaker": { "en": "Cat", "de": "Katze" },
+      "text": {
+        "en": "Ha! Did you see him run? The meadow is ours again!",
+        "de": "Ha! Hast du ihn rennen sehen? Die Wiese gehört wieder uns!"
+      }
+    },
+    {
+      "from": { "focus": [0.33, 0.62], "zoom": 1.2 },
+      "to": { "focus": [0.5, 0.35], "zoom": 1.0 },
+      "duration": 7.0,
+      "speaker": { "en": "Tortoise", "de": "Schildkröte" },
+      "text": {
+        "en": "Slowly, friend. The path leads down to the cliffs, and the woods grow darker there.",
+        "de": "Langsam, Freundin. Der Pfad führt hinab zu den Klippen, und dort wird der Wald dunkler."
+      }
+    }
+  ]
+}

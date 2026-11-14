@@ -1,10 +1,12 @@
 {
   "meta": { "id": "level_1", "name": "Meadow Ruins", "width": 10, "height": 10, "theme": "prototype", "version": 1 },
+  "cutscenes": { "intro": "meadow_intro", "outro": "meadow_victory" },
   "tileDefinitions": [
     { "id": "grass", "heightLevel": 0, "assetKey": "grass", "presentationTag": "ground" },
     { "id": "wall", "heightLevel": 1, "assetKey": "wall", "presentationTag": "blocker" },
     { "id": "resupply", "heightLevel": 0, "assetKey": "resupply", "presentationTag": "utility" },
-    { "id": "path", "heightLevel": 0, "assetKey": "path", "presentationTag": "ground_alt" }
+    { "id": "path", "heightLevel": 0, "assetKey": "path", "presentationTag": "ground_alt" },
+    { "id": "rubble", "heightLevel": 0, "assetKey": "rubble", "presentationTag": "ground_alt" }
   ],
   "logicTiles": [
     ["PASSABLE","PASSABLE","PASSABLE","IMPASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE","PASSABLE"],
@@ -31,14 +33,80 @@
     ["grass","grass","grass","grass","grass","grass","grass","grass","grass","grass"]
   ],
   "entities": [
-    { "id": "Enemy-4-1", "type": "ENEMY", "position": { "x": 4, "y": 1 }, "power": 2 },
-    { "id": "Enemy-6-5", "type": "ENEMY", "position": { "x": 6, "y": 5 }, "power": 4 },
-    { "id": "Boss", "type": "ENEMY", "position": { "x": 8, "y": 8 }, "power": 6 },
+    { "id": "Enemy-4-1", "type": "ENEMY", "species": "mouse", "position": { "x": 4, "y": 1 }, "power": 2 },
+    { "id": "Enemy-6-5", "type": "ENEMY", "species": "goose", "position": { "x": 6, "y": 5 }, "power": 4 },
+    { "id": "Boss", "type": "ENEMY", "species": "badger", "position": { "x": 8, "y": 8 }, "power": 6 },
     { "id": "Item-2-1", "type": "ITEM", "position": { "x": 2, "y": 1 }, "power": 1 },
     { "id": "Item-5-5", "type": "ITEM", "position": { "x": 5, "y": 5 }, "power": 2 },
+    { "id": "Shell-1", "type": "SHELL_ITEM", "position": { "x": 1, "y": 2 }, "power": 3 },
+    { "id": "Shell-2", "type": "SHELL_ITEM", "position": { "x": 4, "y": 5 }, "power": 3 },
     { "id": "Loot-1-4", "type": "LOOT", "position": { "x": 1, "y": 4 }, "snackReward": 2, "powerReward": 0 },
     { "id": "Loot-7-6", "type": "LOOT", "position": { "x": 7, "y": 6 }, "snackReward": 1, "powerReward": 1 },
     { "id": "Resupply-8-1", "type": "RESUPPLY", "position": { "x": 8, "y": 1 } }
+  ],
+  "events": [
+    {
+      "id": "meadow_intro",
+      "trigger": { "type": "level_start" },
+      "actions": [
+        { "type": "camera", "actor": "enemy:Boss", "zoom": 1.5, "duration": 1.2 },
+        { "type": "face", "actor": "enemy:Boss", "direction": "west" },
+        { "type": "say", "speaker": "enemy:Boss", "text": { "en": "Who's tramping through MY meadow? Turn back, or my scouts will flatten you!", "de": "Wer trampelt durch MEINE Wiese? Kehrt um, oder meine Späher machen euch platt!" } },
+        { "type": "shake", "strength": 10, "duration": 0.4 },
+        { "type": "camera", "actor": "cat", "zoom": 1.5, "duration": 1.0 },
+        { "type": "say", "speaker": "cat", "text": { "en": "A badger wearing a pot lid. Terrifying.", "de": "Ein Dachs mit Topfdeckel. Furchterregend." } },
+        { "type": "say", "speaker": "tortoise", "text": { "en": "Deal with his scouts first, and grab whatever power we find along the way.", "de": "Erst seine Späher, und unterwegs sammeln wir jede Kraft ein, die wir finden." } },
+        { "type": "camera_reset", "duration": 0.6 }
+      ]
+    },
+    {
+      "id": "mouse_spotted",
+      "trigger": { "type": "enter_tile", "area": { "x": 4, "y": 2, "w": 2, "h": 2 } },
+      "actions": [
+        { "type": "camera", "actor": "enemy:Enemy-4-1", "zoom": 1.6, "duration": 0.7 },
+        { "type": "face", "actor": "enemy:Enemy-4-1", "direction": "south" },
+        { "type": "animate", "actor": "enemy:Enemy-4-1", "animation": "flinch" },
+        { "type": "say", "speaker": "enemy:Enemy-4-1", "text": { "en": "Eep! The boss said nobody gets past me!", "de": "Iiih! Der Boss hat gesagt, an mir kommt keiner vorbei!" } }
+      ]
+    },
+    {
+      "id": "mouse_defeated",
+      "trigger": { "type": "enemy_defeated", "enemy": "Enemy-4-1" },
+      "actions": [
+        { "type": "camera", "position": { "x": 3, "y": 1 }, "zoom": 1.6, "duration": 0.7 },
+        { "type": "shake", "strength": 12, "duration": 0.5 },
+        { "type": "set_tile", "position": { "x": 3, "y": 1 }, "tile": "rubble", "passable": true, "height": 0 },
+        { "type": "message", "text": { "en": "The old wall crumbled. A shortcut opened!", "de": "Die alte Mauer ist eingestürzt. Eine Abkürzung!" } },
+        { "type": "say", "speaker": "tortoise", "text": { "en": "That wall was only held up by roots. A shortcut back to the resupply.", "de": "Die Mauer hielt nur noch durch Wurzeln. Eine Abkürzung zurück zum Nachschub." } }
+      ]
+    },
+    {
+      "id": "goose_defeated",
+      "trigger": { "type": "enemy_defeated", "enemy": "Enemy-6-5" },
+      "actions": [
+        { "type": "camera", "actor": "enemy:Boss", "zoom": 1.5, "duration": 1.0 },
+        { "type": "move", "actor": "enemy:Boss", "path": [{ "x": 8, "y": 7 }] },
+        { "type": "face", "actor": "enemy:Boss", "direction": "west" },
+        { "type": "say", "speaker": "enemy:Boss", "text": { "en": "Enough! You want my meadow? Come and take it!", "de": "Genug! Ihr wollt meine Wiese? Dann holt sie euch!" } },
+        { "type": "shake", "strength": 14, "duration": 0.5 }
+      ]
+    },
+    {
+      "id": "boss_approach",
+      "trigger": { "type": "enter_tile", "area": { "x": 6, "y": 6, "w": 4, "h": 4 } },
+      "actions": [
+        { "type": "camera", "actor": "enemy:Boss", "zoom": 1.4, "duration": 0.7 },
+        { "type": "say", "speaker": "tortoise", "text": { "en": "He's strong. Weaken him with a Pounce, or save the shell for a Shell Charge.", "de": "Er ist stark. Schwäch ihn mit einem Sprung oder heb den Panzer für eine Panzerattacke auf." } }
+      ]
+    },
+    {
+      "id": "meadow_victory",
+      "trigger": { "type": "victory" },
+      "actions": [
+        { "type": "wait", "duration": 0.4 },
+        { "type": "say", "speaker": "cat", "text": { "en": "The meadow is ours. Nobody's afraid of a pot lid anymore.", "de": "Die Wiese gehört uns. Vor einem Topfdeckel hat jetzt keiner mehr Angst." } }
+      ]
+    }
   ],
   "initialState": {
     "tortoise": { "x": 1, "y": 1 },

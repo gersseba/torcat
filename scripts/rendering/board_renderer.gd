@@ -6,6 +6,7 @@ const BoardThemeScript = preload("res://scripts/rendering/board_theme.gd")
 const CLIFF_TEXTURE := preload("res://resources/assets/glyphs/cliff_texture.png")
 const RAMP_TEXTURE := preload("res://resources/assets/glyphs/elevation_ramp.png")
 const STAIRS_TEXTURE := preload("res://resources/assets/glyphs/elevation_stairs.png")
+const SHELL_ITEM_TEXTURE := preload("res://resources/assets/items/shell_charm.png")
 
 const TILE_SIZE := Vector2i(64, 64)
 const EDGE_DIRECTIONS := [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
@@ -22,6 +23,7 @@ var _token_by_asset_key := {
 	"meadow_patch": "ground_c",
 	"path": "path",
 	"wall": "wall",
+	"rubble": "rubble",
 	"resupply": "resupply",
 	"resupply_tile": "resupply",
 }
@@ -41,8 +43,11 @@ func render(
 	marker_layer: TileMapLayer,
 	elevation_layers: Array[TileMapLayer],
 	preview_layer: TileMapLayer,
+	pounce_layer: TileMapLayer,
 	preview_path: Array = [],
-	selected_character_id = GS.CharacterId.TORTOISE
+	selected_character_id = GS.CharacterId.TORTOISE,
+	pounce_targets: Dictionary = {},
+	pounce_preview: Vector2i = Vector2i(-1, -1)
 ) -> void:
 	if _tile_set == null:
 		_build_tile_set()
@@ -50,6 +55,7 @@ func render(
 		overlay_layer.tile_set = _tile_set
 		marker_layer.tile_set = _tile_set
 		preview_layer.tile_set = _tile_set
+		pounce_layer.tile_set = _tile_set
 		for layer in elevation_layers:
 			layer.tile_set = _tile_set
 
@@ -57,6 +63,7 @@ func render(
 	overlay_layer.clear()
 	marker_layer.clear()
 	preview_layer.clear()
+	pounce_layer.clear()
 	for layer in elevation_layers:
 		layer.clear()
 
@@ -80,10 +87,10 @@ func render(
 	for i in range(1, preview_path.size()):
 		_set_role_cell(preview_layer, preview_path[i], "preview")
 
-	for enemy_pos in state.enemies_by_pos.keys():
-		_set_role_cell(marker_layer, enemy_pos, "enemy")
 	for item_pos in state.items_by_pos.keys():
 		_set_role_cell(marker_layer, item_pos, "item")
+	for item_pos in state.shell_items_by_pos.keys():
+		_set_role_cell(marker_layer, item_pos, "shell_item")
 	for loot_pos in state.lootables_by_pos.keys():
 		_set_role_cell(marker_layer, loot_pos, "loot")
 	for resupply_pos in state.resupply_points.keys():
@@ -91,6 +98,11 @@ func render(
 
 	var selected_pos: Vector2i = state.player.position if selected_character_id == GS.CharacterId.TORTOISE else state.cat.position
 	_set_role_cell(preview_layer, selected_pos, "selection")
+	for pos in pounce_targets:
+		var token: String = "pounce_enemy" if pounce_targets[pos] else "pounce_empty"
+		if pos == pounce_preview:
+			token = "pounce_selected"
+		_set_role_cell(pounce_layer, pos, token)
 
 	var board_pixel_size := Vector2(state.width * TILE_SIZE.x, state.height * TILE_SIZE.y)
 	var viewport_size := board_root.get_viewport().get_visible_rect().size
@@ -102,9 +114,10 @@ func render(
 
 func _build_tile_set() -> void:
 	var tokens: Array[String] = [
-		"ground_a", "ground_b", "ground_c", "ground_d", "path", "wall", "resupply",
+		"ground_a", "ground_b", "ground_c", "ground_d", "path", "wall", "rubble", "resupply",
 		"blocker_tree", "blocker_log", "blocker_bush",
-		"tortoise", "cat", "enemy", "item", "loot", "resupply_marker", "preview", "selection"
+		"tortoise", "cat", "enemy", "item", "shell_item", "loot", "resupply_marker", "preview", "selection",
+		"pounce_empty", "pounce_enemy", "pounce_selected"
 	]
 	for kind in ["cliff", "ramp", "stairs"]:
 		for direction in EDGE_NAMES:
@@ -137,6 +150,10 @@ func tile_world_size() -> int:
 
 
 func _image_for_token(token: String) -> Image:
+	if token == "shell_item":
+		return _tile_image_from_texture(SHELL_ITEM_TEXTURE)
+	if token.begins_with("pounce_"):
+		return _pounce_marker_image(token)
 	if token.begins_with("cliff_") or token.begins_with("ramp_") or token.begins_with("stairs_"):
 		return _elevation_edge_image(token)
 	var file_path: String = {
@@ -146,6 +163,7 @@ func _image_for_token(token: String) -> Image:
 		"ground_d": "res://resources/assets/tiles/tile_3.png",
 		"path": "res://resources/assets/tiles/tile_10.png",
 		"wall": "res://resources/assets/tiles/tile_14.png",
+		"rubble": "res://resources/assets/tiles/rubble.png",
 		"resupply": "res://resources/assets/tiles/tile_6.png",
 		"blocker_tree": "res://resources/assets/blockers/tree_oak_large.png",
 		"blocker_log": "res://resources/assets/blockers/log_fallen.png",
@@ -153,15 +171,40 @@ func _image_for_token(token: String) -> Image:
 		"tortoise": "res://resources/assets/characters/tortoise_idle_south.png",
 		"cat": "res://resources/assets/characters/cat_idle_south.png",
 	}.get(token, "")
-	if not file_path.is_empty() and FileAccess.file_exists(file_path):
-		var loaded: Image = Image.load_from_file(file_path)
-		if loaded != null:
-			if loaded.get_width() != TILE_SIZE.x or loaded.get_height() != TILE_SIZE.y:
-				loaded.resize(TILE_SIZE.x, TILE_SIZE.y, Image.INTERPOLATE_NEAREST)
-			return loaded
+	if not file_path.is_empty():
+		var texture := ResourceLoader.load(file_path, "Texture2D") as Texture2D
+		if texture != null:
+			return _tile_image_from_texture(texture)
+		push_error("Board tile texture failed to load: %s" % file_path)
 	var fallback := Image.create(TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
 	fallback.fill(_fallback_color(token))
 	return fallback
+
+
+## Atlas blits need matching formats, so imported textures are normalized to RGBA8 tiles.
+func _tile_image_from_texture(texture: Texture2D) -> Image:
+	var image := texture.get_image()
+	if image.is_compressed():
+		image.decompress()
+	if image.get_format() != Image.FORMAT_RGBA8:
+		image.convert(Image.FORMAT_RGBA8)
+	if image.get_width() != TILE_SIZE.x or image.get_height() != TILE_SIZE.y:
+		image.resize(TILE_SIZE.x, TILE_SIZE.y, Image.INTERPOLATE_NEAREST)
+	return image
+
+
+func _pounce_marker_image(token: String) -> Image:
+	var image := Image.create(TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	var color := Color("f5e5a6") if token == "pounce_empty" else Color("f7ad72")
+	if token == "pounce_selected":
+		color = Color("ffffff")
+	for y in range(2, 62):
+		for x in range(2, 62):
+			var edge := mini(mini(x, 63 - x), mini(y, 63 - y))
+			if edge < 5 and (token != "pounce_enemy" or (x + y) % 12 < 8):
+				image.set_pixel(x, y, color)
+	return image
 
 
 func _fallback_color(token: String) -> Color:

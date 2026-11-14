@@ -11,6 +11,65 @@ enum Direction {
 }
 
 
+func can_shell_charge(state, target: Vector2i) -> bool:
+	var delta: Vector2i = target - state.player.position
+	return (
+		not state.game_over and not state.victory and state.player.alive
+		and state.shell_power > 0 and absi(delta.x) + absi(delta.y) == 1
+		and _is_within_bounds(target, state.width, state.height)
+		and state.enemies_by_pos.has(target)
+		and _can_traverse(state, state.player.position, target)
+	)
+
+
+func shell_charge(state, target: Vector2i):
+	if not can_shell_charge(state, target):
+		var invalid = state.duplicate_state()
+		invalid.last_event = "Cannot shell charge there."
+		return invalid
+	var next = state.duplicate_state()
+	var enemy = next.enemies_by_pos[target]
+	var attack_power: int = next.player.power + next.shell_power
+	next.shell_power = maxi(0, next.shell_power - enemy.power)
+	next.last_event = "Tortoise used Shell Charge on %s." % enemy.id
+	return _apply_combat(next, target, GS.CharacterId.TORTOISE, attack_power)
+
+
+func can_pounce(state, target: Vector2i) -> bool:
+	var delta: Vector2i = target - state.cat.position
+	var distance := absi(delta.x) + absi(delta.y)
+	return (
+		not state.game_over and not state.victory and state.cat.alive
+		and state.cat_pounces_remaining > 0
+		and _is_within_bounds(target, state.width, state.height)
+		and (delta.x == 0 or delta.y == 0) and distance >= 1 and distance <= 2
+		and target != state.player.position and not state.is_blocked(target)
+	)
+
+
+func pounce(state, target: Vector2i):
+	if not can_pounce(state, target):
+		var invalid = state.duplicate_state()
+		invalid.last_event = "Cannot pounce there."
+		return invalid
+	var next = state.duplicate_state()
+	next.cat_pounces_remaining -= 1
+	if next.enemies_by_pos.has(target):
+		var enemy = next.enemies_by_pos[target]
+		enemy.power = maxi(0, enemy.power - next.cat.power)
+		if enemy.power == 0:
+			next.enemies_by_pos.erase(target)
+			next.victory = next.enemies_by_pos.is_empty()
+			next.last_event = "Cat pounced and defeated %s without gaining power." % enemy.id
+		else:
+			next.last_event = "Cat pounced on %s; enemy power is now %d." % [enemy.id, enemy.power]
+	else:
+		next.cat.position = target
+		next.last_event = "Cat pounced to (%d, %d)." % [target.x, target.y]
+		next = _apply_tile_rewards(next, target, GS.CharacterId.CAT)
+	return next
+
+
 func move(state, direction: Direction, character_id = GS.CharacterId.TORTOISE):
 	if state.game_over or state.victory:
 		return state
@@ -122,6 +181,13 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 		next.items_by_pos.erase(position)
 		event_parts.append("Picked item (+%d power)." % item.power_bonus)
 
+	if character_id == GS.CharacterId.TORTOISE and next.shell_items_by_pos.has(position):
+		var item = next.shell_items_by_pos[position]
+		next = next.duplicate_state()
+		next.shell_power += item.power_bonus
+		next.shell_items_by_pos.erase(position)
+		event_parts.append("Picked shell charm (+%d shell)." % item.power_bonus)
+
 	if next.lootables_by_pos.has(position):
 		var loot = next.lootables_by_pos[position]
 		actor = GS.PlayerState.new(actor.position, actor.power + loot.power_reward, actor.alive)
@@ -134,13 +200,13 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 	return next
 
 
-func _apply_combat(state, position: Vector2i, character_id):
+func _apply_combat(state, position: Vector2i, character_id, attack_power: int = -1):
 	if not state.enemies_by_pos.has(position):
 		return state
 
 	var enemy = state.enemies_by_pos[position]
 	var actor = state.character_state(character_id)
-	if actor.power > enemy.power:
+	if (actor.power if attack_power < 0 else attack_power) >= enemy.power:
 		var upgraded_power: int = actor.power + enemy.power
 		var next = state.with_character_state(
 			character_id,

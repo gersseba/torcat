@@ -32,7 +32,7 @@ func _run() -> void:
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
 	await process_frame
-	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1"})
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
 	await process_frame
 	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
 	if screen == null:
@@ -65,12 +65,13 @@ func _run() -> void:
 	screen._state.player.power = 123456
 	screen._state.enemies_by_pos = {Vector2i(1, 1): GS.Enemy.new("test", Vector2i(1, 1), 12345)}
 	screen._state.items_by_pos = {Vector2i(2, 1): GS.Item.new("test", Vector2i(2, 1), -42)}
+	screen._state.shell_items_by_pos = {Vector2i(4, 1): GS.Item.new("shell", Vector2i(4, 1), 6)}
 	screen._state.lootables_by_pos = {Vector2i(3, 1): GS.LootableObject.new("test", Vector2i(3, 1), 52)}
 	screen._render_power_labels()
 	var player_label: Label = screen._character_power_labels[GS.CharacterId.TORTOISE]
 	_check(player_label.text == "123456" and player_label.size.x >= player_label.get_minimum_size().x + 8.0, "Player indicator must fit large values")
 	_check_player_label(screen, GS.CharacterId.TORTOISE)
-	var expected := {"12345": screen.ENEMY_POWER_TEXTURE, "-42": screen.ITEM_POWER_TEXTURE, "52": screen.ITEM_POWER_TEXTURE}
+	var expected := {"12345": screen.ENEMY_POWER_TEXTURE, "-42": screen.ITEM_POWER_TEXTURE, "52": screen.ITEM_POWER_TEXTURE, "Shell +6": screen.ITEM_POWER_TEXTURE}
 	var static_count := 0
 	for child in screen._marker_layer.get_children():
 		if not child is Label:
@@ -82,8 +83,8 @@ func _run() -> void:
 		_check(label.get_theme_color("font_color") == screen.POWER_TEXT_COLOR, "Static indicator text must be beige")
 		_check(label.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Static indicator must not intercept input")
 		_check(label.size.x >= label.get_minimum_size().x + 8.0, "Static indicator must fit its value")
-	_check(static_count == 3, "There must be one indicator for each enemy, item and lootable")
+	_check(static_count == 4, "There must be one indicator for each enemy, item, shell charm and lootable")
 	screen._render_power_labels()
-	_check(screen._marker_layer.get_children().filter(func(child: Node) -> bool: return child is Label).size() == 3, "Rerender must not duplicate static indicators")
+	_check(screen._marker_layer.get_children().filter(func(child: Node) -> bool: return child is Label).size() == 4, "Rerender must not duplicate static indicators")
 	print("Power indicator tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)

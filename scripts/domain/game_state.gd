@@ -16,6 +16,7 @@ enum TraversalKind {
 	RAMP,
 }
 
+const DEFAULT_POUNCE_USES := 3
 
 class PlayerState:
 	extends RefCounted
@@ -39,14 +40,16 @@ class Enemy:
 	var id: String
 	var position: Vector2i
 	var power: int
+	var species: String
 
-	func _init(p_id: String, p_position: Vector2i, p_power: int) -> void:
+	func _init(p_id: String, p_position: Vector2i, p_power: int, p_species: String = "mouse") -> void:
 		id = p_id
 		position = p_position
 		power = p_power
+		species = p_species
 
 	func copy_state() -> Enemy:
-		return Enemy.new(id, position, power)
+		return Enemy.new(id, position, power, species)
 
 
 class Item:
@@ -151,8 +154,12 @@ var tile_cells: Dictionary = {}
 var blocked_tiles: Dictionary = {}
 var player: PlayerState
 var cat: PlayerState
+var cat_pounces_remaining: int = DEFAULT_POUNCE_USES
+var cat_pounces_max: int = DEFAULT_POUNCE_USES
+var shell_power: int = 0
 var enemies_by_pos: Dictionary = {}
 var items_by_pos: Dictionary = {}
+var shell_items_by_pos: Dictionary = {}
 var lootables_by_pos: Dictionary = {}
 var resupply_points: Dictionary = {}
 var traversable_edges: Array = []
@@ -196,9 +203,13 @@ func duplicate_state():
 	next.blocked_tiles = blocked_tiles.duplicate(true)
 	next.enemies_by_pos = _copy_ref_dictionary(enemies_by_pos)
 	next.items_by_pos = _copy_ref_dictionary(items_by_pos)
+	next.shell_items_by_pos = _copy_ref_dictionary(shell_items_by_pos)
 	next.lootables_by_pos = _copy_ref_dictionary(lootables_by_pos)
 	next.resupply_points = resupply_points.duplicate(true)
 	next.traversable_edges = _copy_ref_array(traversable_edges)
+	next.cat_pounces_remaining = cat_pounces_remaining
+	next.cat_pounces_max = cat_pounces_max
+	next.shell_power = shell_power
 	next.blockers_by_pos = _copy_ref_dictionary(blockers_by_pos)
 	next.selected_character_id = selected_character_id
 	next.last_event = last_event
