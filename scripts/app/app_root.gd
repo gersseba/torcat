@@ -12,6 +12,7 @@ const SETTINGS_SCENE := preload("res://scenes/screens/settings.tscn")
 const GAMEPLAY_SCENE := preload("res://scenes/screens/gameplay.tscn")
 const CUTSCENE_SCREEN_SCRIPT := preload("res://scripts/screens/cutscene_screen.gd")
 const LEVEL_SCRIPT := preload("res://scripts/domain/level_script.gd")
+const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
 
 @onready var _screen_host: Control = $screen_host
 
@@ -40,15 +41,36 @@ func _show_route(route: String, payload: Variant) -> void:
 
 ## Plays a level's intro or outro cutscene (when it has one) before moving on.
 static func navigate_with_cutscene(level_id: String, kind: String, next_route: String, next_payload: Variant) -> void:
+	var destination := cutscene_destination(level_id, kind, next_route, next_payload)
+	AppRouter.navigate(destination["route"], destination["payload"])
+
+
+## Returns {route, payload} that shows the level's `kind` cutscene before
+## `next_route`, or `next_route` itself when the level has no such cutscene.
+static func cutscene_destination(level_id: String, kind: String, next_route: String, next_payload: Variant) -> Dictionary:
 	var cutscene_id := LEVEL_SCRIPT.level_cutscene(level_id, kind)
 	if cutscene_id.is_empty():
-		AppRouter.navigate(next_route, next_payload)
+		return {"route": next_route, "payload": next_payload}
+	return {
+		"route": ROUTE_CUTSCENE,
+		"payload": {
+			"cutscene_id": cutscene_id,
+			"next_route": next_route,
+			"next_payload": next_payload,
+		},
+	}
+
+
+## Handles a won level: unlocks the next campaign chapter and chains
+## outro cutscene -> next chapter intro -> next chapter, or returns to level select.
+static func complete_level(level_id: String) -> void:
+	var next_level := CAMPAIGN.next_level(level_id)
+	if next_level.is_empty():
+		navigate_with_cutscene(level_id, "outro", ROUTE_LEVEL_SELECT, null)
 		return
-	AppRouter.navigate(ROUTE_CUTSCENE, {
-		"cutscene_id": cutscene_id,
-		"next_route": next_route,
-		"next_payload": next_payload,
-	})
+	AppState.unlock_chapter(CAMPAIGN.chapter_index(next_level))
+	var next_start := cutscene_destination(next_level, "intro", ROUTE_GAMEPLAY, {"level_id": next_level})
+	navigate_with_cutscene(level_id, "outro", next_start["route"], next_start["payload"])
 
 
 func _build_screen(route: String, payload: Variant) -> Node:
@@ -83,7 +105,10 @@ func _build_screen(route: String, payload: Variant) -> Node:
 				AppRouter.navigate(ROUTE_MAIN_MENU)
 			)
 			screen.level_completed.connect(func(level_id: String) -> void:
-				navigate_with_cutscene(level_id, "outro", ROUTE_LEVEL_SELECT, null)
+				complete_level(level_id)
+			)
+			screen.retry_requested.connect(func(level_id: String) -> void:
+				AppRouter.navigate(ROUTE_GAMEPLAY, {"level_id": level_id})
 			)
 			return screen
 		ROUTE_CUTSCENE:

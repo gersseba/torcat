@@ -1,0 +1,73 @@
+{
+  "id": "story_2_climb",
+  "image": "res://resources/assets/cutscenes/story_foothills.png",
+  "shots": [
+    {
+      "from": {
+        "focus": [
+          0.18,
+          0.8
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.35,
+          0.65
+        ],
+        "zoom": 1.0
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "The meadow lay behind her. Ahead, the path wound up into the foothills.",
+        "de": "Die Wiese lag hinter ihr. Vor ihr schlängelte sich der Weg hinauf in die Ausläufer."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.2,
+          0.82
+        ],
+        "zoom": 1.2
+      },
+      "to": {
+        "focus": [
+          0.2,
+          0.8
+        ],
+        "zoom": 1.4
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "Strange... I have a bad feeling about the animals up here.",
+        "de": "Seltsam ... bei den Tieren hier oben habe ich ein ungutes Gefühl."
+      },
+      "speaker": {
+        "en": "Tortoise",
+        "de": "Schildkröte"
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.6,
+          0.4
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.87,
+          0.1
+        ],
+        "zoom": 1.7
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "The meadow mice whispered of a mean old badger who had claimed the whole hill for himself.",
+        "de": "Die Wiesenmäuse flüsterten von einem gemeinen alten Dachs, der den ganzen Hügel für sich beanspruchte."
+      }
+    }
+  ]
+}

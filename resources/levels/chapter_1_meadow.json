@@ -1,0 +1,319 @@
+{
+  "meta": {
+    "id": "chapter_1_meadow",
+    "name": "The Flower Meadow",
+    "backdrop": "#2f4a22"
+  },
+  "cutscenes": {
+    "intro": "story_1_meadow"
+  },
+  "abilities": {
+    "shellCharge": false,
+    "pounce": false
+  },
+  "tileDefinitions": [
+    {
+      "id": "fm0",
+      "heightLevel": 0,
+      "assetKey": "flower_meadow",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "md0",
+      "heightLevel": 0,
+      "assetKey": "meadow",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr0",
+      "heightLevel": 0,
+      "assetKey": "path",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "fh1",
+      "heightLevel": 1,
+      "assetKey": "foothill",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "rubble",
+      "heightLevel": 0,
+      "assetKey": "rubble",
+      "presentationTag": "ground"
+    }
+  ],
+  "map": {
+    "legend": {
+      ",": {
+        "tile": "fm0"
+      },
+      ".": {
+        "tile": "md0"
+      },
+      "=": {
+        "tile": "tr0"
+      },
+      "T": {
+        "tile": "md0",
+        "blocker": "tree_oak_large"
+      },
+      "b": {
+        "tile": "fm0",
+        "blocker": "tree_oak_large"
+      },
+      "o": {
+        "tile": "md0",
+        "blocker": "boulder"
+      },
+      "^": {
+        "tile": "fh1"
+      },
+      "p": {
+        "tile": "fh1",
+        "blocker": "pine"
+      }
+    },
+    "rows": [
+      "b,,..,T,,..,,b.^pp",
+      ",,..,,T..,,..,,^^^",
+      ".,,..,T,..,,.o,^^^",
+      "..,,.,T.,,..,,.^^^",
+      "=====.=========^^^",
+      ".,,..,T..,,.,,.^^^",
+      ",..,,.T,,..,o.,^^^",
+      ",,..,,T.,,..,,.^^^",
+      "bb,,.,T,,..,bb,^pp"
+    ]
+  },
+  "traversableEdges": [
+    {
+      "from": {
+        "x": 14,
+        "y": 4
+      },
+      "to": {
+        "x": 15,
+        "y": 4
+      },
+      "kind": "STAIRS"
+    }
+  ],
+  "entities": [
+    {
+      "type": "ENEMY",
+      "id": "meadow_goose",
+      "species": "goose",
+      "position": {
+        "x": 3,
+        "y": 2
+      },
+      "power": 1
+    },
+    {
+      "type": "ENEMY",
+      "id": "meadow_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 4,
+        "y": 6
+      },
+      "power": 2
+    },
+    {
+      "type": "ITEM",
+      "id": "salad_small",
+      "position": {
+        "x": 2,
+        "y": 7
+      },
+      "power": 1
+    },
+    {
+      "type": "ENEMY",
+      "id": "oak_goose",
+      "species": "goose",
+      "position": {
+        "x": 6,
+        "y": 4
+      },
+      "power": 6
+    },
+    {
+      "type": "ENEMY",
+      "id": "clover_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 9,
+        "y": 2
+      },
+      "power": 4
+    },
+    {
+      "type": "ENEMY",
+      "id": "pond_goose",
+      "species": "goose",
+      "position": {
+        "x": 10,
+        "y": 6
+      },
+      "power": 3
+    },
+    {
+      "type": "ITEM",
+      "id": "salad_big",
+      "position": {
+        "x": 12,
+        "y": 1
+      },
+      "power": 2
+    },
+    {
+      "type": "ENEMY",
+      "id": "hill_mouse",
+      "species": "mouse",
+      "position": {
+        "x": 15,
+        "y": 4
+      },
+      "power": 20
+    }
+  ],
+  "initialState": {
+    "tortoise": {
+      "x": 1,
+      "y": 4
+    },
+    "tortoisePower": 2,
+    "catStatus": "absent",
+    "lastEvent": "Tap a tile to preview a path, tap again to walk."
+  },
+  "events": [
+    {
+      "id": "meadow_start",
+      "trigger": {
+        "type": "level_start"
+      },
+      "actions": [
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "What a lovely meadow... but my eggs belong at the very top of the hill.",
+            "de": "Was für eine schöne Wiese ... aber meine Eier gehören ganz oben auf den Hügel."
+          }
+        },
+        {
+          "type": "message",
+          "text": {
+            "en": "Tap a tile to preview a path, tap again to walk. Beat animals with equal or lower power to grow stronger.",
+            "de": "Tippe ein Feld für eine Wegvorschau, tippe erneut zum Laufen. Besiege Tiere mit gleicher oder kleinerer Kraft, um stärker zu werden."
+          }
+        }
+      ]
+    },
+    {
+      "id": "oak_goose_seen",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "tortoise",
+        "area": {
+          "x": 3,
+          "y": 3,
+          "w": 3,
+          "h": 3
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.6,
+          "duration": 0.8,
+          "actor": "enemy:oak_goose"
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:oak_goose",
+          "text": {
+            "en": "Honk! Nobody passes the old oaks without going through me!",
+            "de": "Schnatter! An den alten Eichen kommt keiner an mir vorbei!"
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "Six power... I'll need some salad and a few smaller victories first.",
+            "de": "Sechs Kraft ... da brauche ich erst Salat und ein paar kleinere Siege."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "hill_mouse_seen",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "tortoise",
+        "area": {
+          "x": 11,
+          "y": 2,
+          "w": 4,
+          "h": 5
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.6,
+          "duration": 0.8,
+          "actor": "enemy:hill_mouse"
+        },
+        {
+          "type": "face",
+          "actor": "enemy:hill_mouse",
+          "direction": "west"
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:hill_mouse",
+          "text": {
+            "en": "Squeak! This hill belongs to the badger! Turn around, shell-head!",
+            "de": "Piep! Dieser Hügel gehört dem Dachs! Kehr um, Panzerkopf!"
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "A badger? Hmm. I'm not turning back now.",
+            "de": "Ein Dachs? Hm. Umkehren werde ich jetzt nicht."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "meadow_victory",
+      "trigger": {
+        "type": "victory"
+      },
+      "actions": [
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "The first slope! Onward, up the hill.",
+            "de": "Der erste Hang! Weiter, den Hügel hinauf."
+          }
+        }
+      ]
+    }
+  ]
+}

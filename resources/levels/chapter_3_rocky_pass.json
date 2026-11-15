@@ -1,0 +1,398 @@
+{
+  "meta": {
+    "id": "chapter_3_rocky_pass",
+    "name": "The Rocky Pass",
+    "backdrop": "#4a4334"
+  },
+  "cutscenes": {
+    "intro": "story_3_mice"
+  },
+  "abilities": {
+    "shellCharge": true,
+    "pounce": true,
+    "catClimb": false,
+    "catCarry": false
+  },
+  "tileDefinitions": [
+    {
+      "id": "fh0",
+      "heightLevel": 0,
+      "assetKey": "foothill",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr0",
+      "heightLevel": 0,
+      "assetKey": "trail",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "rk1",
+      "heightLevel": 1,
+      "assetKey": "rocky",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr1",
+      "heightLevel": 1,
+      "assetKey": "trail",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "ledge2",
+      "heightLevel": 2,
+      "assetKey": "summit",
+      "presentationTag": "ground"
+    }
+  ],
+  "map": {
+    "legend": {
+      "f": {
+        "tile": "fh0"
+      },
+      "=": {
+        "tile": "tr0"
+      },
+      "p": {
+        "tile": "fh0",
+        "blocker": "pine"
+      },
+      "r": {
+        "tile": "rk1"
+      },
+      "_": {
+        "tile": "tr1"
+      },
+      "o": {
+        "tile": "rk1",
+        "blocker": "boulder"
+      },
+      "L": {
+        "tile": "ledge2"
+      }
+    },
+    "rows": [
+      "pfffffffprrrrooLoorr",
+      "fffffffffrrrrrrorrrr",
+      "ffpffffffrrrrrrorrrr",
+      "fffffffffrrrrrrrrrrr",
+      "=========___________",
+      "fffffffffrrrrrrrrrrr",
+      "ffffffpffrrorrrrrrrr",
+      "fffffffffrrrrrrrrorr",
+      "pffffffffrrrrrrrrrro"
+    ]
+  },
+  "traversableEdges": [
+    {
+      "from": {
+        "x": 8,
+        "y": 4
+      },
+      "to": {
+        "x": 9,
+        "y": 4
+      },
+      "kind": "STAIRS"
+    }
+  ],
+  "entities": [
+    {
+      "type": "ENEMY",
+      "id": "ring_west",
+      "species": "hedgehog",
+      "position": {
+        "x": 4,
+        "y": 4
+      },
+      "power": 2
+    },
+    {
+      "type": "ENEMY",
+      "id": "ring_north",
+      "species": "hedgehog",
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "power": 3
+    },
+    {
+      "type": "ENEMY",
+      "id": "ring_south",
+      "species": "hedgehog",
+      "position": {
+        "x": 5,
+        "y": 5
+      },
+      "power": 4
+    },
+    {
+      "type": "ENEMY",
+      "id": "ring_east",
+      "species": "hedgehog",
+      "position": {
+        "x": 6,
+        "y": 4
+      },
+      "power": 6
+    },
+    {
+      "type": "ENEMY",
+      "id": "pass_goose",
+      "species": "goose",
+      "position": {
+        "x": 7,
+        "y": 1
+      },
+      "power": 4
+    },
+    {
+      "type": "ITEM",
+      "id": "pass_salad",
+      "position": {
+        "x": 2,
+        "y": 7
+      },
+      "power": 2
+    },
+    {
+      "type": "ENEMY",
+      "id": "pass_mouse",
+      "species": "mouse",
+      "position": {
+        "x": 9,
+        "y": 4
+      },
+      "power": 27
+    },
+    {
+      "type": "ENEMY",
+      "id": "pass_snake",
+      "species": "snake",
+      "position": {
+        "x": 12,
+        "y": 2
+      },
+      "power": 10
+    },
+    {
+      "type": "ENEMY",
+      "id": "pass_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 12,
+        "y": 6
+      },
+      "power": 8
+    },
+    {
+      "type": "ENEMY",
+      "id": "mouse_veteran",
+      "species": "mouse",
+      "position": {
+        "x": 17,
+        "y": 4
+      },
+      "power": 72
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "ledge_shell",
+      "position": {
+        "x": 15,
+        "y": 0
+      },
+      "power": 5
+    }
+  ],
+  "initialState": {
+    "tortoise": {
+      "x": 1,
+      "y": 4
+    },
+    "tortoisePower": 4,
+    "cat": {
+      "x": 5,
+      "y": 4
+    },
+    "catPower": 5,
+    "catPounces": 3,
+    "catStatus": "stranded"
+  },
+  "events": [
+    {
+      "id": "cat_trapped",
+      "trigger": {
+        "type": "level_start"
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.7,
+          "duration": 1.0,
+          "actor": "cat"
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "H-help! Spiky things everywhere! I can't get past their quills!",
+            "de": "H-hilfe! Überall stachelige Dinger! Ich komme nicht an ihren Stacheln vorbei!"
+          }
+        },
+        {
+          "type": "animate",
+          "actor": "enemy:ring_east",
+          "animation": "flinch"
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "Hold on! My shell doesn't mind a few spikes.",
+            "de": "Halt durch! Meinem Panzer machen ein paar Stacheln nichts aus."
+          }
+        },
+        {
+          "type": "message",
+          "text": {
+            "en": "Defeat the hedgehogs around the cat. Start with the weakest.",
+            "de": "Besiege die Igel rund um die Katze. Fang mit dem schwächsten an."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "cat_rescued",
+      "trigger": {
+        "type": "enemy_defeated",
+        "enemies": [
+          "ring_west",
+          "ring_north",
+          "ring_south",
+          "ring_east"
+        ]
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.7,
+          "duration": 0.7,
+          "actor": "cat"
+        },
+        {
+          "type": "join_party",
+          "character": "cat"
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "You saved me! I'm not good with spikes... but I can Pounce!",
+            "de": "Du hast mich gerettet! Mit Stacheln kann ich nicht ... aber ich kann springen!"
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "I leap up to two tiles and knock the strength out of anyone—even across ledges.",
+            "de": "Ich springe bis zu zwei Felder weit und schwäche jeden – sogar über Felskanten."
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "There are mice ahead. Big ones. I really can't stand mice.",
+            "de": "Da vorne sind Mäuse. Große. Ich kann Mäuse wirklich nicht ausstehen."
+          }
+        },
+        {
+          "type": "message",
+          "text": {
+            "en": "Tap the cat to select it. Pounce lowers an enemy's power by the cat's power, but earns no reward.",
+            "de": "Tippe die Katze an, um sie zu wählen. Ein Sprung senkt die Kraft des Gegners um die Kraft der Katze, bringt aber keine Belohnung."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "ledge_shell_seen",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "any",
+        "area": {
+          "x": 11,
+          "y": 1,
+          "w": 8,
+          "h": 3
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.6,
+          "duration": 0.8,
+          "position": {
+            "x": 15,
+            "y": 0
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "A shell charm up on that ledge... no way I can get up there.",
+            "de": "Ein Panzer-Amulett da oben auf dem Felsvorsprung ... da komme ich nie hinauf."
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "Hmm. Not yet, anyway.",
+            "de": "Hm. Jedenfalls noch nicht."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "pass_victory",
+      "trigger": {
+        "type": "victory"
+      },
+      "actions": [
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "That was fun! Where are you headed, anyway?",
+            "de": "Das hat Spaß gemacht! Wo willst du eigentlich hin?"
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "To the very top of the hill.",
+            "de": "Ganz nach oben auf den Hügel."
+          }
+        }
+      ]
+    }
+  ]
+}

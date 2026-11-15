@@ -9,8 +9,11 @@ const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
 const TRIGGER_TYPES := ["level_start", "enter_tile", "enemy_defeated", "victory"]
 const ACTION_TYPES := [
 	"say", "camera", "camera_reset", "wait", "shake", "move", "face", "animate",
-	"spawn_enemy", "remove_enemy", "set_tile", "message",
+	"spawn_enemy", "remove_enemy", "set_tile", "message", "join_party",
 ]
+## Actions that only change the GameState; shared by the gameplay runner and headless solvers.
+const STATE_ACTION_TYPES := ["spawn_enemy", "remove_enemy", "set_tile", "join_party"]
+const ENEMY_SPECIES := ["mouse", "goose", "hedgehog", "badger", "snake"]
 const CUTSCENE_KINDS := ["intro", "outro"]
 const CUTSCENE_DIR := "res://resources/cutscenes"
 
@@ -40,6 +43,11 @@ static func level_cutscene(level_id: String, kind: String) -> String:
 		push_error("Level %s references missing %s cutscene %s" % [level_id, kind, cutscene_id])
 		return ""
 	return cutscene_id
+
+
+static func level_meta(level_id: String) -> Dictionary:
+	var meta: Variant = _load_level_definition(level_id).get("meta", {})
+	return meta if meta is Dictionary else {}
 
 
 static func _load_level_definition(level_id: String) -> Dictionary:
@@ -93,8 +101,9 @@ static func validate_event(raw: Variant) -> String:
 			if str(trigger.get("character", "any")) not in ["any", "tortoise", "cat"]:
 				return "%s enter_tile has unknown character" % id
 		"enemy_defeated":
-			if str(trigger.get("enemy", "")).is_empty():
-				return "%s enemy_defeated needs enemy id" % id
+			var group: Variant = trigger.get("enemies")
+			if str(trigger.get("enemy", "")).is_empty() and not (group is Array and not group.is_empty()):
+				return "%s enemy_defeated needs enemy id or enemies array" % id
 	var actions: Variant = event.get("actions")
 	if not (actions is Array) or actions.is_empty():
 		return "%s has no actions" % id
@@ -153,7 +162,7 @@ static func triggered_events(
 				if _arrived_on_trigger_tile(trigger, arrived_by_character):
 					result.append(event)
 			"enemy_defeated":
-				if defeated_ids.has(str(trigger["enemy"])):
+				if _enemy_trigger_met(trigger, defeated_ids, next_state):
 					result.append(event)
 			"victory":
 				if next_state.victory and not previous_state.victory:
@@ -198,6 +207,86 @@ static func _arrived_on_trigger_tile(trigger: Dictionary, arrived_by_character: 
 		if area.has_point(arrived_by_character[character_id]):
 			return true
 	return false
+
+
+## Applies a state-only script action to `state` in place. Returns false and
+## reports an error when the action cannot be applied.
+static func apply_state_action(state, action: Dictionary) -> bool:
+	match str(action.get("type", "")):
+		"join_party":
+			if str(action.get("character", "cat")) != "cat":
+				push_error("join_party only supports the cat")
+				return false
+			state.cat_present = true
+			state.cat_in_party = true
+			return true
+		"remove_enemy":
+			var enemy_id := str(action.get("id", ""))
+			for position in state.enemies_by_pos.keys():
+				if state.enemies_by_pos[position].id == enemy_id:
+					state.enemies_by_pos.erase(position)
+					if state.enemies_by_pos.is_empty():
+						state.victory = true
+						state.last_event = "All enemies defeated."
+					return true
+			push_error("Script cannot remove missing enemy %s" % enemy_id)
+			return false
+		"spawn_enemy":
+			var position := read_pos(action.get("position"))
+			var species := str(action.get("species", "mouse"))
+			var enemy_id := str(action.get("id", ""))
+			if enemy_id.is_empty() or species not in ENEMY_SPECIES or not tile_free(state, position):
+				push_error("Script cannot spawn enemy %s (%s) at %s" % [enemy_id, species, str(position)])
+				return false
+			state.enemies_by_pos[position] = GS.Enemy.new(enemy_id, position, int(action.get("power", 1)), species)
+			return true
+		"set_tile":
+			var position := read_pos(action.get("position"))
+			if not state.tile_cells.has(position):
+				push_error("Script set_tile outside the board: %s" % str(position))
+				return false
+			var cell = state.tile_cells[position]
+			var tile_id := str(action.get("tile", cell.tile_id))
+			var passable := bool(action.get("passable", cell.logic == GS.TileLogicType.PASSABLE))
+			state.tile_cells[position] = GS.TileCellState.new(
+				tile_id,
+				GS.TileLogicType.PASSABLE if passable else GS.TileLogicType.IMPASSABLE,
+				int(action.get("height", cell.height_level)),
+				str(action.get("assetKey", tile_id)),
+				str(action.get("presentationTag", "ground" if passable else "blocker"))
+			)
+			if passable:
+				state.blocked_tiles.erase(position)
+			else:
+				state.blocked_tiles[position] = true
+			return true
+	push_error("Not a state-only script action: %s" % str(action))
+	return false
+
+
+static func tile_free(state, position: Vector2i) -> bool:
+	return (
+		position.x >= 0 and position.y >= 0 and position.x < state.width and position.y < state.height
+		and not state.is_blocked(position)
+		and not state.enemies_by_pos.has(position)
+		and position != state.player.position
+		and not (state.cat_present and position == state.cat.position)
+	)
+
+
+static func _enemy_trigger_met(trigger: Dictionary, defeated_ids: Dictionary, next_state) -> bool:
+	if not str(trigger.get("enemy", "")).is_empty():
+		return defeated_ids.has(str(trigger["enemy"]))
+	var remaining: Dictionary = {}
+	for enemy in next_state.enemies_by_pos.values():
+		remaining[enemy.id] = true
+	var any_defeated_now := false
+	for enemy_id in trigger["enemies"]:
+		if remaining.has(str(enemy_id)):
+			return false
+		if defeated_ids.has(str(enemy_id)):
+			any_defeated_now = true
+	return any_defeated_now
 
 
 static func _defeated_enemy_ids(previous_state, next_state) -> Dictionary:

@@ -1,0 +1,100 @@
+{
+  "id": "story_1_meadow",
+  "image": "res://resources/assets/cutscenes/story_meadow_home.png",
+  "shots": [
+    {
+      "from": {
+        "focus": [
+          0.45,
+          0.35
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.3,
+          0.6
+        ],
+        "zoom": 1.0
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "Spring had come to the flower meadow, and the old tortoise felt it deep in her shell.",
+        "de": "Der Frühling war auf die Blumenwiese gekommen, und die alte Schildkröte spürte ihn tief in ihrem Panzer."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.25,
+          0.65
+        ],
+        "zoom": 1.1
+      },
+      "to": {
+        "focus": [
+          0.27,
+          0.65
+        ],
+        "zoom": 1.4
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "It's time. My little ones need the warmest, safest place of all.",
+        "de": "Es ist so weit. Meine Kleinen brauchen den wärmsten, sichersten Platz von allen."
+      },
+      "speaker": {
+        "en": "Tortoise",
+        "de": "Schildkröte"
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.2,
+          0.8
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.6,
+          0.35
+        ],
+        "zoom": 1.0
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "Above the meadow rose the hill. Sun all day long, and no flood ever reached its top.",
+        "de": "Über der Wiese erhob sich der Hügel. Den ganzen Tag Sonne, und kein Hochwasser erreichte je seinen Gipfel."
+      },
+      "image": "res://resources/assets/cutscenes/story_hill_view.png"
+    },
+    {
+      "from": {
+        "focus": [
+          0.7,
+          0.2
+        ],
+        "zoom": 1.1
+      },
+      "to": {
+        "focus": [
+          0.77,
+          0.12
+        ],
+        "zoom": 1.5
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "There. At the very top. That's where my eggs belong.",
+        "de": "Dort. Ganz oben. Dort gehören meine Eier hin."
+      },
+      "image": "res://resources/assets/cutscenes/story_hill_view.png",
+      "speaker": {
+        "en": "Tortoise",
+        "de": "Schildkröte"
+      }
+    }
+  ]
+}

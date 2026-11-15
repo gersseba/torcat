@@ -1,0 +1,73 @@
+{
+  "id": "story_3_mice",
+  "image": "res://resources/assets/cutscenes/story_mice_pass.png",
+  "shots": [
+    {
+      "from": {
+        "focus": [
+          0.4,
+          0.4
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.2,
+          0.75
+        ],
+        "zoom": 1.0
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "The higher she climbed, the stronger the animals became.",
+        "de": "Je höher sie kletterte, desto stärker wurden die Tiere."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.6,
+          0.3
+        ],
+        "zoom": 1.1
+      },
+      "to": {
+        "focus": [
+          0.8,
+          0.45
+        ],
+        "zoom": 1.3
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "And mice. So many mice. With swords.",
+        "de": "Und Mäuse. So viele Mäuse. Mit Schwertern."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.2,
+          0.8
+        ],
+        "zoom": 1.2
+      },
+      "to": {
+        "focus": [
+          0.18,
+          0.82
+        ],
+        "zoom": 1.5
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "Of all the creatures on this hill... why does it have to be mice?",
+        "de": "Von allen Tieren auf diesem Hügel ... warum müssen es ausgerechnet Mäuse sein?"
+      },
+      "speaker": {
+        "en": "Tortoise",
+        "de": "Schildkröte"
+      }
+    }
+  ]
+}

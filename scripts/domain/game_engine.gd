@@ -15,7 +15,7 @@ func can_shell_charge(state, target: Vector2i) -> bool:
 	var delta: Vector2i = target - state.player.position
 	return (
 		not state.game_over and not state.victory and state.player.alive
-		and state.shell_power > 0 and absi(delta.x) + absi(delta.y) == 1
+		and state.shell_charge_enabled and state.shell_power > 0 and absi(delta.x) + absi(delta.y) == 1
 		and _is_within_bounds(target, state.width, state.height)
 		and state.enemies_by_pos.has(target)
 		and _can_traverse(state, state.player.position, target)
@@ -40,6 +40,7 @@ func can_pounce(state, target: Vector2i) -> bool:
 	var distance := absi(delta.x) + absi(delta.y)
 	return (
 		not state.game_over and not state.victory and state.cat.alive
+		and state.pounce_enabled and state.is_character_controllable(GS.CharacterId.CAT)
 		and state.cat_pounces_remaining > 0
 		and _is_within_bounds(target, state.width, state.height)
 		and (delta.x == 0 or delta.y == 0) and distance >= 1 and distance <= 2
@@ -67,12 +68,18 @@ func pounce(state, target: Vector2i):
 		next.cat.position = target
 		next.last_event = "Cat pounced to (%d, %d)." % [target.x, target.y]
 		next = _apply_tile_rewards(next, target, GS.CharacterId.CAT)
+		next = _deliver_carried_shell(next)
 	return next
 
 
 func move(state, direction: Direction, character_id = GS.CharacterId.TORTOISE):
 	if state.game_over or state.victory:
 		return state
+
+	if not state.is_character_controllable(character_id):
+		var unavailable_state = state.duplicate_state()
+		unavailable_state.last_event = "%s cannot be controlled yet." % _character_name(character_id)
+		return unavailable_state
 
 	var actor = state.character_state(character_id)
 	if not actor.alive:
@@ -88,7 +95,7 @@ func move(state, direction: Direction, character_id = GS.CharacterId.TORTOISE):
 		boundary_state.last_event = "Blocked by map boundary."
 		return boundary_state
 
-	if not _can_traverse(state, from, to):
+	if not _can_traverse(state, from, to, character_id):
 		var terrain_state = state.duplicate_state()
 		terrain_state.last_event = "A wall or cliff blocks the way."
 		return terrain_state
@@ -109,12 +116,13 @@ func move(state, direction: Direction, character_id = GS.CharacterId.TORTOISE):
 	moved_state.last_event = "%s moved to (%d, %d)." % [_character_name(character_id), to.x, to.y]
 	moved_state = _apply_tile_rewards(moved_state, to, character_id)
 	moved_state = _apply_combat(moved_state, to, character_id)
+	moved_state = _deliver_carried_shell(moved_state)
 	if not moved_state.player.alive or not moved_state.cat.alive:
 		moved_state.game_over = true
 	return moved_state
 
 
-func find_path(state, start: Vector2i, target: Vector2i) -> Array:
+func find_path(state, start: Vector2i, target: Vector2i, character_id = GS.CharacterId.TORTOISE) -> Array:
 	if not _is_within_bounds(start, state.width, state.height):
 		return []
 	if not _is_within_bounds(target, state.width, state.height):
@@ -138,7 +146,7 @@ func find_path(state, start: Vector2i, target: Vector2i) -> Array:
 				continue
 			if not _is_within_bounds(next, state.width, state.height):
 				continue
-			if not _can_traverse(state, current, next):
+			if not _can_traverse(state, current, next, character_id):
 				continue
 			visited[next] = true
 			parent[next] = current
@@ -187,6 +195,12 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 		next.shell_power += item.power_bonus
 		next.shell_items_by_pos.erase(position)
 		event_parts.append("Picked shell charm (+%d shell)." % item.power_bonus)
+	elif character_id == GS.CharacterId.CAT and next.cat_can_carry and next.shell_items_by_pos.has(position):
+		var carried = next.shell_items_by_pos[position]
+		next = next.duplicate_state()
+		next.cat_carried_shell += carried.power_bonus
+		next.shell_items_by_pos.erase(position)
+		event_parts.append("Cat carries a shell charm (+%d)." % carried.power_bonus)
 
 	if next.lootables_by_pos.has(position):
 		var loot = next.lootables_by_pos[position]
@@ -227,11 +241,24 @@ func _apply_combat(state, position: Vector2i, character_id, attack_power: int = 
 	return defeated_state
 
 
+func _deliver_carried_shell(state):
+	if state.cat_carried_shell <= 0 or not state.player.alive or not state.cat.alive:
+		return state
+	var delta: Vector2i = state.cat.position - state.player.position
+	if absi(delta.x) + absi(delta.y) > 1:
+		return state
+	var next = state.duplicate_state()
+	next.shell_power += next.cat_carried_shell
+	next.last_event = "%s Cat delivered %d shell to the tortoise." % [next.last_event, next.cat_carried_shell]
+	next.cat_carried_shell = 0
+	return next
+
+
 func _is_within_bounds(pos: Vector2i, width: int, height: int) -> bool:
 	return pos.x >= 0 and pos.x < width and pos.y >= 0 and pos.y < height
 
 
-func _can_traverse(state, from: Vector2i, to: Vector2i) -> bool:
+func _can_traverse(state, from: Vector2i, to: Vector2i, character_id = GS.CharacterId.TORTOISE) -> bool:
 	if state.is_blocked(to):
 		return false
 	var from_cell = state.tile_cells.get(from)
@@ -239,6 +266,8 @@ func _can_traverse(state, from: Vector2i, to: Vector2i) -> bool:
 	var from_height: int = from_cell.height_level if from_cell != null else 0
 	var to_height: int = to_cell.height_level if to_cell != null else 0
 	if from_height == to_height:
+		return true
+	if character_id == GS.CharacterId.CAT and state.cat_can_climb and absi(from_height - to_height) == 1:
 		return true
 	for edge in state.traversable_edges:
 		if edge.contains(from, to):

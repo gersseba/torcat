@@ -1,0 +1,405 @@
+{
+  "meta": {
+    "id": "chapter_4_cliffs",
+    "name": "The Cliffs",
+    "backdrop": "#3d3b45"
+  },
+  "cutscenes": {
+    "intro": "story_4_vow"
+  },
+  "abilities": {
+    "shellCharge": true,
+    "pounce": true,
+    "catClimb": true,
+    "catCarry": true
+  },
+  "tileDefinitions": [
+    {
+      "id": "rk0",
+      "heightLevel": 0,
+      "assetKey": "rocky",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr0",
+      "heightLevel": 0,
+      "assetKey": "trail",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "rk1",
+      "heightLevel": 1,
+      "assetKey": "rocky",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr1",
+      "heightLevel": 1,
+      "assetKey": "trail",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "al2",
+      "heightLevel": 2,
+      "assetKey": "alpine",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "al3",
+      "heightLevel": 3,
+      "assetKey": "alpine",
+      "presentationTag": "ground"
+    }
+  ],
+  "map": {
+    "legend": {
+      "r": {
+        "tile": "rk0"
+      },
+      "=": {
+        "tile": "tr0"
+      },
+      "o": {
+        "tile": "rk0",
+        "blocker": "boulder"
+      },
+      "k": {
+        "tile": "rk1"
+      },
+      "-": {
+        "tile": "tr1"
+      },
+      "O": {
+        "tile": "rk1",
+        "blocker": "boulder"
+      },
+      "a": {
+        "tile": "al2"
+      },
+      "P": {
+        "tile": "al2",
+        "blocker": "pine"
+      },
+      "h": {
+        "tile": "al3"
+      },
+      "Q": {
+        "tile": "al3",
+        "blocker": "pine"
+      }
+    },
+    "rows": [
+      "aaPaaaaaaaQhhhQhhhhh",
+      "aaaaaaaaPaQhhhhhhhhh",
+      "kkkkkkkkkkPaaaaaPaaa",
+      "kkOkkkkkkkPaaaaaaaaa",
+      "rrrrrrrrrrOkkkkkkkkk",
+      "rrrorrrrrrOkkkOkkkkk",
+      "==========----------",
+      "rrrrrrorrrOkkkkkkkOk",
+      "rrrrrrrrrrOkkkkkkkkk"
+    ]
+  },
+  "traversableEdges": [
+    {
+      "from": {
+        "x": 9,
+        "y": 6
+      },
+      "to": {
+        "x": 10,
+        "y": 6
+      },
+      "kind": "STAIRS"
+    }
+  ],
+  "entities": [
+    {
+      "type": "ENEMY",
+      "id": "cliff_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 4,
+        "y": 5
+      },
+      "power": 5
+    },
+    {
+      "type": "ENEMY",
+      "id": "cliff_goose",
+      "species": "goose",
+      "position": {
+        "x": 7,
+        "y": 7
+      },
+      "power": 7
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "ledge_shell_low",
+      "position": {
+        "x": 8,
+        "y": 2
+      },
+      "power": 4
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "ledge_shell_high",
+      "position": {
+        "x": 3,
+        "y": 0
+      },
+      "power": 6
+    },
+    {
+      "type": "ENEMY",
+      "id": "stair_snake",
+      "species": "snake",
+      "position": {
+        "x": 10,
+        "y": 6
+      },
+      "power": 28
+    },
+    {
+      "type": "ENEMY",
+      "id": "crag_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 13,
+        "y": 3
+      },
+      "power": 6
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "crag_shell",
+      "position": {
+        "x": 18,
+        "y": 2
+      },
+      "power": 12
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "peak_shell",
+      "position": {
+        "x": 15,
+        "y": 0
+      },
+      "power": 16
+    },
+    {
+      "type": "ENEMY",
+      "id": "cliff_goose_upper",
+      "species": "goose",
+      "position": {
+        "x": 15,
+        "y": 7
+      },
+      "power": 10
+    },
+    {
+      "type": "ENEMY",
+      "id": "mouse_champion",
+      "species": "mouse",
+      "position": {
+        "x": 18,
+        "y": 6
+      },
+      "power": 88
+    }
+  ],
+  "initialState": {
+    "tortoise": {
+      "x": 1,
+      "y": 6
+    },
+    "tortoisePower": 6,
+    "cat": {
+      "x": 1,
+      "y": 7
+    },
+    "catPower": 4,
+    "catPounces": 2,
+    "catStatus": "party"
+  },
+  "events": [
+    {
+      "id": "cliffs_start",
+      "trigger": {
+        "type": "level_start"
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.4,
+          "duration": 1.0,
+          "position": {
+            "x": 3,
+            "y": 0
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "Look—shell charms up on those ledges! I can climb, one step at a time.",
+            "de": "Schau – Panzer-Amulette auf den Felsvorsprüngen! Ich kann klettern, Stufe für Stufe."
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "I'm not exactly built for climbing...",
+            "de": "Ich bin nicht gerade zum Klettern gebaut ..."
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "Then I'll fetch them for you. Partners, remember?",
+            "de": "Dann hole ich sie dir. Partner, schon vergessen?"
+          }
+        },
+        {
+          "type": "message",
+          "text": {
+            "en": "The cat climbs one height level at a time. Shell charms it collects are delivered when it stands next to the tortoise.",
+            "de": "Die Katze klettert jeweils eine Höhenstufe. Gesammelte Panzer-Amulette übergibt sie, sobald sie neben der Schildkröte steht."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "stair_snake_seen",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "tortoise",
+        "area": {
+          "x": 7,
+          "y": 5,
+          "w": 3,
+          "h": 3
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.6,
+          "duration": 0.8,
+          "actor": "enemy:stair_snake"
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:stair_snake",
+          "text": {
+            "en": "Twenty-eight power, little ssshell. Bring your whole family.",
+            "de": "Achtundzwanzig Kraft, kleiner Panzer. Bring ruhig deine ganze Familie mit."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "crag_hedgehog_seen",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "cat",
+        "area": {
+          "x": 11,
+          "y": 2,
+          "w": 5,
+          "h": 3
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.6,
+          "duration": 0.8,
+          "actor": "enemy:crag_hedgehog"
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "Those quills again... I can't beat it alone. A pounce first, then I'll finish it off!",
+            "de": "Schon wieder Stacheln ... allein schaffe ich den nicht. Erst ein Sprung, dann erledige ich ihn!"
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "champion_seen",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "tortoise",
+        "area": {
+          "x": 14,
+          "y": 4,
+          "w": 3,
+          "h": 5
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.6,
+          "duration": 0.8,
+          "actor": "enemy:mouse_champion"
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:mouse_champion",
+          "text": {
+            "en": "I am the champion of all mice! The badger himself gave me this sword!",
+            "de": "Ich bin der Champion aller Mäuse! Der Dachs persönlich gab mir dieses Schwert!"
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "Pounce first, shell second?",
+            "de": "Erst springen, dann Panzer?"
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "cliffs_victory",
+      "trigger": {
+        "type": "victory"
+      },
+      "actions": [
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "Thank you, friend. The summit is right above us.",
+            "de": "Danke, Freundin. Der Gipfel liegt direkt über uns."
+          }
+        }
+      ]
+    }
+  ]
+}

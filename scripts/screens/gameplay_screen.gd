@@ -3,6 +3,7 @@ extends Control
 
 signal back_to_menu_pressed
 signal level_completed(level_id: String)
+signal retry_requested(level_id: String)
 
 const GAME_WORLD_FACTORY_SCRIPT := preload("res://scripts/domain/game_world_factory.gd")
 const BOARD_RENDERER_SCRIPT := preload("res://scripts/rendering/board_renderer.gd")
@@ -70,6 +71,7 @@ const SPEAKER_NAMES := {
 @onready var _recenter_button: Button = %RecenterButton
 @onready var _event_label: Label = %EventLabel
 @onready var _continue_button: Button = %ContinueButton
+@onready var _retry_button: Button = %RetryButton
 
 var _state
 var _board_renderer
@@ -122,6 +124,8 @@ var _speech_bubble: SpeechBubble
 var _speech_speaker := ""
 var _script_input_catcher: Control
 var _level_id := ""
+var _backdrop_layer: CanvasLayer
+var _backdrop_rect: ColorRect
 
 
 func _ready() -> void:
@@ -156,6 +160,9 @@ func _ready() -> void:
 	)
 	_continue_button.pressed.connect(func() -> void:
 		level_completed.emit(_level_id)
+	)
+	_retry_button.pressed.connect(func() -> void:
+		retry_requested.emit(_level_id)
 	)
 	_recenter_button.pressed.connect(func() -> void:
 		_camera_manual_offset = Vector2.ZERO
@@ -210,11 +217,35 @@ func configure(payload: Dictionary) -> void:
 	_camera_manual_offset = Vector2.ZERO
 	_scripts_enabled = bool(payload.get("scripts", true))
 	_level_events = LEVEL_SCRIPT.load_events(level_id) if _scripts_enabled else []
+	_apply_backdrop(str(LEVEL_SCRIPT.level_meta(level_id).get("backdrop", "")))
 	_fired_events.clear()
 	_script_queue.clear()
 	_render_state()
 	if not _level_events.is_empty():
 		call_deferred("_start_level_script")
+
+
+## Levels may set meta.backdrop; it fills the space around the board and
+## lives on its own CanvasLayer so the board camera does not move it.
+func _apply_backdrop(color_hex: String) -> void:
+	if color_hex.is_empty():
+		if _backdrop_layer != null:
+			_backdrop_layer.visible = false
+		return
+	if not Color.html_is_valid(color_hex):
+		push_error("Invalid level backdrop colour: %s" % color_hex)
+		return
+	if _backdrop_layer == null:
+		_backdrop_layer = CanvasLayer.new()
+		_backdrop_layer.name = "BackdropLayer"
+		_backdrop_layer.layer = -1
+		_backdrop_rect = ColorRect.new()
+		_backdrop_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_backdrop_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_backdrop_layer.add_child(_backdrop_rect)
+		add_child(_backdrop_layer)
+	_backdrop_layer.visible = true
+	_backdrop_rect.color = Color.html(color_hex)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -350,14 +381,15 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		_shake_camera()
 		return
 
-	if tile_pos == _state.player.position and tile_pos == _state.cat.position:
+	var cat_selectable: bool = _state.is_character_controllable(GS.CharacterId.CAT)
+	if cat_selectable and tile_pos == _state.player.position and tile_pos == _state.cat.position:
 		var next_character := GS.CharacterId.CAT if _state.selected_character_id == GS.CharacterId.TORTOISE else GS.CharacterId.TORTOISE
 		_select_character(next_character)
 		return
 	if tile_pos == _state.player.position:
 		_select_character(GS.CharacterId.TORTOISE)
 		return
-	if tile_pos == _state.cat.position:
+	if cat_selectable and tile_pos == _state.cat.position:
 		_select_character(GS.CharacterId.CAT)
 		return
 
@@ -376,7 +408,7 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		_render_state()
 		return
 
-	var path: Array = _engine.find_path(_state, actor.position, tile_pos)
+	var path: Array = _engine.find_path(_state, actor.position, tile_pos, _state.selected_character_id)
 	if path.size() <= 1:
 		_state.last_event = "No valid path to (%d, %d)." % [tile_pos.x, tile_pos.y]
 		_preview_path.clear()
@@ -411,6 +443,8 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 
 func _select_character(character_id) -> void:
 	if _moving_character_id != -1 or _state.selected_character_id == character_id:
+		return
+	if not _state.is_character_controllable(character_id):
 		return
 	_pounce_mode = false
 	_shell_mode = false
@@ -718,11 +752,12 @@ func _render_state() -> void:
 	else:
 		_result_panel.visible = false
 	_continue_button.visible = _state.victory and not _state.game_over
+	_retry_button.visible = _state.game_over and not script_pending
 	_event_label.text = _state.last_event
-	_pounce_button.visible = _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
+	_pounce_button.visible = _state.pounce_enabled and _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
 	_pounce_button.disabled = _moving_character_id != -1 or _state.cat_pounces_remaining <= 0 or not _state.cat.alive
 	_pounce_button.text = "Cancel pounce" if _pounce_mode else "Pounce %d/%d" % [_state.cat_pounces_remaining, _state.cat_pounces_max]
-	_shell_button.visible = _state.selected_character_id == GS.CharacterId.TORTOISE and not _state.game_over and not _state.victory and not script_pending
+	_shell_button.visible = _state.shell_charge_enabled and _state.selected_character_id == GS.CharacterId.TORTOISE and not _state.game_over and not _state.victory and not script_pending
 	_shell_button.disabled = _moving_character_id != -1 or _state.shell_power <= 0 or not _state.player.alive
 	_shell_button.text = "Cancel charge" if _shell_mode else "Shell Charge: %d" % _state.shell_power
 
@@ -901,6 +936,9 @@ func _update_character_visuals() -> void:
 		return
 	_set_character_visual(GS.CharacterId.TORTOISE, _state.player.position)
 	_set_character_visual(GS.CharacterId.CAT, _state.cat.position)
+	var cat_sprite: AnimatedSprite2D = _character_sprites.get(GS.CharacterId.CAT)
+	if cat_sprite != null:
+		cat_sprite.visible = _state.cat_present
 
 
 func _set_character_visual(character_id: int, tile_pos: Vector2i) -> void:
@@ -1262,7 +1300,10 @@ func _render_power_labels() -> void:
 	for character_id in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
 		var sprite: AnimatedSprite2D = _character_sprites[character_id]
 		var label: Label = _character_power_labels[character_id]
-		_set_power_label_value(label, str(_state.character_state(character_id).power))
+		var power_text := str(_state.character_state(character_id).power)
+		if character_id == GS.CharacterId.CAT and _state.cat_carried_shell > 0:
+			power_text = "%s  Shell+%d" % [power_text, _state.cat_carried_shell]
+		_set_power_label_value(label, power_text)
 		label.position = Vector2(-label.size.x * 0.5, -44.0) / sprite.scale
 		if _pounce_in_progress and character_id == GS.CharacterId.CAT:
 			label.position.y += sprite.offset.y / sprite.scale.y
@@ -1405,6 +1446,8 @@ func _run_script_action(action: Dictionary) -> void:
 			await _script_remove_enemy(action)
 		"set_tile":
 			_script_set_tile(action)
+		"join_party":
+			await _script_join_party(action)
 		"message":
 			_state.last_event = LEVEL_SCRIPT.localize(action.get("text"))
 			_render_state()
@@ -1571,13 +1614,7 @@ func _script_move(action: Dictionary) -> void:
 
 
 func _script_tile_free(pos: Vector2i) -> bool:
-	return (
-		_is_in_bounds(pos)
-		and not _state.is_blocked(pos)
-		and not _state.enemies_by_pos.has(pos)
-		and pos != _state.player.position
-		and pos != _state.cat.position
-	)
+	return LEVEL_SCRIPT.tile_free(_state, pos)
 
 
 func _script_step_enemy(from_pos: Vector2i, to_pos: Vector2i) -> void:
@@ -1673,7 +1710,7 @@ func _script_spawn_enemy(action: Dictionary) -> void:
 	if enemy_id.is_empty() or species not in ENEMY_SPECIES or not _script_tile_free(position):
 		push_error("Script cannot spawn enemy %s (%s) at %s" % [enemy_id, species, str(position)])
 		return
-	_state.enemies_by_pos[position] = GS.Enemy.new(enemy_id, position, int(action.get("power", 1)), species)
+	LEVEL_SCRIPT.apply_state_action(_state, action)
 	_render_state()
 	var sprite: AnimatedSprite2D = _enemy_sprites[position]
 	var label: Label = _enemy_power_labels.get(position)
@@ -1704,34 +1741,29 @@ func _script_remove_enemy(action: Dictionary) -> void:
 		tween.tween_property(label, "modulate:a", 0.0, 0.2)
 	tween.tween_interval(0.35)
 	await tween.finished
-	_state.enemies_by_pos.erase(position)
-	if _state.enemies_by_pos.is_empty() and not _state.victory:
-		_state.victory = true
-		_state.last_event = "All enemies defeated."
+	var was_victory: bool = _state.victory
+	LEVEL_SCRIPT.apply_state_action(_state, action)
+	if _state.victory and not was_victory:
 		_queue_events(LEVEL_SCRIPT.events_for(_level_events, _fired_events, "victory"))
 	_render_state()
 
 
 func _script_set_tile(action: Dictionary) -> void:
-	var position := LEVEL_SCRIPT.read_pos(action.get("position"))
-	if not _state.tile_cells.has(position):
-		push_error("Script set_tile outside the board: %s" % str(position))
+	if LEVEL_SCRIPT.apply_state_action(_state, action):
+		_render_state()
+
+
+func _script_join_party(action: Dictionary) -> void:
+	if not LEVEL_SCRIPT.apply_state_action(_state, action):
 		return
-	var cell = _state.tile_cells[position]
-	var tile_id := str(action.get("tile", cell.tile_id))
-	var passable := bool(action.get("passable", cell.logic == GS.TileLogicType.PASSABLE))
-	_state.tile_cells[position] = GS.TileCellState.new(
-		tile_id,
-		GS.TileLogicType.PASSABLE if passable else GS.TileLogicType.IMPASSABLE,
-		int(action.get("height", cell.height_level)),
-		str(action.get("assetKey", tile_id)),
-		str(action.get("presentationTag", "ground" if passable else "blocker"))
-	)
-	if passable:
-		_state.blocked_tiles.erase(position)
-	else:
-		_state.blocked_tiles[position] = true
 	_render_state()
+	var sprite: AnimatedSprite2D = _character_sprites.get(GS.CharacterId.CAT)
+	if sprite == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(sprite, "offset:y", -14.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(sprite, "offset:y", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tween.finished
 
 
 func _direction_name(direction) -> String:

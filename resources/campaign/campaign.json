@@ -1,0 +1,11 @@
+{
+  "id": "hill_journey",
+  "title": { "en": "The Journey up the Hill", "de": "Die Reise auf den Hügel" },
+  "chapters": [
+    { "level": "chapter_1_meadow", "title": { "en": "1. The Flower Meadow", "de": "1. Die Blumenwiese" } },
+    { "level": "chapter_2_foothills", "title": { "en": "2. The Foothills", "de": "2. Die Ausläufer" } },
+    { "level": "chapter_3_rocky_pass", "title": { "en": "3. The Rocky Pass", "de": "3. Der Felspass" } },
+    { "level": "chapter_4_cliffs", "title": { "en": "4. The Cliffs", "de": "4. Die Klippen" } },
+    { "level": "chapter_5_summit", "title": { "en": "5. The Summit", "de": "5. Der Gipfel" } }
+  ]
+}

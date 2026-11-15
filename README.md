@@ -42,7 +42,8 @@ and loot. Pouncing on an enemy subtracts the cat's power from the enemy and
 returns the cat to its starting tile; no power is awarded, even on a defeat.
 Pounce uses do not replenish during the level.
 The tortoise starts each level with zero shell power. Only the tortoise can
-collect shell charms, which add to its reserve; the cat leaves them in place.
+use shell charms, which add to its reserve. The cat leaves charms in place
+unless the level enables `catCarry` (see [Story campaign](#story-campaign)).
 Select the tortoise and tap **Shell Charge**, then tap a highlighted adjacent
 enemy twice to preview and confirm. Cancel for free. The charge replaces a
 normal attack and follows normal terrain and elevation rules. Its strength is
@@ -75,7 +76,8 @@ Triggers:
   `character` of `any`, `tortoise` or `cat` limits which character triggers it.
   It fires only for the tile where the character's move ends; tiles it passes
   over do not count.
-- `enemy_defeated`: requires an `enemy` id.
+- `enemy_defeated`: requires an `enemy` id, or an `enemies` array that fires
+  once every listed enemy is gone.
 - `victory`: fires whether the last enemy falls in combat or is removed by a
   script action.
 
@@ -97,6 +99,7 @@ After a victory, the result panel shows a **Continue** button.
 | `remove_enemy` | `id` |
 | `set_tile` | `position`, optional `tile`, `passable`, `height`, `assetKey` and `presentationTag` |
 | `message` | `text` for the HUD |
+| `join_party` | `character` (`cat`); makes a stranded cat controllable with a short hop |
 
 `set_tile` can open blocked tiles. For example, level 1 replaces a wall with
 the walkable `rubble` tile (`resources/assets/tiles/rubble.png`).
@@ -110,8 +113,10 @@ Cutscenes play outside levels, on their own `cutscene` route. A level
 declares them at the top level of its JSON, for example
 `"cutscenes": {"intro": "meadow_intro", "outro": "meadow_victory"}`. The intro
 plays after the level is selected and before gameplay starts. The outro plays
-when the player taps **Continue** after a victory, and then returns to level
-select. If a level has no cutscene of that kind, the game goes straight on.
+when the player taps **Continue** after a victory. Practice levels then return
+to level select; campaign chapters continue as described in
+[Story campaign](#story-campaign). If a level has no cutscene of that kind, the
+game goes straight on.
 
 Cutscenes live in `resources/cutscenes/<id>.json`. Each has a default `image`
 and a list of `shots`. A shot can override `image` and defines a `from` and `to`
@@ -143,7 +148,56 @@ godot --headless --path . --script res://tests/pounce_test.gd
 godot --headless --path . --script res://tests/shell_charge_test.gd
 godot --headless --path . --script res://tests/enemy_reactions_test.gd
 godot --headless --path . --script res://tests/level_script_test.gd
+godot --headless --path . --script res://tests/campaign_test.gd
 ```
+
+## Story campaign
+
+The story follows the tortoise up the hill to lay her eggs. Chapters are listed
+in order in `resources/campaign/campaign.json`, with `en` and `de` titles:
+
+| Chapter | Level | Intro cutscene | Teaches |
+| --- | --- | --- | --- |
+| 1 | `chapter_1_meadow` | `story_1_meadow` | moving and fighting, tortoise only |
+| 2 | `chapter_2_foothills` | `story_2_climb` | shell charms and **Shell Charge** |
+| 3 | `chapter_3_rocky_pass` | `story_3_mice` | rescuing the cat, then **Pounce** |
+| 4 | `chapter_4_cliffs` | `story_4_vow` | the cat climbs and carries charms |
+| 5 | `chapter_5_summit` | `story_5_summit` | everything; the badger boss |
+
+Chapter 5's outro is `story_6_finale`. After a victory, **Continue** unlocks the
+next chapter, plays the current level's outro (if any) and the next chapter's
+intro, and then starts the next chapter. After the finale the game returns to
+level select. Level select lists the chapters, with locked ones disabled, above
+the practice levels. Unlocked chapters are saved to `user://progress.cfg`.
+After a defeat, **Retry** restarts the level without replaying its intro.
+
+Each chapter rises from left to right and uses its own biome tiles: flower
+meadow, foothill, rocky, alpine and summit. Its `meta.backdrop` colour tints the
+screen behind the board.
+
+Level JSON options used by the campaign:
+
+- `abilities`: `shellCharge` and `pounce` (default `true`), and `catClimb` and
+  `catCarry` (default `false`).
+  - A climbing cat can step up or down one height level without stairs.
+  - A carrying cat picks up shell charms and delivers them as soon as it ends a
+    move or pounce next to the tortoise.
+- `initialState.catStatus`: one of these values:
+  - `party` (default).
+  - `stranded`: the cat is visible but cannot be controlled until a `join_party`
+    action runs.
+  - `absent`: the cat is hidden and cannot be controlled.
+- `map`: an ASCII alternative to listing every tile.
+  - `rows` is a list of equal-length strings.
+  - `legend` maps each character to `{tile, logic?, blocker?}`, where `tile` is
+    a `tileDefinitions` id and `blocker` is a blocker asset key.
+  - The width and height come from the rows.
+  - New blockers: `boulder` and `pine`. New pickups: `salad` (items) and
+    `berries` (loot).
+
+`tests/campaign_test.gd` includes a search-based solver. It checks that every
+chapter can be won, and that chapters 2–4 cannot be won without their new
+mechanic. Run it after rebalancing a chapter.
 
 ## Mobile and web configuration
 

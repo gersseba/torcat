@@ -1,0 +1,77 @@
+{
+  "id": "story_4_vow",
+  "image": "res://resources/assets/cutscenes/story_vow.png",
+  "shots": [
+    {
+      "from": {
+        "focus": [
+          0.8,
+          0.45
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.6,
+          0.5
+        ],
+        "zoom": 1.0
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "From the cliff, the meadow looked tiny. They had come so far.",
+        "de": "Von der Klippe aus sah die Wiese winzig aus. Sie waren schon so weit gekommen."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.45,
+          0.62
+        ],
+        "zoom": 1.2
+      },
+      "to": {
+        "focus": [
+          0.45,
+          0.6
+        ],
+        "zoom": 1.4
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "You saved me from those spiky hedgehogs. Now I'll help you—all the way to the top. I promise.",
+        "de": "Du hast mich vor den stacheligen Igeln gerettet. Jetzt helfe ich dir – bis ganz nach oben. Versprochen."
+      },
+      "speaker": {
+        "en": "Cat",
+        "de": "Katze"
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.35,
+          0.62
+        ],
+        "zoom": 1.4
+      },
+      "to": {
+        "focus": [
+          0.38,
+          0.6
+        ],
+        "zoom": 1.5
+      },
+      "duration": 5.0,
+      "text": {
+        "en": "Together, then.",
+        "de": "Dann gemeinsam."
+      },
+      "speaker": {
+        "en": "Tortoise",
+        "de": "Schildkröte"
+      }
+    }
+  ]
+}

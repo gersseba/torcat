@@ -187,3 +187,14 @@ text = "Continue"
 theme_override_styles/normal = SubResource("StyleBoxTexture_button")
 theme_override_styles/hover = SubResource("StyleBoxTexture_button")
 theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
+
+[node name="RetryButton" type="Button" parent="UiLayer/ResultPanel/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(240, 88)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Retry"
+theme_override_styles/normal = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover = SubResource("StyleBoxTexture_button")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_button")

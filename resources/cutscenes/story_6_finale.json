@@ -1,0 +1,162 @@
+{
+  "id": "story_6_finale",
+  "image": "res://resources/assets/cutscenes/story_badger_flees.png",
+  "shots": [
+    {
+      "from": {
+        "focus": [
+          0.6,
+          0.6
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.85,
+          0.75
+        ],
+        "zoom": 1.0
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "Outmatched at last, the badger dropped his club and fled down the far side of the hill.",
+        "de": "Endlich besiegt, ließ der Dachs seine Keule fallen und floh auf der anderen Seite den Hügel hinab."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.25,
+          0.4
+        ],
+        "zoom": 1.2
+      },
+      "to": {
+        "focus": [
+          0.28,
+          0.38
+        ],
+        "zoom": 1.4
+      },
+      "duration": 4.5,
+      "text": {
+        "en": "And stay away!",
+        "de": "Und lass dich hier nie wieder blicken!"
+      },
+      "speaker": {
+        "en": "Cat",
+        "de": "Katze"
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.5,
+          0.5
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.27,
+          0.62
+        ],
+        "zoom": 1.3
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "At the very top, in the warm soil, the tortoise laid her eggs.",
+        "de": "Ganz oben, in der warmen Erde, legte die Schildkröte ihre Eier."
+      },
+      "image": "res://resources/assets/cutscenes/story_laying_eggs.png"
+    },
+    {
+      "from": {
+        "focus": [
+          0.25,
+          0.85
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.3,
+          0.75
+        ],
+        "zoom": 1.0
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "Autumn came. The tortoise walked back down the hill to sleep through the winter.",
+        "de": "Der Herbst kam. Die Schildkröte wanderte den Hügel hinab, um den Winter zu verschlafen."
+      },
+      "image": "res://resources/assets/cutscenes/story_walk_down.png"
+    },
+    {
+      "from": {
+        "focus": [
+          0.6,
+          0.35
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.82,
+          0.3
+        ],
+        "zoom": 1.4
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "The cat stayed on the summit and guarded the nest, just as it had promised.",
+        "de": "Die Katze blieb auf dem Gipfel und bewachte das Nest, genau wie sie es versprochen hatte."
+      },
+      "image": "res://resources/assets/cutscenes/story_walk_down.png"
+    },
+    {
+      "from": {
+        "focus": [
+          0.5,
+          0.45
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.2,
+          0.68
+        ],
+        "zoom": 1.4
+      },
+      "duration": 8.0,
+      "text": {
+        "en": "And when spring returned... the eggs hatched.",
+        "de": "Und als der Frühling zurückkehrte ... schlüpften die Eier."
+      },
+      "image": "res://resources/assets/cutscenes/story_hatching.png"
+    },
+    {
+      "from": {
+        "focus": [
+          0.25,
+          0.65
+        ],
+        "zoom": 1.4
+      },
+      "to": {
+        "focus": [
+          0.5,
+          0.5
+        ],
+        "zoom": 1.0
+      },
+      "duration": 6.0,
+      "text": {
+        "en": "The End.",
+        "de": "Ende."
+      },
+      "image": "res://resources/assets/cutscenes/story_hatching.png"
+    }
+  ]
+}

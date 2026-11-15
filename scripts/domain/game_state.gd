@@ -157,6 +157,13 @@ var cat: PlayerState
 var cat_pounces_remaining: int = DEFAULT_POUNCE_USES
 var cat_pounces_max: int = DEFAULT_POUNCE_USES
 var shell_power: int = 0
+var cat_present: bool = true
+var cat_in_party: bool = true
+var shell_charge_enabled: bool = true
+var pounce_enabled: bool = true
+var cat_can_climb: bool = false
+var cat_can_carry: bool = false
+var cat_carried_shell: int = 0
 var enemies_by_pos: Dictionary = {}
 var items_by_pos: Dictionary = {}
 var shell_items_by_pos: Dictionary = {}
@@ -179,6 +186,12 @@ func _init(p_width: int, p_height: int, p_player: PlayerState, p_cat: PlayerStat
 
 func character_state(character_id: CharacterId) -> PlayerState:
 	return player if character_id == CharacterId.TORTOISE else cat
+
+
+func is_character_controllable(character_id: CharacterId) -> bool:
+	if character_id == CharacterId.TORTOISE:
+		return true
+	return cat_present and cat_in_party
 
 
 func is_blocked(pos: Vector2i) -> bool:
@@ -210,6 +223,13 @@ func duplicate_state():
 	next.cat_pounces_remaining = cat_pounces_remaining
 	next.cat_pounces_max = cat_pounces_max
 	next.shell_power = shell_power
+	next.cat_present = cat_present
+	next.cat_in_party = cat_in_party
+	next.shell_charge_enabled = shell_charge_enabled
+	next.pounce_enabled = pounce_enabled
+	next.cat_can_climb = cat_can_climb
+	next.cat_can_carry = cat_can_carry
+	next.cat_carried_shell = cat_carried_shell
 	next.blockers_by_pos = _copy_ref_dictionary(blockers_by_pos)
 	next.selected_character_id = selected_character_id
 	next.last_event = last_event

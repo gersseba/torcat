@@ -7,6 +7,11 @@ const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
 const LEVEL_PATHS := {
 	"level_1": "res://resources/levels/prototype_level.json",
 	"level_2_descent": "res://resources/levels/level_descent.json",
+	"chapter_1_meadow": "res://resources/levels/chapter_1_meadow.json",
+	"chapter_2_foothills": "res://resources/levels/chapter_2_foothills.json",
+	"chapter_3_rocky_pass": "res://resources/levels/chapter_3_rocky_pass.json",
+	"chapter_4_cliffs": "res://resources/levels/chapter_4_cliffs.json",
+	"chapter_5_summit": "res://resources/levels/chapter_5_summit.json",
 }
 
 
@@ -39,7 +44,12 @@ func _create_world_from_file(path: String):
 	return _create_world_from_definition(parsed)
 
 
-func _create_world_from_definition(definition: Dictionary):
+func _create_world_from_definition(source_definition: Dictionary):
+	var definition: Dictionary = source_definition
+	if source_definition.has("map"):
+		definition = expand_ascii_map(source_definition)
+		if definition.is_empty():
+			return _create_fallback_state("Invalid ASCII map.")
 	var meta: Dictionary = definition.get("meta", {})
 	var width: int = int(meta.get("width", 0))
 	var height: int = int(meta.get("height", 0))
@@ -88,6 +98,12 @@ func _create_world_from_definition(definition: Dictionary):
 	var tortoise_power: int = int(initial_state.get("tortoisePower", initial_state.get("playerPower", 3)))
 	var cat_power: int = int(initial_state.get("catPower", tortoise_power))
 	var last_event: String = str(initial_state.get("lastEvent", "Move with the controls."))
+	var cat_status: String = str(initial_state.get("catStatus", "party"))
+	if cat_status not in ["party", "stranded", "absent"]:
+		push_error("Unknown catStatus: %s" % cat_status)
+		return _create_fallback_state("Invalid cat status.")
+	if cat_status == "absent":
+		cat_pos = tortoise_pos
 
 	var state = GS.new(
 		width,
@@ -101,6 +117,13 @@ func _create_world_from_definition(definition: Dictionary):
 		push_error("catPounces must not be negative.")
 		return _create_fallback_state("Invalid cat pounce count.")
 	state.cat_pounces_remaining = state.cat_pounces_max
+	state.cat_present = cat_status != "absent"
+	state.cat_in_party = cat_status == "party"
+	var abilities: Dictionary = definition.get("abilities", {})
+	state.shell_charge_enabled = bool(abilities.get("shellCharge", true))
+	state.pounce_enabled = bool(abilities.get("pounce", true))
+	state.cat_can_climb = bool(abilities.get("catClimb", false))
+	state.cat_can_carry = bool(abilities.get("catCarry", false))
 	state.blocked_tiles = blocked_tiles
 	state.last_event = last_event
 
@@ -173,6 +196,51 @@ func _create_world_from_definition(definition: Dictionary):
 				pass
 
 	return _normalize_state(state)
+
+
+## Expands a compact `map` block into the canonical grid fields.
+## `map.rows` is an array of equal-length strings; `map.legend` maps each
+## character to `{tile, logic?, blocker?}` where `tile` is a tileDefinitions id.
+func expand_ascii_map(source: Dictionary) -> Dictionary:
+	var map_block: Dictionary = source.get("map", {})
+	var rows: Array = map_block.get("rows", [])
+	var legend: Dictionary = map_block.get("legend", {})
+	if rows.is_empty() or legend.is_empty():
+		push_error("ASCII map needs rows and a legend.")
+		return {}
+	var width: int = str(rows[0]).length()
+	var logic_tiles: Array = []
+	var assigned_tiles: Array = []
+	var blockers: Array = source.get("blockers", []).duplicate(true)
+	for y in range(rows.size()):
+		var row: String = str(rows[y])
+		if row.length() != width:
+			push_error("ASCII map row %d has length %d, expected %d." % [y, row.length(), width])
+			return {}
+		var logic_row: Array = []
+		var assigned_row: Array = []
+		for x in range(width):
+			var symbol := row.substr(x, 1)
+			if not legend.has(symbol):
+				push_error("ASCII map symbol '%s' at (%d, %d) is not in the legend." % [symbol, x, y])
+				return {}
+			var entry: Dictionary = legend[symbol]
+			assigned_row.append(str(entry.get("tile", "")))
+			logic_row.append(str(entry.get("logic", "PASSABLE")).to_upper())
+			if entry.has("blocker"):
+				blockers.append({"assetKey": str(entry["blocker"]), "position": {"x": x, "y": y}, "blocksMovement": true})
+		logic_tiles.append(logic_row)
+		assigned_tiles.append(assigned_row)
+	var expanded: Dictionary = source.duplicate(true)
+	expanded.erase("map")
+	var meta: Dictionary = expanded.get("meta", {}).duplicate()
+	meta["width"] = width
+	meta["height"] = rows.size()
+	expanded["meta"] = meta
+	expanded["logicTiles"] = logic_tiles
+	expanded["assignedTiles"] = assigned_tiles
+	expanded["blockers"] = blockers
+	return expanded
 
 
 func _parse_tile_definitions(entries: Array) -> Dictionary:

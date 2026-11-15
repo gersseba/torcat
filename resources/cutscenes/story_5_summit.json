@@ -1,0 +1,77 @@
+{
+  "id": "story_5_summit",
+  "image": "res://resources/assets/cutscenes/story_summit_badger.png",
+  "shots": [
+    {
+      "from": {
+        "focus": [
+          0.2,
+          0.6
+        ],
+        "zoom": 1.0
+      },
+      "to": {
+        "focus": [
+          0.3,
+          0.65
+        ],
+        "zoom": 1.0
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "At last, the summit: wind, clouds and short alpine grass.",
+        "de": "Endlich der Gipfel: Wind, Wolken und kurzes Alpengras."
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.6,
+          0.4
+        ],
+        "zoom": 1.1
+      },
+      "to": {
+        "focus": [
+          0.73,
+          0.35
+        ],
+        "zoom": 1.5
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "Who dares climb MY hill?!",
+        "de": "Wer wagt es, MEINEN Hügel zu erklimmen?!"
+      },
+      "speaker": {
+        "en": "Badger",
+        "de": "Dachs"
+      }
+    },
+    {
+      "from": {
+        "focus": [
+          0.3,
+          0.68
+        ],
+        "zoom": 1.2
+      },
+      "to": {
+        "focus": [
+          0.28,
+          0.66
+        ],
+        "zoom": 1.4
+      },
+      "duration": 7.0,
+      "text": {
+        "en": "So that's the badger. He's the last one standing between us and the top.",
+        "de": "Das ist also der Dachs. Er ist der Letzte zwischen uns und dem Gipfel."
+      },
+      "speaker": {
+        "en": "Cat",
+        "de": "Katze"
+      }
+    }
+  ]
+}

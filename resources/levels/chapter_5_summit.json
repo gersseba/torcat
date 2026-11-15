@@ -1,0 +1,433 @@
+{
+  "meta": {
+    "id": "chapter_5_summit",
+    "name": "The Summit",
+    "backdrop": "#58697a"
+  },
+  "cutscenes": {
+    "intro": "story_5_summit",
+    "outro": "story_6_finale"
+  },
+  "abilities": {
+    "shellCharge": true,
+    "pounce": true,
+    "catClimb": true,
+    "catCarry": true
+  },
+  "tileDefinitions": [
+    {
+      "id": "al0",
+      "heightLevel": 0,
+      "assetKey": "alpine",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr0",
+      "heightLevel": 0,
+      "assetKey": "trail",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "al1",
+      "heightLevel": 1,
+      "assetKey": "alpine",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "tr1",
+      "heightLevel": 1,
+      "assetKey": "trail",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "sm2",
+      "heightLevel": 2,
+      "assetKey": "summit",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "sm3",
+      "heightLevel": 3,
+      "assetKey": "summit",
+      "presentationTag": "ground"
+    }
+  ],
+  "map": {
+    "legend": {
+      "a": {
+        "tile": "al0"
+      },
+      "=": {
+        "tile": "tr0"
+      },
+      "p": {
+        "tile": "al0",
+        "blocker": "pine"
+      },
+      "b": {
+        "tile": "al1"
+      },
+      "-": {
+        "tile": "tr1"
+      },
+      "q": {
+        "tile": "al1",
+        "blocker": "pine"
+      },
+      "c": {
+        "tile": "sm2"
+      },
+      "o": {
+        "tile": "sm2",
+        "blocker": "boulder"
+      },
+      "d": {
+        "tile": "sm3"
+      }
+    },
+    "rows": [
+      "bbqbbbbcccccccdddddddd",
+      "bbbbbqbccoccccdddddddd",
+      "aaaaaaabbbbbbbcccccccc",
+      "aaapaaabbbbqbbccccoddd",
+      "aaaaaaabbbbbbbcccccddd",
+      "=======-------cccccddd",
+      "aaaaapabbbbbbbccccoccc",
+      "apaaaaabbqbbbbcccccccc",
+      "aaaaaaabbbbbbbccccccco"
+    ]
+  },
+  "traversableEdges": [
+    {
+      "from": {
+        "x": 6,
+        "y": 5
+      },
+      "to": {
+        "x": 7,
+        "y": 5
+      },
+      "kind": "STAIRS"
+    },
+    {
+      "from": {
+        "x": 13,
+        "y": 5
+      },
+      "to": {
+        "x": 14,
+        "y": 5
+      },
+      "kind": "RAMP"
+    },
+    {
+      "from": {
+        "x": 18,
+        "y": 4
+      },
+      "to": {
+        "x": 19,
+        "y": 4
+      },
+      "kind": "STAIRS"
+    }
+  ],
+  "entities": [
+    {
+      "type": "ENEMY",
+      "id": "summit_goose",
+      "species": "goose",
+      "position": {
+        "x": 3,
+        "y": 2
+      },
+      "power": 5
+    },
+    {
+      "type": "ENEMY",
+      "id": "summit_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 4,
+        "y": 7
+      },
+      "power": 9
+    },
+    {
+      "type": "ENEMY",
+      "id": "summit_mouse",
+      "species": "mouse",
+      "position": {
+        "x": 5,
+        "y": 3
+      },
+      "power": 14
+    },
+    {
+      "type": "ITEM",
+      "id": "summit_salad",
+      "position": {
+        "x": 2,
+        "y": 8
+      },
+      "power": 3
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "alpine_shell",
+      "position": {
+        "x": 1,
+        "y": 0
+      },
+      "power": 6
+    },
+    {
+      "type": "ENEMY",
+      "id": "gate_snake",
+      "species": "snake",
+      "position": {
+        "x": 7,
+        "y": 5
+      },
+      "power": 40
+    },
+    {
+      "type": "ENEMY",
+      "id": "high_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 9,
+        "y": 3
+      },
+      "power": 12
+    },
+    {
+      "type": "ENEMY",
+      "id": "high_goose",
+      "species": "goose",
+      "position": {
+        "x": 11,
+        "y": 7
+      },
+      "power": 10
+    },
+    {
+      "type": "ENEMY",
+      "id": "high_mouse",
+      "species": "mouse",
+      "position": {
+        "x": 12,
+        "y": 2
+      },
+      "power": 30
+    },
+    {
+      "type": "LOOT",
+      "id": "summit_berries",
+      "position": {
+        "x": 9,
+        "y": 8
+      },
+      "powerReward": 4
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "ridge_shell",
+      "position": {
+        "x": 10,
+        "y": 0
+      },
+      "power": 12
+    },
+    {
+      "type": "ENEMY",
+      "id": "ramp_mouse",
+      "species": "mouse",
+      "position": {
+        "x": 14,
+        "y": 5
+      },
+      "power": 140
+    },
+    {
+      "type": "ENEMY",
+      "id": "crest_snake",
+      "species": "snake",
+      "position": {
+        "x": 16,
+        "y": 7
+      },
+      "power": 20
+    },
+    {
+      "type": "ENEMY",
+      "id": "crest_hedgehog",
+      "species": "hedgehog",
+      "position": {
+        "x": 16,
+        "y": 2
+      },
+      "power": 18
+    },
+    {
+      "type": "SHELL_ITEM",
+      "id": "crest_shell",
+      "position": {
+        "x": 16,
+        "y": 0
+      },
+      "power": 15
+    },
+    {
+      "type": "ENEMY",
+      "id": "badger",
+      "species": "badger",
+      "position": {
+        "x": 20,
+        "y": 4
+      },
+      "power": 335
+    }
+  ],
+  "initialState": {
+    "tortoise": {
+      "x": 1,
+      "y": 5
+    },
+    "tortoisePower": 8,
+    "cat": {
+      "x": 1,
+      "y": 6
+    },
+    "catPower": 6,
+    "catPounces": 3,
+    "catStatus": "party"
+  },
+  "events": [
+    {
+      "id": "summit_start",
+      "trigger": {
+        "type": "level_start"
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.5,
+          "duration": 1.2,
+          "actor": "enemy:badger"
+        },
+        {
+          "type": "face",
+          "actor": "enemy:badger",
+          "direction": "west"
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:badger",
+          "text": {
+            "en": "So. The slow one and the stray. This hill is MINE—every last blade of grass!",
+            "de": "So. Die Langsame und die Streunerin. Dieser Hügel gehört MIR – jeder einzelne Grashalm!"
+          }
+        },
+        {
+          "type": "shake",
+          "strength": 12,
+          "duration": 0.5
+        },
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "I only need one little spot at the very top.",
+            "de": "Ich brauche nur ein kleines Plätzchen ganz oben."
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:badger",
+          "text": {
+            "en": "NO!",
+            "de": "NEIN!"
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "Everything we've learned, together. Let's go!",
+            "de": "Alles, was wir gelernt haben – gemeinsam. Los geht's!"
+          }
+        }
+      ]
+    },
+    {
+      "id": "badger_approach",
+      "trigger": {
+        "type": "enter_tile",
+        "character": "any",
+        "area": {
+          "x": 15,
+          "y": 3,
+          "w": 3,
+          "h": 3
+        }
+      },
+      "actions": [
+        {
+          "type": "camera",
+          "zoom": 1.7,
+          "duration": 0.8,
+          "actor": "enemy:badger"
+        },
+        {
+          "type": "say",
+          "speaker": "enemy:badger",
+          "text": {
+            "en": "Come closer, if you dare! Nobody has ever beaten me!",
+            "de": "Kommt nur näher, wenn ihr euch traut! Mich hat noch niemand besiegt!"
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "There's a first time for everything.",
+            "de": "Für alles gibt es ein erstes Mal."
+          }
+        },
+        {
+          "type": "camera_reset",
+          "duration": 0.6
+        }
+      ]
+    },
+    {
+      "id": "summit_victory",
+      "trigger": {
+        "type": "victory"
+      },
+      "actions": [
+        {
+          "type": "say",
+          "speaker": "tortoise",
+          "text": {
+            "en": "We did it... the top of the hill.",
+            "de": "Wir haben es geschafft ... der Gipfel."
+          }
+        },
+        {
+          "type": "say",
+          "speaker": "cat",
+          "text": {
+            "en": "And the badger ran off squealing!",
+            "de": "Und der Dachs ist quiekend davongelaufen!"
+          }
+        }
+      ]
+    }
+  ]
+}
