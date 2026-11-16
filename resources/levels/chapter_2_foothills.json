@@ -1,8 +1,8 @@
 {
   "meta": {
     "id": "chapter_2_foothills",
-    "name": "The Foothills",
-    "backdrop": "#3c4526"
+    "name": "The Mossy Forest",
+    "backdrop": "#182c20"
   },
   "cutscenes": {
     "intro": "story_2_climb"
@@ -15,7 +15,7 @@
     {
       "id": "md0",
       "heightLevel": 0,
-      "assetKey": "meadow",
+      "assetKey": "forest_moss",
       "presentationTag": "ground"
     },
     {
@@ -27,7 +27,7 @@
     {
       "id": "fh1",
       "heightLevel": 1,
-      "assetKey": "foothill",
+      "assetKey": "forest_moss",
       "presentationTag": "ground"
     },
     {
@@ -39,7 +39,7 @@
     {
       "id": "rk2",
       "heightLevel": 2,
-      "assetKey": "rocky",
+      "assetKey": "forest_moss",
       "presentationTag": "ground"
     },
     {
@@ -59,7 +59,7 @@
       },
       "T": {
         "tile": "md0",
-        "blocker": "tree_oak_large"
+        "blocker": "pine"
       },
       "f": {
         "tile": "fh1"
@@ -79,7 +79,7 @@
       },
       "o": {
         "tile": "rk2",
-        "blocker": "boulder"
+        "blocker": "pine"
       }
     },
     "rows": [
@@ -94,6 +94,41 @@
       "..T..Tpfffffforrrrro"
     ]
   },
+  "blockers": [
+    { "assetKey": "pine", "position": { "x": 0, "y": 1 } },
+    { "assetKey": "pine", "position": { "x": 0, "y": 2 } },
+    { "assetKey": "pine", "position": { "x": 0, "y": 3 } },
+    { "assetKey": "pine", "position": { "x": 5, "y": 0 } },
+    { "assetKey": "pine", "position": { "x": 5, "y": 1 } },
+    { "assetKey": "pine", "position": { "x": 4, "y": 2 } },
+    { "assetKey": "pine", "position": { "x": 5, "y": 2 } },
+    { "assetKey": "pine", "position": { "x": 4, "y": 3 } },
+    { "assetKey": "pine", "position": { "x": 7, "y": 0 } },
+    { "assetKey": "pine", "position": { "x": 7, "y": 1 } },
+    { "assetKey": "pine", "position": { "x": 10, "y": 5 } },
+    { "assetKey": "pine", "position": { "x": 11, "y": 5 } },
+    { "assetKey": "pine", "position": { "x": 14, "y": 0 } },
+    { "assetKey": "pine", "position": { "x": 15, "y": 0 } },
+    { "assetKey": "pine", "position": { "x": 14, "y": 1 } },
+    { "assetKey": "pine", "position": { "x": 14, "y": 2 } },
+    { "assetKey": "pine", "position": { "x": 19, "y": 3 } },
+    { "assetKey": "pine", "position": { "x": 19, "y": 5 } }
+  ],
+  "decorations": [
+    { "assetKey": "forest_litter", "position": { "x": 2, "y": 0 } },
+    { "assetKey": "forest_litter", "position": { "x": 3, "y": 1 } },
+    { "assetKey": "forest_litter", "position": { "x": 1, "y": 5 } },
+    { "assetKey": "forest_litter", "position": { "x": 5, "y": 6 } },
+    { "assetKey": "forest_litter", "position": { "x": 4, "y": 8 } },
+    { "assetKey": "forest_litter", "position": { "x": 8, "y": 3 } },
+    { "assetKey": "forest_litter", "position": { "x": 10, "y": 3 } },
+    { "assetKey": "forest_litter", "position": { "x": 7, "y": 6 } },
+    { "assetKey": "forest_litter", "position": { "x": 10, "y": 8 } },
+    { "assetKey": "forest_litter", "position": { "x": 15, "y": 3 } },
+    { "assetKey": "forest_litter", "position": { "x": 16, "y": 1 } },
+    { "assetKey": "forest_litter", "position": { "x": 16, "y": 6 } },
+    { "assetKey": "forest_litter", "position": { "x": 18, "y": 7 } }
+  ],
   "traversableEdges": [
     {
       "from": {
@@ -140,13 +175,14 @@
       "power": 4
     },
     {
-      "type": "ITEM",
+      "type": "LOOT",
       "id": "field_salad",
+      "assetKey": "tree_stump",
       "position": {
         "x": 4,
         "y": 6
       },
-      "power": 1
+      "powerReward": 1
     },
     {
       "type": "SHELL_ITEM",
@@ -255,8 +291,8 @@
           "type": "say",
           "speaker": "tortoise",
           "text": {
-            "en": "The foothills. The path only gets steeper from here.",
-            "de": "Die Ausläufer. Ab hier wird der Weg nur noch steiler."
+            "en": "It's dark under these trees. Moss cushions my steps... perhaps those hollow stumps hide some food.",
+            "de": "Unter diesen Bäumen ist es dunkel. Das Moos polstert meine Schritte ... vielleicht steckt Futter in den hohlen Stümpfen."
           }
         },
         {
@@ -269,8 +305,8 @@
           "type": "say",
           "speaker": "enemy:foothill_snake",
           "text": {
-            "en": "Sssso slow... and sssso weak. Thirteen power guards these stairs.",
-            "de": "Ssso langsam ... und ssso schwach. Dreizehn Kraft bewachen diese Treppe."
+            "en": "Sssso slow... and sssso weak. You'll never be strong enough to pass me.",
+            "de": "Ssso langsam ... und ssso schwach. Du wirst nie stark genug sein, um an mir vorbeizukommen."
           }
         },
         {
@@ -301,8 +337,8 @@
         {
           "type": "message",
           "text": {
-            "en": "Shell Charge adds your shell power to one attack on an adjacent enemy. The enemy's power drains the shell, so save it for tough foes.",
-            "de": "Panzerangriff addiert die Panzerkraft zu einem Angriff auf einen Nachbarn. Die Kraft des Gegners zehrt den Panzer auf – spare ihn für starke Gegner."
+            "en": "Shell Charge strengthens one attack on a nearby enemy. Tough foes wear down the shell, so save your charms for them.",
+            "de": "Panzerangriff verstärkt einen Angriff auf einen nahen Gegner. Starke Gegner zehren den Panzer auf – spare deine Amulette für sie."
           }
         }
       ]

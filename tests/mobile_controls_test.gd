@@ -1,0 +1,93 @@
+extends SceneTree
+
+const GS = preload("res://scripts/domain/game_state.gd")
+var failures := 0
+
+
+func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _check(condition: bool, message: String) -> void:
+	if not condition:
+		failures += 1
+		push_error(message)
+
+
+func _run() -> void:
+	root.size = Vector2i(720, 1280)
+	var app: Node = load("res://scenes/app_root.tscn").instantiate()
+	root.add_child(app)
+	await process_frame
+	var app_state: Node = root.get_node("AppState")
+	app_state.set("mobile_controls", false)
+	root.get_node("AppRouter").navigate("settings")
+	await process_frame
+	var settings: SettingsScreen = root.find_child("SettingsScreen", true, false)
+	_check(settings != null, "Settings screen must load")
+	if settings == null:
+		quit(1)
+		return
+	for toggle in [settings._music_toggle, settings._sfx_toggle, settings._mobile_controls_toggle]:
+		_check(
+			toggle.get_theme_stylebox("hover_pressed") == toggle.get_theme_stylebox("normal"),
+			"Checked toggles must keep their background when hovered"
+		)
+	settings._mobile_controls_toggle.toggled.emit(true)
+	_check(bool(app_state.get("mobile_controls")), "Settings must enable the mobile control scheme")
+
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
+	await process_frame
+	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	_check(screen != null and screen._mobile_controls_enabled, "Gameplay must apply the selected mobile scheme")
+	if screen == null:
+		quit(1)
+		return
+	_check(screen._joystick_base.visible, "Mobile joystick must be available")
+	_check(not screen._pounce_button.visible, "Desktop pounce button must be replaced on mobile")
+
+	var state = GS.new(7, 7, GS.PlayerState.new(Vector2i(1, 1), 5), GS.PlayerState.new(Vector2i(3, 3), 4))
+	for y in range(state.height):
+		for x in range(state.width):
+			state.tile_cells[Vector2i(x, y)] = GS.TileCellState.new("meadow", GS.TileLogicType.PASSABLE)
+	state.selected_character_id = GS.CharacterId.CAT
+	screen._state = state
+	screen._facing_by_character[GS.CharacterId.CAT] = "south"
+	state.enemies_by_pos[Vector2i(4, 3)] = GS.Enemy.new("guard", Vector2i(4, 3), 8)
+	screen._render_state()
+	_check(screen._mobile_special_button.visible, "Mobile special action must be available for the selected cat")
+	_check(not screen._mobile_attack_button.visible, "Attack button must stay hidden until an enemy is in front")
+	var blocked_position: Vector2 = state.cat.world_position
+	screen._set_joystick_vector(Vector2.RIGHT)
+	screen._process_continuous_movement(0.2)
+	_check(
+		state.cat.world_position == blocked_position and screen._mobile_attack_button.visible,
+		"Joystick direction must face a blocking enemy and expose the attack action"
+	)
+	screen._set_joystick_vector(Vector2.ZERO)
+	screen._process_continuous_movement(0.0)
+
+	state.enemies_by_pos.clear()
+	var origin: Vector2 = state.cat.world_position
+	var diagonal := Vector2(1.0, -1.0).normalized()
+	screen._set_joystick_vector(diagonal)
+	screen._process_continuous_movement(0.2)
+	_check(
+		state.cat.world_position.distance_to(origin) > 0.4
+		and screen._character_sprites[GS.CharacterId.CAT].animation == "walk_north-east",
+		"Virtual joystick must provide continuous diagonal movement"
+	)
+	screen._set_joystick_vector(Vector2.ZERO)
+	screen._process_continuous_movement(0.0)
+	_check(screen._moving_character_id == -1, "Releasing the joystick must stop continuous movement")
+
+	var wasd_vector := screen._movement_vector_from_axes(true, false, false, true)
+	var arrow_vector := screen._movement_vector_from_axes(true, false, false, true)
+	_check(
+		wasd_vector == Vector2(1.0, -1.0) and arrow_vector == wasd_vector
+		and screen._combine_movement_inputs(wasd_vector, Vector2.ZERO).is_equal_approx(Vector2(1.0, -1.0).normalized()),
+		"WASD and arrow key pairs must produce normalized diagonal movement"
+	)
+
+	print("Mobile controls tests: %d failure(s)" % failures)
+	quit(1 if failures else 0)

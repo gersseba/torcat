@@ -86,7 +86,7 @@ func _run() -> void:
 	_mouse_click(_screen_position(screen, screen._state.cat.position))
 	await process_frame
 	_check(screen._state.selected_character_id == GS.CharacterId.CAT, "Mouse click should select cat")
-	_check(screen._event_label.text == "Cat selected.", "Selection should update the HUD")
+	_check(screen._state.last_event == "Cat selected.", "Selection should update the game state")
 	_check(cat.animation == "idle_transition_south", "Cat should transition to idle when selected")
 	_check(screen._character_modes[GS.CharacterId.CAT] == "to_idle", "Cat should be entering idle")
 	_check(tortoise.animation == "passive_transition_south", "Tortoise should transition on deselection")
@@ -169,6 +169,14 @@ func _run() -> void:
 	screen.back_to_menu_pressed.connect(func() -> void: back_pressed[0] = true)
 	_mouse_click(screen._back_button.get_global_rect().get_center())
 	await process_frame
-	_check(back_pressed[0], "HUD buttons must still receive mouse input")
+	_check(not back_pressed[0] and screen._back_confirmation.visible, "Back should ask for confirmation before leaving the level")
+	screen._back_confirmation.get_cancel_button().pressed.emit()
+	await process_frame
+	_check(not back_pressed[0] and not screen._back_confirmation.visible, "Cancelling should stay in the level")
+	_mouse_click(screen._back_button.get_global_rect().get_center())
+	await process_frame
+	screen._back_confirmation.confirmed.emit()
+	await process_frame
+	_check(back_pressed[0], "Confirming the dialog should return to the menu")
 	print("Gameplay selection tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)

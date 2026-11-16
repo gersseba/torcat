@@ -7,15 +7,34 @@ Open this directory in Godot 4 and run the project to launch the main scene.
 ## Mobile controls
 
 - Tap a character to select it.
-- Tap a reachable tile once to preview a route.
-- Tap the same tile again to confirm movement.
+- Tap a reachable spot once to preview a route.
+- Tap the same spot again to confirm movement. Characters walk diagonally and
+  stop at the exact point, not at a tile center.
+- Tap the board during a walk to stop at the character's current position.
+- Tap an enemy or loot container twice to approach the nearest reachable
+  cardinally adjacent tile center and attack from there.
 - Drag with one finger to pan the board.
 - Pinch with two fingers to zoom.
 - Use **Center** to return the camera to the selected character.
 - Menu and gameplay buttons use touch-sized hit areas.
+- Enable **Touch controls** in Settings for a left virtual joystick and right-side
+  attack and special-action buttons.
 
-The same touch input path is used on Android and mobile browsers. Mouse and
-keyboard controls remain available for desktop development.
+The gameplay camera frames the board between the party HUD and bottom actions,
+clamps panning to the board with a narrow decorative border, and gently looks
+ahead during walking. Small boards are centered in the unobstructed area.
+Story chapters open with a brief full-board overview before their scripted
+introduction; retries skip this overview. Scripted cinematic camera moves can
+deliberately leave the normal gameplay bounds.
+
+The same touch input path is used on Android and mobile browsers. Hold WASD or
+the arrow keys to move continuously on desktop; two neighboring directions
+combine into diagonal movement.
+
+Cat and tortoise walking use eight native PixelLab directions, including
+north-east, north-west, south-east and south-west. Free movement selects the
+nearest 45-degree facing without changing travel speed. Attacks, abilities,
+idle poses and passive transitions retain their cardinal directions.
 
 Character selection also changes presentation state: the selected character
 transitions out of its passive pose and periodically plays its idle animation,
@@ -37,10 +56,14 @@ The cat starts with three pounces per level (level JSON may override this
 with `initialState.catPounces`). Select the cat, tap **Pounce**, then tap a
 highlighted cardinal destination up to two tiles away twice to confirm.
 Tap **Cancel pounce** to cancel for free. Pounce ignores intervening tiles and
-elevation, but cannot land on a blocker or the tortoise. Landing collects items
-and loot. Pouncing on an enemy subtracts the cat's power from the enemy and
-returns the cat to its starting tile; no power is awarded, even on a defeat.
-Pounce uses do not replenish during the level.
+elevation, but cannot land on a blocker or the tortoise. Landing collects items.
+Pouncing on an enemy subtracts the cat's power from the enemy and
+lands directly in front of it for the strike before jumping back. If already
+adjacent, the cat first walks one tile back and ends there after the strike.
+Pounces award no power, even on a defeat.
+Pounce uses do not replenish during the level. Its special destinations remain
+cardinal tiles; normal walking is continuous. Unopened loot containers cannot
+be pounce landing destinations and require a normal adjacent attack.
 The tortoise starts each level with zero shell power. Only the tortoise can
 use shell charms, which add to its reserve. The cat leaves charms in place
 unless the level enables `catCarry` (see [Story campaign](#story-campaign)).
@@ -145,10 +168,12 @@ godot --headless --path . --script res://tests/power_attack_fade_test.gd
 godot --headless --path . --script res://tests/elevation_rendering_test.gd
 godot --headless --path . --script res://tests/combat_power_test.gd
 godot --headless --path . --script res://tests/pounce_test.gd
+godot --headless --path . --script res://tests/mobile_controls_test.gd
 godot --headless --path . --script res://tests/shell_charge_test.gd
 godot --headless --path . --script res://tests/enemy_reactions_test.gd
 godot --headless --path . --script res://tests/level_script_test.gd
 godot --headless --path . --script res://tests/campaign_test.gd
+godot --headless --path . --script res://tests/story_map_camera_test.gd
 ```
 
 ## Story campaign
@@ -164,16 +189,28 @@ in order in `resources/campaign/campaign.json`, with `en` and `de` titles:
 | 4 | `chapter_4_cliffs` | `story_4_vow` | the cat climbs and carries charms |
 | 5 | `chapter_5_summit` | `story_5_summit` | everything; the badger boss |
 
-Chapter 5's outro is `story_6_finale`. After a victory, **Continue** unlocks the
-next chapter, plays the current level's outro (if any) and the next chapter's
+Chapter 5's outro is `story_6_finale`. Victory records completion and unlocks the
+next chapter immediately. **Continue** plays the current level's outro (if any) and the next chapter's
 intro, and then starts the next chapter. After the finale the game returns to
-level select. Level select lists the chapters, with locked ones disabled, above
-the practice levels. Unlocked chapters are saved to `user://progress.cfg`.
+level select.
+
+The **Story** tab shows an illustrated hill, changing from meadow through forest
+to the rocky summit. Stars represent cutscenes; outlined circles represent levels,
+and completed levels have filled circles. The tortoise begins at the bottom.
+Tap an unlocked destination to walk there, then choose **Start** for a level or
+**Watch** for a standalone cutscene replay. Start is unavailable during travel;
+locked destinations cannot be selected or started. Replays return to the map,
+and the final story star unlocks only after winning the summit. The **Practice**
+tab keeps the standalone and random levels separate from campaign progression.
+
+Unlocked chapters and explicit level completion, including the final chapter,
+are saved to `user://progress.cfg`. Older saves that recorded only unlocks infer
+completion for the preceding chapters, not the last unlocked chapter.
 After a defeat, **Retry** restarts the level without replaying its intro.
 
 Each chapter rises from left to right and uses its own biome tiles: flower
-meadow, foothill, rocky, alpine and summit. Its `meta.backdrop` colour tints the
-screen behind the board.
+meadow, mossy forest, light woodland, alpine pasture and rugged hilltop.
+Its `meta.backdrop` colour tints the screen behind the board.
 
 Level JSON options used by the campaign:
 
@@ -192,12 +229,61 @@ Level JSON options used by the campaign:
   - `legend` maps each character to `{tile, logic?, blocker?}`, where `tile` is
     a `tileDefinitions` id and `blocker` is a blocker asset key.
   - The width and height come from the rows.
-  - New blockers: `boulder` and `pine`. New pickups: `salad` (items) and
-    `berries` (loot).
+  - Blockers include `boulder`, `pine`, `stone_wall`, `thick_bush`, and
+    `wooden_fence`.
+- `decorations`: an optional array of `{assetKey, position: {x, y}}`.
+  Decorations are always passable, remain after pickups, and draw beneath
+  actors and loot. Keys: `meadow_flowers`, `forest_litter`, `woodland_ferns`,
+  `mountain_flowers`, `scree`, and `dry_bush`. Positions must be unique and
+  within the board.
+- `LOOT` entities accept `assetKey`: `berries` (the backwards-compatible
+  default), `tree_stump`, `barrel`, or `cracked_stone`. Confirming a container
+  target approaches an adjacent tile center; attacking searches, opens, or
+  cracks it and grants `powerReward` once. Either character can attack them.
+  Unopened containers block walking and pounce landings; after opening, their
+  tile becomes walkable. They do not require Shell Charge or consume Pounce.
+
+The story chapters have distinct environments and obstacle silhouettes:
+
+| Chapter | Terrain and decoration | Impassable objects | Loot |
+| --- | --- | --- | --- |
+| Flower Meadow | Flowers, green grass, shallow traversable ponds | Old stone walls | Barrel |
+| Mossy Forest | Dark moss, fallen sticks, leaves, mushrooms | Dense trees | Hollow stump |
+| Woodland Clearings | Light woodland grass, ferns, pebbles | Thick bushes, a few trees | Hollow stump, cracked stone |
+| Alpine Pasture (Alm) | Green mountain grass, edelweiss and gentians | Wooden fences | Barrel |
+| Summit | Rugged stone, scree, dry scrub, sparse mountain flowers | Boulders | Cracked stone, berries |
+
+Shallow water follows ordinary movement and elevation rules; it is not a
+hazard and requires no swimming ability. Decoration never changes movement.
+Dialogue describes strength naturally rather than quoting combat numbers;
+the numeric HUD remains available for planning attacks.
+
+Free walking stores positions in continuous tile coordinates. Navigation
+checks character clearance, blocks occupied enemy/container tiles, and respects
+stairs and cliffs (including the cat's unlocked climbing ability). Attack
+approaches remain cardinal and tile-centered. Pounce retains its special
+cardinal tile targets and returns to the precise starting point after an attack.
+Characters retain the existing ability to share space; decorations and food
+do not block walking. Tile-entry scripts run after a completed or stopped walk,
+only for its final tile, not for tiles passed through.
+
+`tests/free_movement_test.gd` checks exact endpoints, diagonal paths, stopping,
+collision/elevation clearance, attack approaches and attack-only loot:
+
+```text
+godot --headless --path . --script res://tests/free_movement_test.gd
+```
 
 `tests/campaign_test.gd` includes a search-based solver. It checks that every
 chapter can be won, and that chapters 2–4 cannot be won without their new
 mechanic. Run it after rebalancing a chapter.
+`tests/biome_presentation_test.gd` checks biome identity, obstacle density,
+passable decorations and water, loot collection, imported artwork, and
+organic dialogue:
+
+```text
+godot --headless --path . --script res://tests/biome_presentation_test.gd
+```
 
 ## Mobile and web configuration
 

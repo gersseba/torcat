@@ -33,7 +33,13 @@
     {
       "id": "fh1",
       "heightLevel": 1,
-      "assetKey": "foothill",
+      "assetKey": "flower_meadow",
+      "presentationTag": "ground"
+    },
+    {
+      "id": "water0",
+      "heightLevel": 0,
+      "assetKey": "shallow_water",
       "presentationTag": "ground"
     },
     {
@@ -56,32 +62,35 @@
       },
       "T": {
         "tile": "md0",
-        "blocker": "tree_oak_large"
+        "blocker": "stone_wall"
       },
       "b": {
         "tile": "fm0",
-        "blocker": "tree_oak_large"
+        "blocker": "stone_wall"
       },
       "o": {
         "tile": "md0",
-        "blocker": "boulder"
+        "blocker": "stone_wall"
       },
       "^": {
         "tile": "fh1"
       },
       "p": {
         "tile": "fh1",
-        "blocker": "pine"
+        "blocker": "stone_wall"
+      },
+      "~": {
+        "tile": "water0"
       }
     },
     "rows": [
       "b,,..,T,,..,,b.^pp",
-      ",,..,,T..,,..,,^^^",
-      ".,,..,T,..,,.o,^^^",
-      "..,,.,T.,,..,,.^^^",
+      ",~~.,,T..,,..,,^^^",
+      ".~~..,T,..,,.o,^^^",
+      "..~,.,T.,,..,,.^^^",
       "=====.=========^^^",
-      ".,,..,T..,,.,,.^^^",
-      ",..,,.T,,..,o.,^^^",
+      ".,,..,T..~~.,,.^^^",
+      ",..,,.T,,~~,o.,^^^",
       ",,..,,T.,,..,,.^^^",
       "bb,,.,T,,..,bb,^pp"
     ]
@@ -160,13 +169,14 @@
       "power": 3
     },
     {
-      "type": "ITEM",
+      "type": "LOOT",
       "id": "salad_big",
+      "assetKey": "barrel",
       "position": {
         "x": 12,
         "y": 1
       },
-      "power": 2
+      "powerReward": 2
     },
     {
       "type": "ENEMY",
@@ -179,6 +189,29 @@
       "power": 20
     }
   ],
+  "decorations": [
+    { "assetKey": "meadow_flowers", "position": { "x": 1, "y": 0 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 4, "y": 0 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 8, "y": 0 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 10, "y": 0 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 4, "y": 1 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 8, "y": 1 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 13, "y": 1 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 1, "y": 3 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 4, "y": 3 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 11, "y": 3 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 14, "y": 3 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 2, "y": 5 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 5, "y": 5 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 12, "y": 5 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 1, "y": 6 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 7, "y": 6 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 3, "y": 8 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 8, "y": 8 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 10, "y": 8 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 16, "y": 2 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 17, "y": 6 } }
+  ],
   "initialState": {
     "tortoise": {
       "x": 1,
@@ -186,7 +219,7 @@
     },
     "tortoisePower": 2,
     "catStatus": "absent",
-    "lastEvent": "Tap a tile to preview a path, tap again to walk."
+    "lastEvent": "Tap a spot to preview a path, tap again to walk. Tap while walking to stop."
   },
   "events": [
     {
@@ -206,8 +239,8 @@
         {
           "type": "message",
           "text": {
-            "en": "Tap a tile to preview a path, tap again to walk. Beat animals with equal or lower power to grow stronger.",
-            "de": "Tippe ein Feld für eine Wegvorschau, tippe erneut zum Laufen. Besiege Tiere mit gleicher oder kleinerer Kraft, um stärker zu werden."
+            "en": "Tap a spot to preview a path, tap again to walk. Tap while walking to stop. The shallow water is safe. Tap a barrel twice to walk beside it and attack it for food.",
+            "de": "Tippe eine Stelle für eine Wegvorschau, erneut zum Laufen. Tippe unterwegs zum Anhalten. Das flache Wasser ist sicher. Tippe ein Fass zweimal an, um daneben zu laufen und es für Futter aufzubrechen."
           }
         }
       ]
@@ -235,16 +268,16 @@
           "type": "say",
           "speaker": "enemy:oak_goose",
           "text": {
-            "en": "Honk! Nobody passes the old oaks without going through me!",
-            "de": "Schnatter! An den alten Eichen kommt keiner an mir vorbei!"
+            "en": "Honk! Nobody passes this old wall without going through me!",
+            "de": "Schnatter! An dieser alten Mauer kommt keiner an mir vorbei!"
           }
         },
         {
           "type": "say",
           "speaker": "tortoise",
           "text": {
-            "en": "Six power... I'll need some salad and a few smaller victories first.",
-            "de": "Sechs Kraft ... da brauche ich erst Salat und ein paar kleinere Siege."
+            "en": "That goose looks strong... I'll need some salad and a few smaller victories first.",
+            "de": "Diese Gans sieht stark aus ... da brauche ich erst Salat und ein paar kleinere Siege."
           }
         },
         {

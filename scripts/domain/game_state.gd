@@ -21,7 +21,12 @@ const DEFAULT_POUNCE_USES := 3
 class PlayerState:
 	extends RefCounted
 
-	var position: Vector2i
+	var position: Vector2i:
+		set(value):
+			position = value
+			world_position = Vector2(value) + Vector2(0.5, 0.5)
+	# Continuous positions use tile units; integer positions remain the board cell.
+	var world_position: Vector2
 	var power: int
 	var alive: bool
 
@@ -31,7 +36,13 @@ class PlayerState:
 		alive = p_alive
 
 	func copy_state() -> PlayerState:
-		return PlayerState.new(position, power, alive)
+		var next := PlayerState.new(position, power, alive)
+		next.world_position = world_position
+		return next
+
+	func set_world_position(value: Vector2) -> void:
+		position = Vector2i(floori(value.x), floori(value.y))
+		world_position = value
 
 
 class Enemy:
@@ -74,14 +85,16 @@ class LootableObject:
 	var id: String
 	var position: Vector2i
 	var power_reward: int
+	var asset_key: String
 
-	func _init(p_id: String, p_position: Vector2i, p_power_reward: int = 0) -> void:
+	func _init(p_id: String, p_position: Vector2i, p_power_reward: int = 0, p_asset_key: String = "berries") -> void:
 		id = p_id
 		position = p_position
 		power_reward = p_power_reward
+		asset_key = p_asset_key
 
 	func copy_state() -> LootableObject:
-		return LootableObject.new(id, position, power_reward)
+		return LootableObject.new(id, position, power_reward, asset_key)
 
 
 class TileCellState:
@@ -171,6 +184,7 @@ var lootables_by_pos: Dictionary = {}
 var resupply_points: Dictionary = {}
 var traversable_edges: Array = []
 var blockers_by_pos: Dictionary = {}
+var decorations_by_pos: Dictionary = {}
 var selected_character_id: CharacterId = CharacterId.TORTOISE
 var last_event: String = "Move with the controls."
 var game_over: bool = false
@@ -231,6 +245,7 @@ func duplicate_state():
 	next.cat_can_carry = cat_can_carry
 	next.cat_carried_shell = cat_carried_shell
 	next.blockers_by_pos = _copy_ref_dictionary(blockers_by_pos)
+	next.decorations_by_pos = decorations_by_pos.duplicate(true)
 	next.selected_character_id = selected_character_id
 	next.last_event = last_event
 	next.game_over = game_over

@@ -69,6 +69,7 @@ text = "Music"
 theme_override_styles/normal = SubResource("StyleBoxTexture_button")
 theme_override_styles/hover = SubResource("StyleBoxTexture_button")
 theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_button")
 
 [node name="SfxToggleButton" type="CheckButton" parent="CenterContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -78,6 +79,17 @@ text = "SFX"
 theme_override_styles/normal = SubResource("StyleBoxTexture_button")
 theme_override_styles/hover = SubResource("StyleBoxTexture_button")
 theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_button")
+
+[node name="MobileControlsToggle" type="CheckButton" parent="CenterContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(280, 64)
+text = "Touch controls"
+theme_override_styles/normal = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover = SubResource("StyleBoxTexture_button")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
+theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_button")
 
 [node name="BackButton" type="Button" parent="CenterContainer/VBoxContainer"]
 unique_name_in_owner = true

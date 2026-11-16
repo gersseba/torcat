@@ -22,10 +22,21 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_3dpka")
 
+[node name="BackConfirmationDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Leave level?"
+dialog_text = "Return to the menu? Progress in this level will be lost."
+ok_button_text = "Leave level"
+cancel_button_text = "Stay"
+
 [node name="BoardRoot" type="Node2D" parent="."]
 unique_name_in_owner = true
 
 [node name="GroundLayer" type="TileMapLayer" parent="BoardRoot"]
+unique_name_in_owner = true
+z_index = 0
+
+[node name="DecorationLayer" type="TileMapLayer" parent="BoardRoot"]
 unique_name_in_owner = true
 z_index = 0
 
@@ -92,16 +103,9 @@ theme_override_styles/normal = SubResource("StyleBoxTexture_button")
 theme_override_styles/hover = SubResource("StyleBoxTexture_button")
 theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
 
-[node name="EventPanel" type="PanelContainer" parent="UiLayer/HudContainer/HudRow"]
+[node name="HudSpacer" type="Control" parent="UiLayer/HudContainer/HudRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="EventLabel" type="Label" parent="UiLayer/HudContainer/HudRow/EventPanel"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Tap a reachable tile to preview a move."
-vertical_alignment = 1
-autowrap_mode = 2
 
 [node name="RecenterButton" type="Button" parent="UiLayer/HudContainer/HudRow"]
 unique_name_in_owner = true

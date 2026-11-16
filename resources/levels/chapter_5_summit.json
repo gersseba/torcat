@@ -2,7 +2,7 @@
   "meta": {
     "id": "chapter_5_summit",
     "name": "The Summit",
-    "backdrop": "#58697a"
+    "backdrop": "#585747"
   },
   "cutscenes": {
     "intro": "story_5_summit",
@@ -18,7 +18,7 @@
     {
       "id": "al0",
       "heightLevel": 0,
-      "assetKey": "alpine",
+      "assetKey": "hilltop",
       "presentationTag": "ground"
     },
     {
@@ -30,7 +30,7 @@
     {
       "id": "al1",
       "heightLevel": 1,
-      "assetKey": "alpine",
+      "assetKey": "hilltop",
       "presentationTag": "ground"
     },
     {
@@ -42,13 +42,13 @@
     {
       "id": "sm2",
       "heightLevel": 2,
-      "assetKey": "summit",
+      "assetKey": "hilltop",
       "presentationTag": "ground"
     },
     {
       "id": "sm3",
       "heightLevel": 3,
-      "assetKey": "summit",
+      "assetKey": "hilltop",
       "presentationTag": "ground"
     }
   ],
@@ -62,7 +62,7 @@
       },
       "p": {
         "tile": "al0",
-        "blocker": "pine"
+        "blocker": "boulder"
       },
       "b": {
         "tile": "al1"
@@ -72,7 +72,7 @@
       },
       "q": {
         "tile": "al1",
-        "blocker": "pine"
+        "blocker": "boulder"
       },
       "c": {
         "tile": "sm2"
@@ -97,6 +97,24 @@
       "aaaaaaabbbbbbbccccccco"
     ]
   },
+  "decorations": [
+    { "assetKey": "scree", "position": { "x": 3, "y": 0 } },
+    { "assetKey": "dry_bush", "position": { "x": 4, "y": 1 } },
+    { "assetKey": "scree", "position": { "x": 1, "y": 2 } },
+    { "assetKey": "dry_bush", "position": { "x": 4, "y": 4 } },
+    { "assetKey": "scree", "position": { "x": 2, "y": 6 } },
+    { "assetKey": "dry_bush", "position": { "x": 6, "y": 8 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 6, "y": 0 } },
+    { "assetKey": "scree", "position": { "x": 12, "y": 0 } },
+    { "assetKey": "dry_bush", "position": { "x": 8, "y": 2 } },
+    { "assetKey": "scree", "position": { "x": 10, "y": 4 } },
+    { "assetKey": "dry_bush", "position": { "x": 13, "y": 7 } },
+    { "assetKey": "scree", "position": { "x": 17, "y": 1 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 20, "y": 1 } },
+    { "assetKey": "scree", "position": { "x": 15, "y": 3 } },
+    { "assetKey": "dry_bush", "position": { "x": 19, "y": 6 } },
+    { "assetKey": "scree", "position": { "x": 18, "y": 8 } }
+  ],
   "traversableEdges": [
     {
       "from": {
@@ -164,13 +182,14 @@
       "power": 14
     },
     {
-      "type": "ITEM",
+      "type": "LOOT",
       "id": "summit_salad",
+      "assetKey": "cracked_stone",
       "position": {
         "x": 2,
         "y": 8
       },
-      "power": 3
+      "powerReward": 3
     },
     {
       "type": "SHELL_ITEM",

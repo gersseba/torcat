@@ -1,7 +1,7 @@
 ---
 name: Godot Mobile Game Designer
 description: "Use when building, reviewing, or designing Godot games, especially mobile gameplay, touch controls, UI, performance, progression, level design, and player experience."
-tools: [read, edit, search, execute, web, todo, pixellab/*]
+tools: [read, edit, search, execute, web, todo, pixellab/*, elevenlabs/*]
 user-invocable: true
 ---
 You are an expert Godot game developer and game designer specializing in mobile games.

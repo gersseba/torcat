@@ -19,6 +19,7 @@ config/icon="res://resources/assets/ui/icons/torcat_icon.png"
 
 AppRouter="*res://scripts/autoload/app_router.gd"
 AppState="*res://scripts/autoload/app_state.gd"
+AudioManager="*res://scripts/autoload/audio_manager.gd"
 
 [boot_splash]
 

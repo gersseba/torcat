@@ -1,17 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/screens/main_menu_screen.gd" id="1_hx8x1"]
-[ext_resource type="Texture2D" path="res://resources/assets/ui/backgrounds/menu_background.png" id="2_background"]
-[ext_resource type="Texture2D" path="res://resources/assets/ui/chrome/secondary_button.png" id="3_button"]
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button"]
-texture = ExtResource("3_button")
-texture_margin_left = 64.0
-texture_margin_top = 48.0
-texture_margin_right = 64.0
-texture_margin_bottom = 48.0
-axis_stretch_horizontal = 1
-axis_stretch_vertical = 1
+[ext_resource type="Script" path="res://scripts/screens/main_menu_screen.gd" id="1"]
+[ext_resource type="Texture2D" path="res://resources/assets/ui/backgrounds/menu_background.png" id="2"]
 
 [node name="MainMenuScreen" type="Control"]
 layout_mode = 3
@@ -20,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_hx8x1")
+script = ExtResource("1")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -30,42 +20,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("2_background")
+texture = ExtResource("2")
+texture_filter = 1
 expand_mode = 1
 stretch_mode = 6
-
-[node name="CenterContainer" type="CenterContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 36
-text = "Torcat"
-horizontal_alignment = 1
-
-[node name="StartButton" type="Button" parent="CenterContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(280, 64)
-text = "Start"
-theme_override_styles/normal = SubResource("StyleBoxTexture_button")
-theme_override_styles/hover = SubResource("StyleBoxTexture_button")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
-
-[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(280, 64)
-text = "Settings"
-theme_override_styles/normal = SubResource("StyleBoxTexture_button")
-theme_override_styles/hover = SubResource("StyleBoxTexture_button")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_button")

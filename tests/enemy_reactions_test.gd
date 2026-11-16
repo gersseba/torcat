@@ -79,9 +79,16 @@ func _run() -> void:
 	screen._toggle_pounce_mode()
 	screen._handle_pounce_target(pounce_target)
 	screen._handle_pounce_target(pounce_target)
-	await create_timer(0.8).timeout
+	var reaction_deadline := Time.get_ticks_msec() + 5000
+	while (
+		screen._enemy_sprites[pounce_target].animation != "flinch_west"
+		and Time.get_ticks_msec() < reaction_deadline
+	):
+		await process_frame
 	_check(screen._enemy_sprites[pounce_target].animation == "flinch_west", "Pounce triggers reaction on impact")
-	await create_timer(1.0).timeout
+	var pounce_deadline := Time.get_ticks_msec() + 5000
+	while screen._moving_character_id != -1 and Time.get_ticks_msec() < pounce_deadline:
+		await process_frame
 	_check(screen._state.enemies_by_pos[pounce_target].power == 16, "Pounce still weakens surviving enemy")
 	var charge_target := Vector2i(2, 2)
 	screen._state.enemies_by_pos[charge_target] = GS.Enemy.new("charge", charge_target, 10, "badger")

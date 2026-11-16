@@ -76,16 +76,29 @@ func _run() -> void:
 
 	var target := origin + Vector2i.UP
 	state.enemies_by_pos[target] = GS.Enemy.new("strong", target, 11)
+	_check(engine.can_pounce(state, target) and engine.pounce_landing_position(state, target) == origin, "An adjacent enemy pounce must land on the tile directly before the enemy")
 	var weakened = engine.pounce(state, target)
-	_check(weakened.enemies_by_pos[target].power == 7 and weakened.cat.power == 4 and weakened.cat.position == origin, "Enemy pounce must weaken and return without reward")
+	_check(weakened.enemies_by_pos[target].power == 7 and weakened.cat.power == 4 and weakened.cat.position == origin + Vector2i.DOWN, "Adjacent pounce must retreat one tile, strike from in front, and return")
 	_check(state.enemies_by_pos[target].power == 11, "Enemy state must be copied")
+	state.blocked_tiles[origin + Vector2i.DOWN] = true
+	_check(not engine.can_pounce(state, target), "An adjacent pounce needs a clear tile for the one-step retreat")
+	state.blocked_tiles.clear()
+	var distant_target := origin + Vector2i.RIGHT * 2
+	state.enemies_by_pos.clear()
+	state.enemies_by_pos[distant_target] = GS.Enemy.new("distant", distant_target, 8)
+	_check(engine.pounce_landing_position(state, distant_target) == origin + Vector2i.RIGHT, "A two-tile enemy pounce must stage one tile before the enemy")
+	var distant_result = engine.pounce(state, distant_target)
+	_check(distant_result.cat.position == origin and distant_result.enemies_by_pos[distant_target].power == 4, "A distant enemy pounce must return to its original tile after striking")
+	state.enemies_by_pos.clear()
+	state.enemies_by_pos[target] = GS.Enemy.new("strong", target, 11)
 	weakened.cat.power = 7
 	var normal = engine.move(weakened, ENGINE.Direction.UP, GS.CharacterId.CAT)
+	normal = engine.move(normal, ENGINE.Direction.UP, GS.CharacterId.CAT)
 	_check(normal.cat.power == 14, "Later normal attack must award reduced enemy power")
 	for power in [3, 4]:
 		state.enemies_by_pos[target].power = power
 		var defeated = engine.pounce(state, target)
-		_check(not defeated.enemies_by_pos.has(target) and defeated.victory and defeated.cat.power == 4, "Lethal pounce must award no power and set victory")
+		_check(not defeated.enemies_by_pos.has(target) and defeated.victory and defeated.cat.power == 4 and defeated.cat.position == origin + Vector2i.DOWN, "Lethal pounce must retreat and award no power")
 	state.enemies_by_pos.clear()
 	state.items_by_pos[target] = GS.Item.new("item", target, 2)
 	var item_result = engine.pounce(state, target)
@@ -93,7 +106,7 @@ func _run() -> void:
 	state.items_by_pos.clear()
 	state.lootables_by_pos[target] = GS.LootableObject.new("loot", target, 1)
 	var loot_result = engine.pounce(state, target)
-	_check(loot_result.cat.power == 5 and not loot_result.lootables_by_pos.has(target), "Landing must collect loot")
+	_check(loot_result.cat.power == 4 and loot_result.lootables_by_pos.has(target), "Loot containers require a normal adjacent attack, not a pounce landing")
 	var definition := {
 		"meta": {"width": 1, "height": 1},
 		"tileDefinitions": [{"id": "grass", "heightLevel": 0}],
@@ -141,18 +154,20 @@ func _run() -> void:
 	screen._render_state()
 	screen._toggle_pounce_mode()
 	screen._handle_board_click(_screen_position(screen, target))
-	_check(screen._event_label.text.contains("11 -> 7"), "Enemy preview must display expected power")
+	_check(screen._state.last_event.contains("11 -> 7"), "Enemy preview must display expected power")
 	screen._handle_board_click(_screen_position(screen, target))
 	await create_timer(0.3).timeout
-	_check(screen._moving_character_id == GS.CharacterId.CAT and screen._pounce_shadow.visible and cat.offset.y < 0, "Pounce must animate above a moving shadow")
+	_check(screen._moving_character_id == GS.CharacterId.CAT and not screen._pounce_shadow.visible and cat.position != screen._tile_center_world(origin), "Adjacent pounce must walk back before jumping")
 	_check(screen._state.cat_pounces_remaining == 2 and screen._state.enemies_by_pos[target].power == 11, "Confirmed use is spent before combat resolves")
-	await create_timer(1.4).timeout
+	var pounce_deadline := Time.get_ticks_msec() + 6000
+	while screen._moving_character_id != -1 and Time.get_ticks_msec() < pounce_deadline:
+		await process_frame
 	_check(screen._state.enemies_by_pos[target].power == 7 and screen._state.cat_pounces_remaining == 2, "Enemy pounce must resolve through UI")
-	_check(cat.position.is_equal_approx(screen._tile_center_world(origin)) and not screen._pounce_shadow.visible, "Enemy pounce must return to origin")
+	_check(cat.position.is_equal_approx(screen._tile_center_world(origin + Vector2i.DOWN)) and not screen._pounce_shadow.visible, "Adjacent enemy pounce must jump back to its retreat tile")
 	await create_timer(0.2).timeout
 	_check(is_equal_approx(screen._character_power_labels[GS.CharacterId.CAT].modulate.a, 1.0), "Power indicator must return after pounce")
 	screen._toggle_pounce_mode()
-	var landing := origin + Vector2i.RIGHT * 2
+	var landing: Vector2i = screen._state.cat.position + Vector2i.RIGHT * 2
 	screen._handle_board_click(_screen_position(screen, landing))
 	screen._handle_board_click(_screen_position(screen, landing))
 	await create_timer(0.9).timeout

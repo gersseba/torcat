@@ -132,7 +132,7 @@ func _run() -> void:
 	_check(screen._shell_mode and screen._pounce_targets.has(target), "Touch enters targeting and highlights adjacent enemy")
 	_touch(_screen_position(screen, target))
 	await process_frame
-	_check(screen._event_label.text.contains("DEFEAT") and screen._event_label.text.contains("6 -> 0"), "Preview warns of defeat and shows cost")
+	_check(screen._state.last_event.contains("DEFEAT") and screen._state.last_event.contains("6 -> 0"), "Preview warns of defeat and shows cost")
 	screen._toggle_shell_mode()
 	_check(not screen._shell_mode and screen._state.shell_power == 6, "Cancel spends nothing")
 	screen._toggle_shell_mode()
@@ -145,7 +145,7 @@ func _run() -> void:
 	await process_frame
 	_touch(_screen_position(screen, target))
 	await process_frame
-	_check(screen._event_label.text.contains("WIN"), "Preview displays victory")
+	_check(screen._state.last_event.contains("WIN"), "Preview displays victory")
 	_touch(_screen_position(screen, target))
 	await create_timer(1.7).timeout
 	_check(screen._state.victory and screen._state.player.power == 20 and screen._state.shell_power == 0, "Touch confirms and resolves charge")

@@ -55,7 +55,7 @@
         { "type": "shake", "strength": 10, "duration": 0.4 },
         { "type": "camera", "actor": "cat", "zoom": 1.5, "duration": 1.0 },
         { "type": "say", "speaker": "cat", "text": { "en": "A badger wearing a pot lid. Terrifying.", "de": "Ein Dachs mit Topfdeckel. Furchterregend." } },
-        { "type": "say", "speaker": "tortoise", "text": { "en": "Deal with his scouts first, and grab whatever power we find along the way.", "de": "Erst seine Späher, und unterwegs sammeln wir jede Kraft ein, die wir finden." } },
+        { "type": "say", "speaker": "tortoise", "text": { "en": "Deal with his scouts first, and gather food along the way to grow stronger.", "de": "Erst seine Späher, und unterwegs sammeln wir Futter, um stärker zu werden." } },
         { "type": "camera_reset", "duration": 0.6 }
       ]
     },

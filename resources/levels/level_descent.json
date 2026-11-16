@@ -71,9 +71,9 @@
       "trigger": { "type": "level_start" },
       "actions": [
         { "type": "camera", "actor": "enemy:Boss", "zoom": 1.4, "duration": 1.4 },
-        { "type": "say", "speaker": "enemy:Boss", "text": { "en": "Ssssixteen coils of power. Come down, little sssnacks.", "de": "Sssechzehn Windungen voller Kraft. Kommt herab, kleine Hapssse." } },
+        { "type": "say", "speaker": "enemy:Boss", "text": { "en": "I'm much too ssstrong for you. Come down, little sssnacks.", "de": "Ich bin viel zu ssstark für euch. Kommt herab, kleine Hapssse." } },
         { "type": "camera", "actor": "cat", "zoom": 1.5, "duration": 1.2 },
-        { "type": "say", "speaker": "cat", "text": { "en": "Sixteen?! We're going to need every trick we have.", "de": "Sechzehn?! Da brauchen wir jeden Trick, den wir kennen." } },
+        { "type": "say", "speaker": "cat", "text": { "en": "That snake looks very strong! We're going to need every trick we have.", "de": "Diese Schlange sieht sehr stark aus! Da brauchen wir jeden Trick, den wir kennen." } },
         { "type": "camera_reset", "duration": 0.6 }
       ]
     },

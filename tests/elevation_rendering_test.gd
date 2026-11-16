@@ -102,9 +102,10 @@ func _run() -> void:
 			_check_edge(screen, high, direction, "%s_%s" % [kind, screen._board_renderer.EDGE_NAMES[direction]])
 			_check(engine._can_traverse(descent, high, low) and engine._can_traverse(descent, low, high), "Descent crossing must match movement rules")
 			screen._preview_path = [low, high]
+			screen._free_preview = PackedVector2Array([screen._tile_center_world(low) / screen.TILE_SIZE, screen._tile_center_world(high) / screen.TILE_SIZE])
 			screen._render_state()
 			_check_edge(screen, high, direction, "%s_%s" % [kind, screen._board_renderer.EDGE_NAMES[direction]])
-			_check(screen._preview_layer.get_cell_source_id(high) != -1, "Path preview must be visible over elevation")
+			_check(screen._free_path_line.get_point_count() == 2 and screen._free_path_line.z_index > screen._elevation_layers[direction].z_index, "Continuous path preview must be visible over elevation")
 
 	_check_atlas_uses_imported_textures(screen)
 	print("Elevation rendering tests: %d failure(s)" % failures)

@@ -1,8 +1,8 @@
 {
   "meta": {
     "id": "chapter_3_rocky_pass",
-    "name": "The Rocky Pass",
-    "backdrop": "#4a4334"
+    "name": "The Woodland Clearings",
+    "backdrop": "#354a2c"
   },
   "cutscenes": {
     "intro": "story_3_mice"
@@ -17,7 +17,7 @@
     {
       "id": "fh0",
       "heightLevel": 0,
-      "assetKey": "foothill",
+      "assetKey": "light_woodland",
       "presentationTag": "ground"
     },
     {
@@ -29,7 +29,7 @@
     {
       "id": "rk1",
       "heightLevel": 1,
-      "assetKey": "rocky",
+      "assetKey": "light_woodland",
       "presentationTag": "ground"
     },
     {
@@ -41,7 +41,7 @@
     {
       "id": "ledge2",
       "heightLevel": 2,
-      "assetKey": "summit",
+      "assetKey": "light_woodland",
       "presentationTag": "ground"
     }
   ],
@@ -55,7 +55,7 @@
       },
       "p": {
         "tile": "fh0",
-        "blocker": "pine"
+        "blocker": "thick_bush"
       },
       "r": {
         "tile": "rk1"
@@ -65,7 +65,7 @@
       },
       "o": {
         "tile": "rk1",
-        "blocker": "boulder"
+        "blocker": "thick_bush"
       },
       "L": {
         "tile": "ledge2"
@@ -83,6 +83,34 @@
       "pffffffffrrrrrrrrrro"
     ]
   },
+  "blockers": [
+    { "assetKey": "pine", "position": { "x": 0, "y": 2 } },
+    { "assetKey": "pine", "position": { "x": 0, "y": 3 } },
+    { "assetKey": "pine", "position": { "x": 19, "y": 1 } },
+    { "assetKey": "thick_bush", "position": { "x": 1, "y": 0 } },
+    { "assetKey": "thick_bush", "position": { "x": 2, "y": 0 } },
+    { "assetKey": "thick_bush", "position": { "x": 8, "y": 1 } },
+    { "assetKey": "thick_bush", "position": { "x": 8, "y": 2 } },
+    { "assetKey": "thick_bush", "position": { "x": 7, "y": 6 } },
+    { "assetKey": "thick_bush", "position": { "x": 7, "y": 7 } },
+    { "assetKey": "thick_bush", "position": { "x": 13, "y": 0 } },
+    { "assetKey": "thick_bush", "position": { "x": 16, "y": 6 } }
+  ],
+  "decorations": [
+    { "assetKey": "woodland_ferns", "position": { "x": 4, "y": 0 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 2, "y": 1 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 3, "y": 3 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 1, "y": 6 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 4, "y": 7 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 5, "y": 8 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 10, "y": 0 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 11, "y": 3 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 14, "y": 5 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 10, "y": 7 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 15, "y": 8 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 18, "y": 2 } },
+    { "assetKey": "woodland_ferns", "position": { "x": 18, "y": 6 } }
+  ],
   "traversableEdges": [
     {
       "from": {
@@ -148,13 +176,21 @@
       "power": 4
     },
     {
-      "type": "ITEM",
+      "type": "LOOT",
       "id": "pass_salad",
+      "assetKey": "tree_stump",
       "position": {
         "x": 2,
         "y": 7
       },
-      "power": 2
+      "powerReward": 1
+    },
+    {
+      "type": "LOOT",
+      "id": "clearing_stone",
+      "assetKey": "cracked_stone",
+      "position": { "x": 3, "y": 7 },
+      "powerReward": 1
     },
     {
       "type": "ENEMY",
@@ -316,8 +352,8 @@
         {
           "type": "message",
           "text": {
-            "en": "Tap the cat to select it. Pounce lowers an enemy's power by the cat's power, but earns no reward.",
-            "de": "Tippe die Katze an, um sie zu wählen. Ein Sprung senkt die Kraft des Gegners um die Kraft der Katze, bringt aber keine Belohnung."
+            "en": "Tap the cat to select it. Pounce weakens tough enemies, but doesn't make the cat stronger. Attack hollow stumps or cracked stones to find food.",
+            "de": "Tippe die Katze an, um sie zu wählen. Ein Sprung schwächt starke Gegner, macht die Katze aber nicht stärker. Greife hohle Stümpfe oder rissige Steine an, um Futter zu finden."
           }
         },
         {

@@ -3,6 +3,7 @@ extends Control
 
 signal back_to_menu_pressed
 signal level_completed(level_id: String)
+signal victory_achieved(level_id: String)
 signal retry_requested(level_id: String)
 
 const GAME_WORLD_FACTORY_SCRIPT := preload("res://scripts/domain/game_world_factory.gd")
@@ -16,11 +17,21 @@ const ITEM_POWER_TEXTURE := preload("res://resources/assets/ui/power/item.png")
 const ENEMY_POWER_TEXTURE := preload("res://resources/assets/ui/power/enemy.png")
 const LEVEL_SCRIPT := preload("res://scripts/domain/level_script.gd")
 const SPEECH_BUBBLE_SCRIPT := preload("res://scripts/ui/speech_bubble.gd")
+const CAMERA := preload("res://scripts/rendering/gameplay_camera.gd")
+const WOODLAND_UI := preload("res://scripts/ui/woodland_ui.gd")
+const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
 
 const TILE_SIZE := 64.0
 const POWER_TEXT_COLOR := Color("f7e8c1")
 const WALK_FRAME_COUNT := 8
 const WALK_FRAME_DURATION := 0.11
+const WALK_DIRECTIONS := [
+	"east", "south-east", "south", "south-west",
+	"west", "north-west", "north", "north-east",
+]
+const FREE_CONFIRM_DISTANCE := 0.35
+const CONTINUOUS_MOVE_SPEED := 2.4
+const JOYSTICK_DEAD_ZONE := 0.18
 const ATTACK_FRAME_DURATION := 0.055
 const POWER_INDICATOR_FADE_DURATION := 0.1
 const POUNCE_FRAME_DURATION := 0.075
@@ -56,6 +67,7 @@ const SPEAKER_NAMES := {
 @onready var _board_root: Node2D = %BoardRoot
 @onready var _board_camera: Camera2D = %BoardCamera
 @onready var _ground_layer: TileMapLayer = %GroundLayer
+@onready var _decoration_layer: TileMapLayer = %DecorationLayer
 @onready var _overlay_layer: TileMapLayer = %OverlayLayer
 @onready var _preview_layer: TileMapLayer = %PreviewLayer
 @onready var _elevation_layers: Array[TileMapLayer] = [
@@ -65,19 +77,39 @@ const SPEAKER_NAMES := {
 @onready var _pounce_layer: TileMapLayer = %PounceLayer
 @onready var _pounce_button: Button = %PounceButton
 @onready var _shell_button: Button = %ShellButton
+@onready var _back_confirmation: ConfirmationDialog = %BackConfirmationDialog
 @onready var _result_panel: PanelContainer = %ResultPanel
 @onready var _result_label: Label = %ResultLabel
 @onready var _result_sub_label: Label = %ResultSubLabel
 @onready var _recenter_button: Button = %RecenterButton
-@onready var _event_label: Label = %EventLabel
 @onready var _continue_button: Button = %ContinueButton
 @onready var _retry_button: Button = %RetryButton
+@onready var _ui_layer: CanvasLayer = $UiLayer
 
 var _state
 var _board_renderer
 var _engine
 var _preview_path: Array = []
 var _preview_target: Vector2i = Vector2i(-1, -1)
+var _free_preview := PackedVector2Array()
+var _free_destination := Vector2.INF
+var _free_path_line: Line2D
+var _free_destination_marker: Polygon2D
+var _free_walk_tween: Tween
+var _free_walking := false
+var _stop_walk_requested := false
+var _continuous_move_origin_state
+var _continuous_move_character_id := -1
+var _continuous_move_blocked := false
+var _mobile_controls_root: Control
+var _joystick_base: Panel
+var _joystick_knob: Panel
+var _mobile_attack_button: Button
+var _mobile_special_button: Button
+var _joystick_vector := Vector2.ZERO
+var _joystick_touch_index := -1
+var _joystick_mouse_active := false
+var _mobile_controls_enabled := false
 var _pounce_mode := false
 var _shell_mode := false
 var _pounce_in_progress := false
@@ -126,6 +158,13 @@ var _script_input_catcher: Control
 var _level_id := ""
 var _backdrop_layer: CanvasLayer
 var _backdrop_rect: ColorRect
+var _overview_running := false
+var _victory_reported := false
+var _audio_pickups := -1
+var _audio_enemies := 0
+var _audio_heroes := 0
+var _result_sting_played := false
+var _camera_look_ahead := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -143,6 +182,17 @@ func _ready() -> void:
 	_create_character_sprite(GS.CharacterId.TORTOISE, "tortoise")
 	_create_character_sprite(GS.CharacterId.CAT, "cat")
 	_create_attack_effect()
+	_free_path_line = Line2D.new()
+	_free_path_line.width = 3.0
+	_free_path_line.default_color = Color("f5e5a6")
+	_free_path_line.z_index = 4
+	_board_root.add_child(_free_path_line)
+	_free_destination_marker = Polygon2D.new()
+	_free_destination_marker.polygon = PackedVector2Array([Vector2(0, -7), Vector2(7, 0), Vector2(0, 7), Vector2(-7, 0)])
+	_free_destination_marker.color = Color("f5e5a6")
+	_free_destination_marker.z_index = 4
+	_free_destination_marker.visible = false
+	_board_root.add_child(_free_destination_marker)
 	_pounce_shadow = Polygon2D.new()
 	_pounce_shadow.polygon = PackedVector2Array([
 		Vector2(-17, 0), Vector2(-14, -4), Vector2(-7, -6), Vector2(7, -6),
@@ -155,10 +205,14 @@ func _ready() -> void:
 	_board_root.add_child(_pounce_shadow)
 	_pounce_button.pressed.connect(_toggle_pounce_mode)
 	_shell_button.pressed.connect(_toggle_shell_mode)
-	_back_button.pressed.connect(func() -> void:
+	_setup_mobile_controls()
+	_back_button.pressed.connect(_show_back_confirmation)
+	_back_confirmation.confirmed.connect(func() -> void:
 		back_to_menu_pressed.emit()
 	)
+	_continue_button.set_meta(&"no_tap_sfx", true)
 	_continue_button.pressed.connect(func() -> void:
+		_play_sfx("level_complete")
 		level_completed.emit(_level_id)
 	)
 	_retry_button.pressed.connect(func() -> void:
@@ -178,11 +232,125 @@ func _ready() -> void:
 	_script_input_catcher.visible = false
 	_script_input_catcher.gui_input.connect(_on_script_input)
 	ui_layer.add_child(_script_input_catcher)
+	resized.connect(_on_view_resized)
+	_on_view_resized()
+
+
+func _setup_mobile_controls() -> void:
+	var app_state := get_node_or_null("/root/AppState")
+	_mobile_controls_enabled = app_state != null and bool(app_state.get("mobile_controls"))
+	_mobile_controls_root = Control.new()
+	_mobile_controls_root.name = "MobileControls"
+	_mobile_controls_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_mobile_controls_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mobile_controls_root.visible = _mobile_controls_enabled
+	_ui_layer.add_child(_mobile_controls_root)
+
+	_joystick_base = Panel.new()
+	_joystick_base.name = "VirtualJoystick"
+	_joystick_base.size = Vector2(156, 156)
+	_joystick_base.mouse_filter = Control.MOUSE_FILTER_STOP
+	_joystick_base.add_theme_stylebox_override("panel", _round_control_style(Color(0.16, 0.15, 0.11, 0.68), 78, Color("d6c18a")))
+	_joystick_base.gui_input.connect(_on_joystick_input)
+	_mobile_controls_root.add_child(_joystick_base)
+
+	_joystick_knob = Panel.new()
+	_joystick_knob.name = "JoystickKnob"
+	_joystick_knob.size = Vector2(58, 58)
+	_joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_joystick_knob.add_theme_stylebox_override("panel", _round_control_style(Color("dfc987"), 29, Color("6b4b2c")))
+	_joystick_base.add_child(_joystick_knob)
+
+	_mobile_attack_button = Button.new()
+	_mobile_attack_button.name = "AttackButton"
+	_mobile_attack_button.text = "Attack"
+	WOODLAND_UI.button(_mobile_attack_button)
+	_mobile_attack_button.custom_minimum_size = Vector2(104, 80)
+	_mobile_attack_button.pressed.connect(_mobile_attack_pressed)
+	_mobile_controls_root.add_child(_mobile_attack_button)
+
+	_mobile_special_button = Button.new()
+	_mobile_special_button.name = "SpecialButton"
+	_mobile_special_button.text = "Special"
+	WOODLAND_UI.button(_mobile_special_button)
+	_mobile_special_button.custom_minimum_size = Vector2(104, 80)
+	_mobile_special_button.pressed.connect(_mobile_special_pressed)
+	_mobile_controls_root.add_child(_mobile_special_button)
+	_layout_mobile_controls()
+
+
+func _round_control_style(color: Color, radius: int, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(radius)
+	return style
+
+
+func _show_back_confirmation() -> void:
+	_back_confirmation.title = LEVEL_SCRIPT.localize({"en": "Leave level?", "de": "Level verlassen?"})
+	_back_confirmation.dialog_text = LEVEL_SCRIPT.localize({
+		"en": "Return to the menu? Progress in this level will be lost.",
+		"de": "Zum Menü zurückkehren? Der Fortschritt dieses Levels geht verloren.",
+	})
+	_back_confirmation.ok_button_text = LEVEL_SCRIPT.localize({"en": "Leave level", "de": "Level verlassen"})
+	_back_confirmation.cancel_button_text = LEVEL_SCRIPT.localize({"en": "Stay", "de": "Bleiben"})
+	_back_confirmation.popup_centered(Vector2i(440, 220))
+
+
+func _layout_mobile_controls() -> void:
+	if _mobile_controls_root == null:
+		return
+	var margins := WOODLAND_UI.safe_margins(size)
+	_joystick_base.position = Vector2(margins.x + 20.0, size.y - margins.w - _joystick_base.size.y - 20.0)
+	_joystick_knob.position = (_joystick_base.size - _joystick_knob.size) * 0.5
+	var buttons_left := size.x - margins.z - 228.0
+	var buttons_top := size.y - margins.w - 100.0
+	_mobile_attack_button.position = Vector2(buttons_left, buttons_top)
+	_mobile_special_button.position = Vector2(buttons_left + 116.0, buttons_top)
+
+
+func _on_joystick_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed and _joystick_touch_index == -1:
+			_joystick_touch_index = event.index
+			_update_joystick(event.position)
+		elif not event.pressed and event.index == _joystick_touch_index:
+			_joystick_touch_index = -1
+			_set_joystick_vector(Vector2.ZERO)
+	elif event is InputEventScreenDrag and event.index == _joystick_touch_index:
+		_update_joystick(event.position)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_joystick_mouse_active = event.pressed
+		if event.pressed:
+			_update_joystick(event.position)
+		else:
+			_set_joystick_vector(Vector2.ZERO)
+	elif event is InputEventMouseMotion and _joystick_mouse_active:
+		_update_joystick(event.position)
+	get_viewport().set_input_as_handled()
+
+
+func _update_joystick(position: Vector2) -> void:
+	var center := _joystick_base.size * 0.5
+	var radius := _joystick_base.size.x * 0.38
+	var offset: Vector2 = (position - center).limit_length(radius)
+	var vector := offset / radius
+	_set_joystick_vector(Vector2.ZERO if vector.length() < JOYSTICK_DEAD_ZONE else vector)
+
+
+func _set_joystick_vector(value: Vector2) -> void:
+	_joystick_vector = value.limit_length(1.0)
+	if _joystick_knob != null:
+		var travel := _joystick_base.size.x * 0.38
+		_joystick_knob.position = (_joystick_base.size - _joystick_knob.size) * 0.5 + _joystick_vector * travel
 
 
 func _process(delta: float) -> void:
 	if _state == null:
 		return
+	_process_continuous_movement(delta)
 	if _speech_bubble.visible:
 		_place_speech_bubble()
 	for character_id in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
@@ -200,9 +368,222 @@ func _process(delta: float) -> void:
 			_play_scheduled_character_animation(character_id)
 
 
+func _process_continuous_movement(delta: float) -> void:
+	var keyboard := _keyboard_movement_vector()
+	var direction := _combine_movement_inputs(keyboard, _joystick_vector)
+	if _state.game_over or _state.victory or _script_running or _overview_running:
+		if _continuous_move_character_id != -1:
+			_finish_continuous_movement()
+		return
+	if _moving_character_id != -1 and _continuous_move_character_id == -1:
+		return
+	if direction.is_zero_approx():
+		if _continuous_move_character_id != -1:
+			_finish_continuous_movement()
+		return
+
+	if _continuous_move_character_id == -1:
+		_continuous_move_character_id = _state.selected_character_id
+		_continuous_move_origin_state = _state.duplicate_state()
+		_moving_character_id = _continuous_move_character_id
+		_character_modes[_moving_character_id] = "selected"
+		_state.last_event = "%s moved." % _selected_character_name()
+		_pounce_mode = false
+		_shell_mode = false
+		_pounce_targets.clear()
+		_preview_path.clear()
+		_preview_target = Vector2i(-1, -1)
+
+	var character_id := _continuous_move_character_id
+	var actor = _state.character_state(character_id)
+	if not actor.alive or not _state.is_character_controllable(character_id):
+		_finish_continuous_movement()
+		return
+	var sprite: AnimatedSprite2D = _character_sprites[character_id]
+	_facing_by_character[character_id] = _direction_name_from_vector(direction)
+	var start: Vector2 = actor.world_position
+	var step := direction * CONTINUOUS_MOVE_SPEED * delta
+	var destination := start + step
+	if not _free_segment_allowed(start, destination, character_id):
+		destination = start
+		if absf(direction.x) > 0.001:
+			var horizontal := start + Vector2(step.x, 0.0)
+			if _free_segment_allowed(start, horizontal, character_id):
+				destination = horizontal
+		if destination == start and absf(direction.y) > 0.001:
+			var vertical := start + Vector2(0.0, step.y)
+			if _free_segment_allowed(start, vertical, character_id):
+				destination = vertical
+	if destination.is_equal_approx(start):
+		_continuous_move_blocked = true
+		sprite.speed_scale = 1.0
+		_set_static_character_animation(
+			sprite, character_id, "idle", _facing_by_character[character_id]
+		)
+		_update_mobile_action_buttons()
+		return
+
+	_continuous_move_blocked = false
+	var previous_cell: Vector2i = actor.position
+	actor.set_world_position(destination)
+	var next_state = _engine._apply_tile_rewards(_state, actor.position, character_id)
+	next_state = _engine._deliver_carried_shell(next_state)
+	_state = next_state
+	sprite.position = destination * TILE_SIZE
+	sprite.speed_scale = CONTINUOUS_MOVE_SPEED * WALK_FRAME_DURATION * WALK_FRAME_COUNT
+	_play_character_animation(character_id, "walk_%s" % _walking_direction_name(direction))
+	_camera_look_ahead = direction * 48.0
+	var camera_target := _camera_position_for(sprite.position + _camera_look_ahead + _camera_manual_offset, _board_camera.zoom.x)
+	_board_camera.position = _board_camera.position.lerp(camera_target, 1.0 - exp(-8.0 * delta))
+	if actor.position != previous_cell:
+		_render_state()
+	else:
+		_update_mobile_action_buttons()
+
+
+func _combine_movement_inputs(keyboard: Vector2, joystick: Vector2) -> Vector2:
+	return (keyboard + joystick).limit_length(1.0)
+
+
+func _keyboard_movement_vector() -> Vector2:
+	return _movement_vector_from_axes(
+		Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP),
+		Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN),
+		Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT),
+		Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)
+	)
+
+
+func _movement_vector_from_axes(up: bool, down: bool, left: bool, right: bool) -> Vector2:
+	return Vector2(float(right) - float(left), float(down) - float(up))
+
+
+func _free_segment_allowed(start: Vector2, destination: Vector2, character_id: int) -> bool:
+	return GAME_ENGINE_SCRIPT.NAV.segment_free(_engine, _state, start, destination, character_id)
+
+
+func _finish_continuous_movement() -> void:
+	if _continuous_move_character_id == -1:
+		return
+	var character_id := _continuous_move_character_id
+	var previous_state = _continuous_move_origin_state
+	var final_position: Vector2i = _state.character_state(character_id).position
+	_continuous_move_character_id = -1
+	_continuous_move_blocked = false
+	_continuous_move_origin_state = null
+	_moving_character_id = -1
+	_camera_look_ahead = Vector2.ZERO
+	_character_sprites[character_id].speed_scale = 1.0
+	_reset_character_animation_timer(character_id)
+	var events_queued := _queue_triggered_events(
+		previous_state, _state, character_id,
+		[previous_state.character_state(character_id).position, final_position]
+	)
+	_render_state()
+	if events_queued:
+		call_deferred("_run_script_queue")
+
+
+func _mobile_attack_pressed() -> void:
+	if _state == null or not _mobile_controls_enabled:
+		return
+	if _moving_character_id != -1 and not _continuous_move_blocked:
+		return
+	if _continuous_move_character_id != -1:
+		_joystick_vector = Vector2.ZERO
+		_finish_continuous_movement()
+	var direction := _facing_direction(_state.selected_character_id)
+	if _direction_target(_state.character_state(_state.selected_character_id).position, direction) in _state.enemies_by_pos:
+		_try_step(direction)
+
+
+func _mobile_special_pressed() -> void:
+	if _state == null or not _mobile_controls_enabled:
+		return
+	if _moving_character_id != -1 and not _continuous_move_blocked:
+		return
+	if _continuous_move_character_id != -1:
+		_joystick_vector = Vector2.ZERO
+		_finish_continuous_movement()
+	var character_id: int = _state.selected_character_id
+	var direction: int = _facing_direction(character_id)
+	var step: Vector2i = _direction_vector(direction)
+	if character_id == GS.CharacterId.CAT:
+		for distance in [1, 2]:
+			var target: Vector2i = _state.cat.position + step * distance
+			if _state.enemies_by_pos.has(target) and _engine.can_pounce(_state, target):
+				await _perform_pounce(target)
+				return
+		for distance in [2, 1]:
+			var target: Vector2i = _state.cat.position + step * distance
+			if _engine.can_pounce(_state, target):
+				await _perform_pounce(target)
+				return
+	else:
+		var target: Vector2i = _state.player.position + step
+		if _engine.can_shell_charge(_state, target):
+			await _handle_shell_target(target)
+			await _handle_shell_target(target)
+
+
+func _facing_direction(character_id: int) -> int:
+	match str(_facing_by_character.get(character_id, "south")):
+		"north":
+			return GAME_ENGINE_SCRIPT.Direction.UP
+		"east":
+			return GAME_ENGINE_SCRIPT.Direction.RIGHT
+		"west":
+			return GAME_ENGINE_SCRIPT.Direction.LEFT
+	return GAME_ENGINE_SCRIPT.Direction.DOWN
+
+
+func _direction_vector(direction: int) -> Vector2i:
+	match direction:
+		GAME_ENGINE_SCRIPT.Direction.UP:
+			return Vector2i.UP
+		GAME_ENGINE_SCRIPT.Direction.DOWN:
+			return Vector2i.DOWN
+		GAME_ENGINE_SCRIPT.Direction.LEFT:
+			return Vector2i.LEFT
+		GAME_ENGINE_SCRIPT.Direction.RIGHT:
+			return Vector2i.RIGHT
+	return Vector2i.ZERO
+
+
+func _update_mobile_action_buttons() -> void:
+	if not is_instance_valid(_mobile_controls_root) or _state == null:
+		return
+	_mobile_controls_root.visible = _mobile_controls_enabled
+	if not _mobile_controls_enabled:
+		return
+	var character_id: int = _state.selected_character_id
+	var actor = _state.character_state(character_id)
+	var front: Vector2i = actor.position + _direction_vector(_facing_direction(character_id))
+	var can_attack: bool = (
+		actor.alive and not _state.game_over and not _state.victory
+		and _state.enemies_by_pos.has(front)
+		and (_moving_character_id == -1 or _continuous_move_blocked)
+	)
+	_mobile_attack_button.visible = can_attack
+	_mobile_attack_button.disabled = not can_attack
+	var can_special: bool = (
+		not _state.game_over and not _state.victory and actor.alive
+		and (
+			(character_id == GS.CharacterId.CAT and _state.cat_pounces_remaining > 0 and _state.pounce_enabled)
+			or (character_id == GS.CharacterId.TORTOISE and _state.shell_power > 0 and _state.shell_charge_enabled)
+		)
+	)
+	_mobile_special_button.visible = can_special
+	_mobile_special_button.disabled = not can_special or (_moving_character_id != -1 and not _continuous_move_blocked)
+	_mobile_special_button.text = "Pounce" if character_id == GS.CharacterId.CAT else "Shell"
+
+
 func configure(payload: Dictionary) -> void:
 	var level_id: String = str(payload.get("level_id", "unknown"))
 	_level_id = level_id
+	_victory_reported = false
+	_result_sting_played = false
+	_audio_pickups = -1
 	var factory = GAME_WORLD_FACTORY_SCRIPT.new()
 	_state = factory.create_world(level_id)
 	_preview_path.clear()
@@ -221,8 +602,66 @@ func configure(payload: Dictionary) -> void:
 	_fired_events.clear()
 	_script_queue.clear()
 	_render_state()
-	if not _level_events.is_empty():
+	if _scripts_enabled and CAMPAIGN.is_campaign_level(level_id) and bool(payload.get("overview", true)):
+		call_deferred("_show_chapter_overview")
+	elif not _level_events.is_empty():
 		call_deferred("_start_level_script")
+
+
+func _on_view_resized() -> void:
+	var margins := WOODLAND_UI.safe_margins(size)
+	var hud: Control = $UiLayer/HudContainer
+	hud.offset_left = margins.x
+	hud.offset_top = margins.y
+	hud.offset_right = -margins.z
+	hud.offset_bottom = margins.y + 144.0
+	for control in [_pounce_button, _shell_button]:
+		control.offset_bottom = -margins.w
+		control.offset_top = -margins.w - 80.0
+	_layout_mobile_controls()
+	if _state != null:
+		if _overview_running:
+			return
+		_update_camera_target(true)
+
+
+func _camera_usable_rect() -> Rect2:
+	var margins := WOODLAND_UI.safe_margins(get_viewport_rect().size)
+	var top := margins.y + 164.0
+	var bottom := get_viewport_rect().size.y - margins.w - 112.0
+	return Rect2(Vector2(margins.x, top), Vector2(
+		maxf(1.0, size.x - margins.x - margins.z), maxf(1.0, bottom - top)
+	))
+
+
+func _camera_position_for(focus: Vector2, zoom: float) -> Vector2:
+	return CAMERA.target(focus, Vector2(_state.width, _state.height) * TILE_SIZE, get_viewport_rect().size, _camera_usable_rect(), zoom)
+
+
+func _show_chapter_overview() -> void:
+	_overview_running = true
+	_script_camera_active = true
+	_script_input_catcher.visible = true
+	if _camera_tween != null:
+		_camera_tween.kill()
+	var normal_zoom := _board_camera.zoom.x
+	var board_size := Vector2(_state.width, _state.height) * TILE_SIZE
+	var zoom := minf(normal_zoom, CAMERA.overview_zoom(board_size, _camera_usable_rect()))
+	_board_camera.zoom = Vector2.ONE * zoom
+	_board_camera.position = _camera_position_for(board_size * 0.5, zoom)
+	_state.last_event = LEVEL_SCRIPT.localize(CAMPAIGN.chapters()[CAMPAIGN.chapter_index(_level_id)]["title"])
+	_render_state()
+	await get_tree().create_timer(0.55).timeout
+	var focus: Vector2 = _state.player.world_position * TILE_SIZE
+	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_board_camera, "zoom", Vector2.ONE * normal_zoom, 0.8)
+	tween.tween_property(_board_camera, "position", _camera_position_for(focus, normal_zoom), 0.8)
+	await tween.finished
+	_overview_running = false
+	_script_camera_active = false
+	_script_input_catcher.visible = false
+	_render_state()
+	await _start_level_script()
 
 
 ## Levels may set meta.backdrop; it fills the space around the board and
@@ -250,6 +689,8 @@ func _apply_backdrop(color_hex: String) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _state == null:
+		return
+	if _overview_running:
 		return
 	if _script_running:
 		# Board input stays locked while a script plays; taps arrive via the input catcher.
@@ -293,8 +734,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mouse_motion_event: InputEventMouseMotion = event
 		var delta: Vector2 = mouse_motion_event.global_position - _camera_drag_last_pos
 		_camera_drag_last_pos = mouse_motion_event.global_position
-		_camera_manual_offset -= delta
-		_update_camera_target(true)
+		_pan_camera(-delta / _board_camera.zoom.x)
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -309,18 +749,24 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if _state.game_over or _state.victory:
 			return
-		if key_event.keycode == KEY_UP or key_event.keycode == KEY_W:
-			_try_step(GAME_ENGINE_SCRIPT.Direction.UP)
-			return
-		if key_event.keycode == KEY_DOWN or key_event.keycode == KEY_S:
-			_try_step(GAME_ENGINE_SCRIPT.Direction.DOWN)
-			return
-		if key_event.keycode == KEY_LEFT or key_event.keycode == KEY_A:
-			_try_step(GAME_ENGINE_SCRIPT.Direction.LEFT)
-			return
-		if key_event.keycode == KEY_RIGHT or key_event.keycode == KEY_D:
-			_try_step(GAME_ENGINE_SCRIPT.Direction.RIGHT)
-			return
+		var direction := _direction_for_key(key_event.keycode)
+		if direction != -1:
+			var target := _direction_target(_state.character_state(_state.selected_character_id).position, direction)
+			if _state.enemies_by_pos.has(target) or _state.lootables_by_pos.has(target):
+				_try_step(direction)
+			get_viewport().set_input_as_handled()
+
+
+func _direction_for_key(keycode: int) -> int:
+	if keycode in [KEY_UP, KEY_W]:
+		return GAME_ENGINE_SCRIPT.Direction.UP
+	if keycode in [KEY_DOWN, KEY_S]:
+		return GAME_ENGINE_SCRIPT.Direction.DOWN
+	if keycode in [KEY_LEFT, KEY_A]:
+		return GAME_ENGINE_SCRIPT.Direction.LEFT
+	if keycode in [KEY_RIGHT, KEY_D]:
+		return GAME_ENGINE_SCRIPT.Direction.RIGHT
+	return -1
 
 
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:
@@ -361,8 +807,7 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 			var zoom_delta := (pinch_distance - _pinch_start_distance) / 320.0
 			_set_camera_zoom(_pinch_start_zoom + zoom_delta)
 		return
-	_camera_manual_offset -= event.relative
-	_update_camera_target(true)
+	_pan_camera(-event.relative / _board_camera.zoom.x)
 
 
 func _touch_distance() -> float:
@@ -373,6 +818,13 @@ func _touch_distance() -> float:
 
 
 func _handle_board_click(screen_pos: Vector2) -> void:
+	if _overview_running:
+		return
+	if _free_walking:
+		_stop_walk_requested = true
+		if _free_walk_tween != null:
+			_free_walk_tween.kill()
+		return
 	if _state.game_over or _state.victory or _moving_character_id != -1 or _script_running:
 		return
 	var local_pos: Vector2 = _ground_layer.get_global_transform_with_canvas().affine_inverse() * screen_pos
@@ -382,14 +834,17 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		return
 
 	var cat_selectable: bool = _state.is_character_controllable(GS.CharacterId.CAT)
-	if cat_selectable and tile_pos == _state.player.position and tile_pos == _state.cat.position:
+	var point := local_pos / TILE_SIZE
+	var tortoise_hit: bool = point.distance_to(_state.player.world_position) <= 0.38
+	var cat_hit: bool = cat_selectable and point.distance_to(_state.cat.world_position) <= 0.38
+	if tortoise_hit and cat_hit:
 		var next_character := GS.CharacterId.CAT if _state.selected_character_id == GS.CharacterId.TORTOISE else GS.CharacterId.TORTOISE
 		_select_character(next_character)
 		return
-	if tile_pos == _state.player.position:
+	if tortoise_hit and _state.selected_character_id != GS.CharacterId.TORTOISE:
 		_select_character(GS.CharacterId.TORTOISE)
 		return
-	if cat_selectable and tile_pos == _state.cat.position:
+	if cat_hit and _state.selected_character_id != GS.CharacterId.CAT:
 		_select_character(GS.CharacterId.CAT)
 		return
 
@@ -408,37 +863,99 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		_render_state()
 		return
 
-	var path: Array = _engine.find_path(_state, actor.position, tile_pos, _state.selected_character_id)
-	if path.size() <= 1:
-		_state.last_event = "No valid path to (%d, %d)." % [tile_pos.x, tile_pos.y]
+	var attacking: bool = _state.enemies_by_pos.has(tile_pos) or _state.lootables_by_pos.has(tile_pos)
+	var path: PackedVector2Array = (
+		_engine.find_attack_path(_state, tile_pos, _state.selected_character_id)
+		if attacking else _engine.find_free_path(_state, point, _state.selected_character_id)
+	)
+	if path.is_empty():
+		_state.last_event = "No safe route there."
 		_preview_path.clear()
 		_preview_target = Vector2i(-1, -1)
 		_shake_camera()
 		_render_state()
 		return
 
-	if _preview_target == tile_pos and not _preview_path.is_empty():
-		var movement_path: Array = _preview_path.duplicate()
-		var attack_positions: Dictionary = {}
-		for path_pos in movement_path:
-			if _state.enemies_by_pos.has(path_pos):
-				attack_positions[path_pos] = true
+	var preview_attacking: bool = _state.enemies_by_pos.has(_preview_target) or _state.lootables_by_pos.has(_preview_target)
+	var confirmed: bool = not _preview_path.is_empty() and attacking == preview_attacking and (
+		_preview_target == tile_pos if attacking else point.distance_to(_free_destination) <= FREE_CONFIRM_DISTANCE
+	)
+	if confirmed:
 		if _camera_manual_offset.length() > 1.0:
 			_camera_manual_offset = Vector2.ZERO
 			_update_camera_target(false)
-		var next_state = _engine.move_along_path(_state, _preview_path, _state.selected_character_id)
 		var actor_id: int = _state.selected_character_id
+		var movement_path := _free_preview
 		_preview_path.clear()
 		_preview_target = Vector2i(-1, -1)
 		_render_state()
-		await _animate_character_path(actor_id, movement_path, attack_positions)
-		await _commit_state(next_state, actor_id, movement_path)
+		await _walk_freely(actor_id, movement_path, tile_pos if attacking else Vector2i(-1, -1))
 		return
 	else:
-		_preview_path = path
+		_free_preview = path
+		_free_destination = point
+		_preview_path = [actor.position]
+		for waypoint in path:
+			_preview_path.append(GAME_ENGINE_SCRIPT.NAV.cell_at(waypoint))
 		_preview_target = tile_pos
-		_state.last_event = "%s path to (%d, %d) previewed. Tap again to confirm." % [_selected_character_name(), tile_pos.x, tile_pos.y]
+		_state.last_event = "Tap again to attack." if attacking else "Tap again to walk to this spot. Tap while walking to stop."
 	_render_state()
+
+
+func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := Vector2i(-1, -1)) -> void:
+	var sprite: AnimatedSprite2D = _character_sprites[character_id]
+	var next_state = _state
+	var origin: Vector2i = _state.character_state(character_id).position
+	_character_animation_serials[character_id] = int(_character_animation_serials.get(character_id, 0)) + 1
+	_character_modes[character_id] = "selected"
+	_moving_character_id = character_id
+	_free_walking = true
+	_stop_walk_requested = false
+	if _camera_tween != null:
+		_camera_tween.kill()
+		_camera_tween = null
+	for index in range(1, path.size()):
+		var start: Vector2 = next_state.character_state(character_id).world_position
+		var destination := path[index]
+		if start.is_equal_approx(destination):
+			continue
+		var direction := _direction_name_from_vector(destination - start)
+		_camera_look_ahead = (destination - start).normalized() * 48.0
+		_facing_by_character[character_id] = direction
+		_play_character_animation(character_id, "walk_%s" % _walking_direction_name(destination - start))
+		_free_walk_tween = create_tween()
+		_free_walk_tween.tween_property(sprite, "position", destination * TILE_SIZE, start.distance_to(destination) * WALK_FRAME_DURATION * WALK_FRAME_COUNT)
+		while _free_walk_tween.is_running():
+			await get_tree().process_frame
+			var camera_target := _camera_position_for(sprite.position + _camera_look_ahead + _camera_manual_offset, _board_camera.zoom.x)
+			_board_camera.position = _board_camera.position.lerp(camera_target, 1.0 - exp(-8.0 * get_process_delta_time()))
+		var reached: Vector2 = sprite.position / TILE_SIZE
+		next_state = _engine.move_free(next_state, reached, character_id)
+		if _stop_walk_requested:
+			break
+	_free_walk_tween = null
+	_free_walking = false
+	_camera_look_ahead = Vector2.ZERO
+	if attack_target != Vector2i(-1, -1) and not _stop_walk_requested:
+		var stand: Vector2i = next_state.character_state(character_id).position
+		var direction := _direction_name_from_positions(stand, attack_target)
+		_facing_by_character[character_id] = direction
+		await _animate_attack(character_id, sprite, direction, attack_target)
+		next_state = _engine.move(next_state, _engine._direction_between(stand, attack_target), character_id)
+	_moving_character_id = -1
+	_reset_character_animation_timer(character_id)
+	await _commit_state(next_state, character_id, [origin, next_state.character_state(character_id).position])
+
+
+func _direction_name_from_vector(delta: Vector2) -> String:
+	if absf(delta.x) > absf(delta.y):
+		return "east" if delta.x > 0.0 else "west"
+	return "south" if delta.y > 0.0 else "north"
+
+
+func _walking_direction_name(delta: Vector2) -> String:
+	var sector := posmod(roundi(delta.angle() / (PI / 4.0)), WALK_DIRECTIONS.size())
+	return WALK_DIRECTIONS[sector]
 
 
 func _select_character(character_id) -> void:
@@ -458,6 +975,7 @@ func _select_character(character_id) -> void:
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
 	_state.last_event = "%s selected." % _selected_character_name()
+	_play_sfx("tile_select")
 	_render_state()
 
 
@@ -515,6 +1033,11 @@ func _handle_shell_target(target: Vector2i) -> void:
 	pulse.tween_property(sprite, "modulate", Color(1.3, 1.35, 0.8), 0.15)
 	pulse.tween_property(sprite, "modulate", Color.WHITE, 0.15)
 	await pulse.finished
+	var center := _tile_center_world(origin)
+	if not sprite.position.is_equal_approx(center):
+		var alignment := create_tween()
+		alignment.tween_property(sprite, "position", center, sprite.position.distance_to(center) / TILE_SIZE * WALK_FRAME_DURATION * WALK_FRAME_COUNT)
+		await alignment.finished
 	await _animate_character_path(GS.CharacterId.TORTOISE, [origin, target], {target: true})
 	await _commit_state(next_state, GS.CharacterId.TORTOISE, [origin, target])
 
@@ -560,6 +1083,13 @@ func _handle_pounce_target(target: Vector2i) -> void:
 			_state.last_event = "Pounce to (%d, %d). Tap again to confirm." % [target.x, target.y]
 		_render_state()
 		return
+
+	await _perform_pounce(target)
+
+
+func _perform_pounce(target: Vector2i) -> void:
+	if not _engine.can_pounce(_state, target):
+		return
 	var origin: Vector2i = _state.cat.position
 	var attacking: bool = _state.enemies_by_pos.has(target)
 	var next_state = _engine.pounce(_state, target)
@@ -574,42 +1104,39 @@ func _handle_pounce_target(target: Vector2i) -> void:
 func _animate_pounce(origin: Vector2i, target: Vector2i, attacking: bool, next_state) -> void:
 	var character_id := GS.CharacterId.CAT
 	var sprite: AnimatedSprite2D = _character_sprites[character_id]
-	var player_label: Label = _character_power_labels[character_id]
-	var enemy_label: Label = _enemy_power_labels.get(target)
 	var direction := _direction_name_from_positions(origin, target)
+	var launch_world: Vector2 = _state.cat.world_position * TILE_SIZE
+	var landing_world: Vector2 = _tile_center_world(_engine.pounce_landing_position(_state, target))
 	_facing_by_character[character_id] = direction
 	_character_animation_serials[character_id] = int(_character_animation_serials.get(character_id, 0)) + 1
 	_character_modes[character_id] = "selected"
 	_moving_character_id = character_id
 	_pounce_in_progress = true
-	if attacking:
-		_fade_power_label(player_label, 0.0)
-		if enemy_label != null:
-			_fade_power_label(enemy_label, 0.0)
 	_render_state()
-	await _pounce_jump(sprite, _tile_center_world(origin), _tile_center_world(target), direction)
+	if attacking and next_state.cat.position != origin:
+		var retreat_world: Vector2 = next_state.cat.world_position * TILE_SIZE
+		_play_character_animation(character_id, "walk_%s" % _walking_direction_name(retreat_world - launch_world))
+		var retreat_tween := create_tween()
+		retreat_tween.tween_property(
+			sprite, "position", retreat_world,
+			launch_world.distance_to(retreat_world) / TILE_SIZE * WALK_FRAME_DURATION * WALK_FRAME_COUNT
+		)
+		await retreat_tween.finished
+		launch_world = retreat_world
+		_facing_by_character[character_id] = direction
+		_play_character_animation(character_id, "pounce_%s" % direction)
+	await _pounce_jump(sprite, launch_world, landing_world, direction)
 	if attacking:
-		_prepare_attack_effect(character_id, sprite, direction)
-		_attack_effect.position = sprite.position
-		_attack_effect.visible = true
-		_play_enemy_flinch(target, direction)
-		var effect_tween := create_tween()
-		effect_tween.tween_property(_attack_effect, "frame", 5, 0.2)
-		await effect_tween.finished
-		_attack_effect.visible = false
-		await _pounce_jump(sprite, _tile_center_world(target), _tile_center_world(origin), direction)
+		await _animate_attack(character_id, sprite, direction, target)
+		await _pounce_jump(sprite, landing_world, launch_world, direction)
 	var previous_state = _state
 	_state = next_state
 	_moving_character_id = -1
 	_pounce_in_progress = false
 	_pounce_shadow.visible = false
 	_reset_character_animation_timer(character_id)
-	var events_queued := _queue_triggered_events(previous_state, next_state, character_id, [origin, target])
+	var events_queued := _queue_triggered_events(previous_state, next_state, character_id, [origin, next_state.cat.position])
 	_render_state()
-	if attacking:
-		_fade_power_label(player_label, 1.0)
-		if is_instance_valid(enemy_label):
-			_fade_power_label(enemy_label, 1.0)
 	if events_queued:
 		await _run_script_queue()
 
@@ -641,30 +1168,29 @@ func _try_step(direction) -> void:
 		_pounce_mode = false
 		_shell_mode = false
 		_pounce_targets.clear()
-	var current_pos: Vector2i = _state.character_state(_state.selected_character_id).position
+	var actor_id: int = _state.selected_character_id
+	var actor = _state.character_state(actor_id)
+	var current_pos: Vector2i = actor.position
 	var next_pos: Vector2i = _direction_target(current_pos, direction)
 	if not _is_in_bounds(next_pos):
 		_state.last_event = "Blocked by map boundary."
 		_shake_camera()
 		_render_state()
 		return
-	_preview_path = [current_pos, next_pos]
-	_preview_target = next_pos
-	var attack_positions: Dictionary = {next_pos: _state.enemies_by_pos.has(next_pos)}
-	_facing_by_character[_state.selected_character_id] = _direction_name(direction)
-	var next_state = _engine.move(_state, direction, _state.selected_character_id)
-	var attacked_enemy: bool = attack_positions[next_pos]
-	var moved: bool = next_state.character_state(_state.selected_character_id).position == next_pos
-	if not moved and not attacked_enemy:
-		_state = next_state
-		_shake_camera()
+	var attacking: bool = _state.enemies_by_pos.has(next_pos) or _state.lootables_by_pos.has(next_pos)
+	var path: PackedVector2Array = (
+		_engine.find_attack_path(_state, next_pos, actor_id) if attacking
+		else _engine.find_free_path(_state, actor.world_position + Vector2(next_pos - current_pos), actor_id)
+	)
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
+	if path.is_empty():
+		_state.last_event = "A wall, cliff or occupied tile blocks the way."
+		_shake_camera()
+		_render_state()
+		return
 	_render_state()
-	if moved or attacked_enemy:
-		var actor_id: int = _state.selected_character_id
-		await _animate_character_path(actor_id, [current_pos, next_pos], attack_positions)
-		await _commit_state(next_state, actor_id, [current_pos, next_pos])
+	await _walk_freely(actor_id, path, next_pos if attacking else Vector2i(-1, -1))
 
 
 func _direction_target(from: Vector2i, direction) -> Vector2i:
@@ -703,8 +1229,10 @@ func _tile_center_world(pos: Vector2i) -> Vector2:
 func _update_camera_target(immediate: bool) -> void:
 	if _script_camera_active:
 		return
-	var base_target: Vector2 = _tile_center_world(_selected_character_pos())
-	var camera_target: Vector2 = base_target + _camera_manual_offset + _camera_shake_offset
+	var base_target: Vector2 = _state.character_state(_state.selected_character_id).world_position * TILE_SIZE
+	if _free_walking:
+		base_target = _character_sprites[_moving_character_id].position
+	var camera_target := _camera_position_for(base_target + _camera_manual_offset + _camera_look_ahead, _board_camera.zoom.x) + _camera_shake_offset
 	if immediate:
 		if _camera_tween != null:
 			_camera_tween.kill()
@@ -717,12 +1245,58 @@ func _update_camera_target(immediate: bool) -> void:
 	_camera_tween.tween_property(_board_camera, "position", camera_target, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
+func _pan_camera(delta: Vector2) -> void:
+	var framing_offset := (_camera_usable_rect().get_center() - get_viewport_rect().size * 0.5) / _board_camera.zoom.x
+	var focus := _board_camera.position - _camera_shake_offset + framing_offset + delta
+	var bounded_focus := _camera_position_for(focus, _board_camera.zoom.x) + framing_offset
+	var actor_focus: Vector2 = _state.character_state(_state.selected_character_id).world_position * TILE_SIZE
+	if _free_walking:
+		actor_focus = _character_sprites[_moving_character_id].position
+	_camera_manual_offset = bounded_focus - actor_focus - _camera_look_ahead
+	_update_camera_target(true)
+
+
 func _set_camera_zoom(value: float) -> void:
+	if _overview_running or _script_camera_active:
+		return
 	var zoom := clampf(value, 1.0, 2.0)
 	_board_camera.zoom = Vector2(zoom, zoom)
+	_update_camera_target(true)
+
+
+## Autoload is looked up by path so the script compiles without the autoload registered.
+func _play_sfx(id: String) -> void:
+	var audio := get_node_or_null("/root/AudioManager")
+	if audio != null:
+		audio.play_sfx(id)
+
+
+func _play_music(id: String) -> void:
+	var audio := get_node_or_null("/root/AudioManager")
+	if audio != null:
+		audio.play_music(id)
+
+
+## Plays pickup/hit SFX and the result sting by diffing against the last render.
+func _play_state_audio(script_pending: bool) -> void:
+	var pickups: int = _state.items_by_pos.size() + _state.shell_items_by_pos.size()
+	var enemies: int = _state.enemies_by_pos.size()
+	var heroes: int = int(_state.player.alive) + int(_state.cat.alive)
+	if _audio_pickups >= 0:
+		if pickups < _audio_pickups:
+			_play_sfx("pickup_resupply")
+		if enemies < _audio_enemies or heroes < _audio_heroes:
+			_play_sfx("enemy_hit")
+	_audio_pickups = pickups
+	_audio_enemies = enemies
+	_audio_heroes = heroes
+	if not script_pending and not _result_sting_played and (_state.victory or _state.game_over):
+		_result_sting_played = true
+		_play_music("defeat" if _state.game_over else "victory")
 
 
 func _shake_camera() -> void:
+	_play_sfx("blocked")
 	if _camera_shake_tween != null:
 		_camera_shake_tween.kill()
 	_camera_shake_tween = create_tween()
@@ -738,7 +1312,14 @@ func _shake_camera() -> void:
 
 
 func _render_state() -> void:
-	var script_pending := _script_running or not _script_queue.is_empty()
+	_free_path_line.clear_points()
+	_free_destination_marker.visible = not _preview_path.is_empty() and not _pounce_mode and not _shell_mode
+	if _free_destination_marker.visible:
+		for point in _free_preview:
+			_free_path_line.add_point(point * TILE_SIZE)
+		if not _free_preview.is_empty():
+			_free_destination_marker.position = _free_preview[_free_preview.size() - 1] * TILE_SIZE
+	var script_pending := _overview_running or _script_running or not _script_queue.is_empty()
 	if script_pending:
 		_result_panel.visible = false
 	elif _state.victory:
@@ -753,32 +1334,37 @@ func _render_state() -> void:
 		_result_panel.visible = false
 	_continue_button.visible = _state.victory and not _state.game_over
 	_retry_button.visible = _state.game_over and not script_pending
-	_event_label.text = _state.last_event
-	_pounce_button.visible = _state.pounce_enabled and _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
+	_pounce_button.visible = not _mobile_controls_enabled and _state.pounce_enabled and _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
 	_pounce_button.disabled = _moving_character_id != -1 or _state.cat_pounces_remaining <= 0 or not _state.cat.alive
 	_pounce_button.text = "Cancel pounce" if _pounce_mode else "Pounce %d/%d" % [_state.cat_pounces_remaining, _state.cat_pounces_max]
-	_shell_button.visible = _state.shell_charge_enabled and _state.selected_character_id == GS.CharacterId.TORTOISE and not _state.game_over and not _state.victory and not script_pending
+	_shell_button.visible = not _mobile_controls_enabled and _state.shell_charge_enabled and _state.selected_character_id == GS.CharacterId.TORTOISE and not _state.game_over and not _state.victory and not script_pending
 	_shell_button.disabled = _moving_character_id != -1 or _state.shell_power <= 0 or not _state.player.alive
 	_shell_button.text = "Cancel charge" if _shell_mode else "Shell Charge: %d" % _state.shell_power
+	_update_mobile_action_buttons()
 
 	_board_renderer.render(
 		_state,
 		_board_root,
 		_ground_layer,
+		_decoration_layer,
 		_overlay_layer,
 		_marker_layer,
 		_elevation_layers,
 		_preview_layer,
 		_pounce_layer,
-		_preview_path,
+		_preview_path if _pounce_mode or _shell_mode else [],
 		_state.selected_character_id,
 		_pounce_targets,
 		_preview_target if _pounce_mode or _shell_mode else Vector2i(-1, -1)
 	)
+	_play_state_audio(script_pending)
 	_update_enemy_visuals()
 	_update_character_visuals()
 	_render_power_labels()
 	_update_camera_target(_camera_drag_active)
+	if _state.victory and not _state.game_over and not script_pending and not _victory_reported:
+		_victory_reported = true
+		victory_achieved.emit(_level_id)
 
 
 func _create_character_sprite(character_id: int, character_name: String) -> void:
@@ -859,19 +1445,6 @@ func _build_character_frames(character_name: String) -> SpriteFrames:
 			false
 		)
 
-		var walk_animation := "walk_%s" % direction
-		frames.add_animation(walk_animation)
-		frames.set_animation_loop(walk_animation, true)
-		frames.set_animation_speed(walk_animation, 1.0 / WALK_FRAME_DURATION)
-		for frame in range(WALK_FRAME_COUNT):
-			frames.add_frame(walk_animation, _load_character_texture(
-				"res://resources/assets/characters/%s/idle/animations/walking/%s/frame_%03d.png" % [
-					character_name,
-					direction,
-					frame,
-				]
-			))
-
 		var attack_animation := "attack_%s" % direction
 		var attack_path := "res://resources/assets/characters/%s/idle/animations/attack/%s" % [
 			character_name,
@@ -891,6 +1464,17 @@ func _build_character_frames(character_name: String) -> SpriteFrames:
 				frames.add_frame(attack_animation, _load_character_texture(path))
 		if character_name == "cat":
 			_add_character_animation(frames, character_name, "pounce_%s" % direction, "pounce", direction, POUNCE_FRAME_DURATION, false)
+	for direction in WALK_DIRECTIONS:
+		var walk_animation := "walk_%s" % direction
+		frames.add_animation(walk_animation)
+		frames.set_animation_loop(walk_animation, true)
+		frames.set_animation_speed(walk_animation, 1.0 / WALK_FRAME_DURATION)
+		for frame in range(WALK_FRAME_COUNT):
+			frames.add_frame(walk_animation, _load_character_texture(
+				"res://resources/assets/characters/%s/idle/animations/walking/%s/frame_%03d.png" % [
+					character_name, direction, frame,
+				]
+			))
 	return frames
 
 
@@ -946,7 +1530,7 @@ func _set_character_visual(character_id: int, tile_pos: Vector2i) -> void:
 	if sprite == null:
 		return
 	if _moving_character_id != character_id:
-		sprite.position = _tile_center_world(tile_pos)
+		sprite.position = _state.character_state(character_id).world_position * TILE_SIZE
 	var direction: String = _facing_by_character.get(character_id, "south")
 	if _moving_character_id == character_id:
 		return
@@ -1136,6 +1720,7 @@ func _animate_character_path(character_id: int, path: Array, attack_positions: D
 			await _animate_attack(character_id, sprite, direction, to_pos)
 			break
 		_play_character_animation(character_id, "walk_%s" % direction)
+		_play_sfx("move_step")
 		var tween := create_tween()
 		tween.tween_property(sprite, "position", _tile_center_world(to_pos), WALK_FRAME_DURATION * WALK_FRAME_COUNT)
 		await tween.finished
@@ -1410,7 +1995,7 @@ func _run_script_queue() -> void:
 	_speech_speaker = ""
 	_camera_manual_offset = Vector2.ZERO
 	await _script_camera_to(
-		_tile_center_world(_selected_character_pos()), _script_saved_zoom.x, 0.45
+		_camera_position_for(_state.character_state(_state.selected_character_id).world_position * TILE_SIZE, _script_saved_zoom.x), _script_saved_zoom.x, 0.45
 	)
 	_script_camera_active = false
 	_script_input_catcher.visible = false
@@ -1426,7 +2011,7 @@ func _run_script_action(action: Dictionary) -> void:
 			await _script_camera(action)
 		"camera_reset":
 			await _script_camera_to(
-				_tile_center_world(_selected_character_pos()),
+				_camera_position_for(_state.character_state(_state.selected_character_id).world_position * TILE_SIZE, _script_saved_zoom.x),
 				_script_saved_zoom.x,
 				float(action.get("duration", 0.6))
 			)
@@ -1602,6 +2187,12 @@ func _script_move(action: Dictionary) -> void:
 		return
 	if character_id != -1:
 		var previous_mode: String = _character_modes.get(character_id, "selected")
+		var sprite: AnimatedSprite2D = _character_sprites[character_id]
+		var center := _tile_center_world(start)
+		if not sprite.position.is_equal_approx(center):
+			var alignment := create_tween()
+			alignment.tween_property(sprite, "position", center, sprite.position.distance_to(center) / TILE_SIZE * WALK_FRAME_DURATION * WALK_FRAME_COUNT)
+			await alignment.finished
 		await _animate_character_path(character_id, path)
 		_state.character_state(character_id).position = path[path.size() - 1]
 		if previous_mode != "selected" and previous_mode != "selected_playing":

@@ -2,6 +2,7 @@ class_name GameEngine
 extends RefCounted
 
 const GS = preload("res://scripts/domain/game_state.gd")
+const NAV = preload("res://scripts/domain/free_navigation.gd")
 
 enum Direction {
 	UP,
@@ -38,14 +39,42 @@ func shell_charge(state, target: Vector2i):
 func can_pounce(state, target: Vector2i) -> bool:
 	var delta: Vector2i = target - state.cat.position
 	var distance := absi(delta.x) + absi(delta.y)
-	return (
+	if not (
 		not state.game_over and not state.victory and state.cat.alive
 		and state.pounce_enabled and state.is_character_controllable(GS.CharacterId.CAT)
 		and state.cat_pounces_remaining > 0
 		and _is_within_bounds(target, state.width, state.height)
 		and (delta.x == 0 or delta.y == 0) and distance >= 1 and distance <= 2
 		and target != state.player.position and not state.is_blocked(target)
+		and not state.lootables_by_pos.has(target)
+	):
+		return false
+	if not state.enemies_by_pos.has(target):
+		return true
+
+	var direction := Vector2i(signi(delta.x), signi(delta.y))
+	var landing := target - direction
+	if landing != state.cat.position:
+		return (
+			_is_within_bounds(landing, state.width, state.height)
+			and landing != state.player.position and not state.is_blocked(landing)
+			and not state.enemies_by_pos.has(landing) and not state.lootables_by_pos.has(landing)
+		)
+
+	var retreat: Vector2i = state.cat.position - direction
+	return (
+		_is_within_bounds(retreat, state.width, state.height)
+		and retreat != state.player.position and not state.is_blocked(retreat)
+		and not state.enemies_by_pos.has(retreat) and not state.lootables_by_pos.has(retreat)
+		and _can_traverse(state, state.cat.position, retreat, GS.CharacterId.CAT)
 	)
+
+
+func pounce_landing_position(state, target: Vector2i) -> Vector2i:
+	if not state.enemies_by_pos.has(target):
+		return target
+	var delta: Vector2i = target - state.cat.position
+	return target - Vector2i(signi(delta.x), signi(delta.y))
 
 
 func pounce(state, target: Vector2i):
@@ -56,6 +85,12 @@ func pounce(state, target: Vector2i):
 	var next = state.duplicate_state()
 	next.cat_pounces_remaining -= 1
 	if next.enemies_by_pos.has(target):
+		var delta: Vector2i = target - next.cat.position
+		var direction := Vector2i(signi(delta.x), signi(delta.y))
+		var landing := target - direction
+		if landing == next.cat.position:
+			next.cat.position = next.cat.position - direction
+			next = _apply_tile_rewards(next, next.cat.position, GS.CharacterId.CAT)
 		var enemy = next.enemies_by_pos[target]
 		enemy.power = maxi(0, enemy.power - next.cat.power)
 		if enemy.power == 0:
@@ -68,7 +103,7 @@ func pounce(state, target: Vector2i):
 		next.cat.position = target
 		next.last_event = "Cat pounced to (%d, %d)." % [target.x, target.y]
 		next = _apply_tile_rewards(next, target, GS.CharacterId.CAT)
-		next = _deliver_carried_shell(next)
+	next = _deliver_carried_shell(next)
 	return next
 
 
@@ -102,12 +137,16 @@ func move(state, direction: Direction, character_id = GS.CharacterId.TORTOISE):
 
 	if state.enemies_by_pos.has(to):
 		var attack_state = state.duplicate_state()
+		attack_state.character_state(character_id).position = from
 		var enemy = attack_state.enemies_by_pos[to]
 		attack_state.last_event = "%s attacked %s." % [_character_name(character_id), enemy.id]
 		attack_state = _apply_combat(attack_state, to, character_id)
 		if not attack_state.player.alive or not attack_state.cat.alive:
 			attack_state.game_over = true
 		return attack_state
+
+	if state.lootables_by_pos.has(to):
+		return attack_loot(state, to, character_id)
 
 	var moved_state = state.with_character_state(
 		character_id,
@@ -148,6 +187,8 @@ func find_path(state, start: Vector2i, target: Vector2i, character_id = GS.Chara
 				continue
 			if not _can_traverse(state, current, next, character_id):
 				continue
+			if next != target and (state.enemies_by_pos.has(next) or state.lootables_by_pos.has(next)):
+				continue
 			visited[next] = true
 			parent[next] = current
 			queue.push_back(next)
@@ -184,7 +225,8 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 
 	if next.items_by_pos.has(position):
 		var item = next.items_by_pos[position]
-		actor = GS.PlayerState.new(actor.position, actor.power + item.power_bonus, actor.alive)
+		actor = actor.copy_state()
+		actor.power += item.power_bonus
 		next = next.with_character_state(character_id, actor)
 		next.items_by_pos.erase(position)
 		event_parts.append("Picked item (+%d power)." % item.power_bonus)
@@ -202,16 +244,70 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 		next.shell_items_by_pos.erase(position)
 		event_parts.append("Cat carries a shell charm (+%d)." % carried.power_bonus)
 
-	if next.lootables_by_pos.has(position):
-		var loot = next.lootables_by_pos[position]
-		actor = GS.PlayerState.new(actor.position, actor.power + loot.power_reward, actor.alive)
-		next = next.with_character_state(character_id, actor)
-		next.lootables_by_pos.erase(position)
-		event_parts.append("Looted (+%d power)." % loot.power_reward)
-
 	if not event_parts.is_empty():
 		next.last_event = "%s %s" % [next.last_event, " ".join(event_parts)]
 	return next
+
+
+func attack_loot(state, target: Vector2i, character_id = GS.CharacterId.TORTOISE):
+	var actor = state.character_state(character_id)
+	var delta: Vector2i = target - actor.position
+	if (
+		state.game_over or state.victory or not actor.alive
+		or not state.is_character_controllable(character_id)
+		or absi(delta.x) + absi(delta.y) != 1
+		or not state.lootables_by_pos.has(target)
+		or not _can_traverse(state, actor.position, target, character_id)
+	):
+		var invalid = state.duplicate_state()
+		invalid.last_event = "Cannot attack that loot container."
+		return invalid
+	var next = state.duplicate_state()
+	var loot = next.lootables_by_pos[target]
+	var attacker = next.character_state(character_id)
+	attacker.position = actor.position
+	attacker.power += loot.power_reward
+	next.lootables_by_pos.erase(target)
+	next.last_event = "%s broke open %s and found food." % [_character_name(character_id), loot.id]
+	return next
+
+
+func find_free_path(state, target: Vector2, character_id = GS.CharacterId.TORTOISE) -> PackedVector2Array:
+	if state.game_over or state.victory or not state.is_character_controllable(character_id) or not state.character_state(character_id).alive:
+		return PackedVector2Array()
+	return NAV.find_path(self, state, state.character_state(character_id).world_position, target, character_id)
+
+
+func find_attack_path(state, target: Vector2i, character_id = GS.CharacterId.TORTOISE) -> PackedVector2Array:
+	if state.game_over or state.victory or not state.is_character_controllable(character_id) or not state.character_state(character_id).alive:
+		return PackedVector2Array()
+	if not state.enemies_by_pos.has(target) and not state.lootables_by_pos.has(target):
+		return PackedVector2Array()
+	return NAV.attack_path(self, state, target, character_id)
+
+
+func move_free(state, target: Vector2, character_id = GS.CharacterId.TORTOISE):
+	var actor = state.character_state(character_id)
+	if (
+		state.game_over or state.victory or not actor.alive or not state.is_character_controllable(character_id)
+		or not NAV.segment_free(self, state, actor.world_position, target, character_id)
+	):
+		var invalid = state.duplicate_state()
+		invalid.last_event = "A wall, cliff or occupied tile blocks the way."
+		return invalid
+	var next = state.duplicate_state()
+	next.last_event = "%s moved." % _character_name(character_id)
+	var start: Vector2 = actor.world_position
+	var steps := maxi(1, ceili(start.distance_to(target) / NAV.SAMPLE_SPACING))
+	var previous := Vector2i(-1, -1)
+	for index in range(steps + 1):
+		var point := start.lerp(target, float(index) / steps)
+		next.character_state(character_id).set_world_position(point)
+		var cell := NAV.cell_at(point)
+		if cell != previous:
+			next = _apply_tile_rewards(next, cell, character_id)
+			previous = cell
+	return _deliver_carried_shell(next)
 
 
 func _apply_combat(state, position: Vector2i, character_id, attack_power: int = -1):

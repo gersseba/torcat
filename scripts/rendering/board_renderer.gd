@@ -29,6 +29,7 @@ var _token_by_asset_key := {
 	"rubble": "rubble",
 	"resupply": "resupply",
 	"resupply_tile": "resupply",
+	"shallow_water": "shallow_water",
 }
 var _ground_cycle_tokens: Array[String] = ["ground_a", "ground_b", "ground_c", "ground_d"]
 ## Biome asset keys cycle through their variants in small patches so the
@@ -39,6 +40,10 @@ const BIOME_TOKENS := {
 	"rocky": ["rocky_a", "rocky_b", "rocky_c"],
 	"alpine": ["alpine_a", "alpine_b", "alpine_c"],
 	"summit": ["summit_a", "summit_b", "summit_c"],
+	"forest_moss": ["forest_moss"],
+	"light_woodland": ["light_woodland"],
+	"mountain_meadow": ["mountain_meadow"],
+	"hilltop": ["hilltop"],
 }
 const TOKEN_FILES := {
 	"ground_a": "res://resources/assets/tiles/tile_0.png",
@@ -71,6 +76,23 @@ const TOKEN_FILES := {
 	"blocker_bush": "res://resources/assets/blockers/bush_dense.png",
 	"blocker_boulder": "res://resources/assets/blockers/boulder.png",
 	"blocker_pine": "res://resources/assets/blockers/pine.png",
+	"blocker_stone_wall": "res://resources/assets/blockers/stone_wall.png",
+	"blocker_thick_bush": "res://resources/assets/blockers/thick_bush.png",
+	"blocker_fence": "res://resources/assets/blockers/wooden_fence.png",
+	"shallow_water": "res://resources/assets/tiles/shallow_water.png",
+	"forest_moss": "res://resources/assets/tiles/forest_moss.png",
+	"light_woodland": "res://resources/assets/tiles/light_woodland.png",
+	"mountain_meadow": "res://resources/assets/tiles/mountain_meadow.png",
+	"hilltop": "res://resources/assets/tiles/hilltop.png",
+	"decor_meadow_flowers": "res://resources/assets/decorations/meadow_flowers.png",
+	"decor_forest_litter": "res://resources/assets/decorations/forest_litter.png",
+	"decor_woodland_ferns": "res://resources/assets/decorations/woodland_ferns.png",
+	"decor_mountain_flowers": "res://resources/assets/decorations/mountain_flowers.png",
+	"decor_scree": "res://resources/assets/decorations/scree.png",
+	"decor_dry_bush": "res://resources/assets/decorations/dry_bush.png",
+	"loot_tree_stump": "res://resources/assets/items/tree_stump.png",
+	"loot_barrel": "res://resources/assets/items/barrel.png",
+	"loot_cracked_stone": "res://resources/assets/items/cracked_stone.png",
 	"item": "res://resources/assets/items/salad.png",
 	"loot": "res://resources/assets/items/berries.png",
 	"tortoise": "res://resources/assets/characters/tortoise_idle_south.png",
@@ -82,6 +104,15 @@ var _blocker_token_by_asset_key := {
 	"bush_dense": "blocker_bush",
 	"boulder": "blocker_boulder",
 	"pine": "blocker_pine",
+	"stone_wall": "blocker_stone_wall",
+	"thick_bush": "blocker_thick_bush",
+	"wooden_fence": "blocker_fence",
+}
+const LOOT_TOKENS := {
+	"berries": "loot",
+	"tree_stump": "loot_tree_stump",
+	"barrel": "loot_barrel",
+	"cracked_stone": "loot_cracked_stone",
 }
 
 
@@ -89,6 +120,7 @@ func render(
 	state,
 	board_root: Node2D,
 	ground_layer: TileMapLayer,
+	decoration_layer: TileMapLayer,
 	overlay_layer: TileMapLayer,
 	marker_layer: TileMapLayer,
 	elevation_layers: Array[TileMapLayer],
@@ -102,6 +134,7 @@ func render(
 	if _tile_set == null:
 		_build_tile_set()
 		ground_layer.tile_set = _tile_set
+		decoration_layer.tile_set = _tile_set
 		overlay_layer.tile_set = _tile_set
 		marker_layer.tile_set = _tile_set
 		preview_layer.tile_set = _tile_set
@@ -110,6 +143,7 @@ func render(
 			layer.tile_set = _tile_set
 
 	ground_layer.clear()
+	decoration_layer.clear()
 	overlay_layer.clear()
 	marker_layer.clear()
 	preview_layer.clear()
@@ -123,6 +157,8 @@ func render(
 			var cell = state.tile_cells.get(pos)
 			var ground_token: String = _ground_token_for_cell(cell, pos)
 			_set_role_cell(ground_layer, pos, ground_token)
+			if state.decorations_by_pos.has(pos):
+				_set_role_cell(decoration_layer, pos, "decor_%s" % state.decorations_by_pos[pos])
 
 			for i in range(EDGE_DIRECTIONS.size()):
 				var edge_token := _elevation_token_for_edge(state, pos, i)
@@ -142,7 +178,8 @@ func render(
 	for item_pos in state.shell_items_by_pos.keys():
 		_set_role_cell(marker_layer, item_pos, "shell_item")
 	for loot_pos in state.lootables_by_pos.keys():
-		_set_role_cell(marker_layer, loot_pos, "loot")
+		var loot = state.lootables_by_pos[loot_pos]
+		_set_role_cell(marker_layer, loot_pos, LOOT_TOKENS[loot.asset_key])
 	for resupply_pos in state.resupply_points.keys():
 		_set_role_cell(marker_layer, resupply_pos, "resupply_marker")
 
@@ -175,6 +212,9 @@ func _build_tile_set() -> void:
 	for biome_tokens in BIOME_TOKENS.values():
 		for biome_token in biome_tokens:
 			tokens.append(biome_token)
+	for token in TOKEN_FILES:
+		if not tokens.has(token):
+			tokens.append(token)
 	var rows: int = ceili(float(tokens.size()) / ATLAS_COLUMNS)
 	var atlas_size := Vector2i(TILE_SIZE.x * ATLAS_COLUMNS, TILE_SIZE.y * rows)
 	var image := Image.create(atlas_size.x, atlas_size.y, false, Image.FORMAT_RGBA8)

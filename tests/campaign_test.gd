@@ -44,6 +44,7 @@ func _run() -> void:
 	var app_state: Node = root.get_node("AppState")
 	var saved_path: String = app_state.progress_path
 	var saved_unlocked: int = app_state.unlocked_chapters
+	var saved_completed: Array[String] = app_state.completed_levels.duplicate()
 	app_state.progress_path = TEST_PROGRESS_PATH
 	_remove_test_progress()
 
@@ -60,6 +61,7 @@ func _run() -> void:
 	_remove_test_progress()
 	app_state.progress_path = saved_path
 	app_state.unlocked_chapters = saved_unlocked
+	app_state.completed_levels = saved_completed
 	if failures == 0:
 		print("campaign_test: all checks passed")
 	quit(failures)
@@ -230,7 +232,10 @@ func _test_level_select(app_state: Node) -> void:
 		var selected: Array = []
 		screen.level_selected.connect(func(level_id: String) -> void: selected.append(level_id))
 		buttons[1].pressed.emit()
-		_check(selected == ["chapter_2_foothills"], "Chapter buttons emit their level id")
+		_check(selected.is_empty() and screen._start_button.disabled, "Choosing a chapter moves the tortoise without starting the level")
+		await create_timer(1.0).timeout
+		screen._start_button.pressed.emit()
+		_check(selected == ["chapter_2_foothills"], "Start emits the selected chapter after the tortoise arrives")
 	screen.queue_free()
 	app_state.unlocked_chapters = 1
 	await process_frame
@@ -245,7 +250,14 @@ func _test_campaign_flow(app_state: Node) -> void:
 	root.add_child(app)
 	await process_frame
 	var router: Node = root.get_node("AppRouter")
-	app_root_script.complete_level("chapter_1_meadow")
+	router.navigate("gameplay", {"level_id": "chapter_1_meadow", "scripts": false})
+	await process_frame
+	var completed := _current_screen(app) as GameplayScreen
+	completed._state.victory = true
+	completed._render_state()
+	app_state.load_progress()
+	_check(app_state.is_level_complete("chapter_1_meadow") and router.current_route == "gameplay", "Victory persists completion before Continue without changing screens")
+	completed._continue_button.pressed.emit()
 	await process_frame
 	await process_frame
 	_check(app_state.unlocked_chapters == 2, "Winning chapter 1 unlocks chapter 2")
@@ -257,6 +269,7 @@ func _test_campaign_flow(app_state: Node) -> void:
 	var gameplay := _current_screen(app) as GameplayScreen
 	_check(router.current_route == "gameplay" and gameplay != null and gameplay._level_id == "chapter_2_foothills", "The story continues into chapter 2")
 	if gameplay != null:
+		await create_timer(1.5).timeout
 		_check(not gameplay._character_sprites[GS.CharacterId.CAT].visible, "The cat is hidden before it joins the story")
 		_check(gameplay._backdrop_rect != null and gameplay._backdrop_rect.color == Color.html(str(LS.level_meta("chapter_2_foothills")["backdrop"])), "Chapters tint the backdrop")
 		gameplay._state.game_over = true
@@ -270,6 +283,7 @@ func _test_campaign_flow(app_state: Node) -> void:
 		await process_frame
 		var retried := _current_screen(app) as GameplayScreen
 		_check(router.current_route == "gameplay" and retried != null and retried != gameplay and retried._level_id == "chapter_2_foothills", "Retry restarts the same chapter without its intro")
+		_check(retried != null and not retried._overview_running, "Retry skips the chapter overview")
 
 	app_root_script.complete_level("chapter_5_summit")
 	await process_frame
@@ -280,6 +294,19 @@ func _test_campaign_flow(app_state: Node) -> void:
 		cutscene.player().skip()
 	await create_timer(0.8).timeout
 	_check(router.current_route == "level_select", "The finale returns to level select, got %s" % router.current_route)
+	_check(app_state.is_level_complete("chapter_5_summit"), "The finale also records the final level as completed")
+	var selection := _current_screen(app)
+	selection._story_map.select_destination(0)
+	await create_timer(0.3).timeout
+	selection._start_button.pressed.emit()
+	await process_frame
+	await process_frame
+	cutscene = _current_screen(app) as CutsceneScreen
+	_check(router.current_route == "cutscene" and cutscene != null, "Watching a map star opens a standalone cutscene")
+	if cutscene != null:
+		cutscene.player().skip()
+	await create_timer(0.8).timeout
+	_check(router.current_route == "level_select", "A replayed story star returns to the map instead of starting a level")
 	app.queue_free()
 	await process_frame
 
@@ -372,7 +399,7 @@ func _greedy_closure(state, fired: Dictionary) -> Array:
 		progressed = false
 		var parents := _reach(state, GS.CharacterId.TORTOISE)
 		for target in _pickups(state, true):
-			if parents.has(target):
+			if _pickup_reachable(state, parents, target, GS.CharacterId.TORTOISE):
 				var result := _walk(state, fired, GS.CharacterId.TORTOISE, parents, target)
 				state = result[0]
 				fired = result[1]
@@ -400,7 +427,7 @@ func _branch_options(state, fired: Dictionary) -> Array:
 	var tortoise_parents := _reach(state, GS.CharacterId.TORTOISE)
 	if not _greedy:
 		for target in _pickups(state, true):
-			if tortoise_parents.has(target):
+			if _pickup_reachable(state, tortoise_parents, target, GS.CharacterId.TORTOISE):
 				options.append(_walk(state, fired, GS.CharacterId.TORTOISE, tortoise_parents, target))
 		for enemy_pos in state.enemies_by_pos:
 			if state.enemies_by_pos[enemy_pos].power <= state.player.power:
@@ -430,7 +457,7 @@ func _branch_options(state, fired: Dictionary) -> Array:
 				options.append(_walk(state, fired, GS.CharacterId.CAT, cat_parents, neighbor))
 				break
 	for target in _pickups(state, state.cat_can_carry):
-		if cat_parents.has(target) and target != state.cat.position:
+		if _pickup_reachable(state, cat_parents, target, GS.CharacterId.CAT) and target != state.cat.position:
 			options.append(_walk(state, fired, GS.CharacterId.CAT, cat_parents, target))
 	for enemy_pos in state.enemies_by_pos:
 		var enemy = state.enemies_by_pos[enemy_pos]
@@ -465,6 +492,12 @@ func _pickups(state, include_shells: bool) -> Array:
 	return result
 
 
+func _pickup_reachable(state, parents: Dictionary, target: Vector2i, character_id) -> bool:
+	if state.lootables_by_pos.has(target):
+		return _stand_tile(state, parents, target, character_id) != Vector2i(-1, -1)
+	return parents.has(target)
+
+
 func _line_tiles(target: Vector2i) -> Array:
 	var result: Array = []
 	for distance in [1, 2]:
@@ -482,7 +515,7 @@ func _reach(state, character_id) -> Dictionary:
 		for next in _engine._cardinal_neighbors(current):
 			if parents.has(next) or not _engine._is_within_bounds(next, state.width, state.height):
 				continue
-			if state.enemies_by_pos.has(next) or not _engine._can_traverse(state, current, next, character_id):
+			if state.enemies_by_pos.has(next) or state.lootables_by_pos.has(next) or not _engine._can_traverse(state, current, next, character_id):
 				continue
 			parents[next] = current
 			queue.push_back(next)
@@ -504,6 +537,11 @@ func _path_to(parents: Dictionary, target: Vector2i) -> Array:
 
 
 func _walk(state, fired: Dictionary, character_id, parents: Dictionary, target: Vector2i) -> Array:
+	if state.lootables_by_pos.has(target):
+		var stand := _stand_tile(state, parents, target, character_id)
+		if stand == Vector2i(-1, -1):
+			return [state, fired]
+		return _attack(state, fired, character_id, parents, stand, target)
 	var next = _engine.move_along_path(state, _path_to(parents, target), character_id)
 	return _transition(state, next, fired, {character_id: next.character_state(character_id).position})
 

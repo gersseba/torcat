@@ -1,8 +1,8 @@
 {
   "meta": {
     "id": "chapter_4_cliffs",
-    "name": "The Cliffs",
-    "backdrop": "#3d3b45"
+    "name": "The Alpine Pasture",
+    "backdrop": "#426039"
   },
   "cutscenes": {
     "intro": "story_4_vow"
@@ -17,7 +17,7 @@
     {
       "id": "rk0",
       "heightLevel": 0,
-      "assetKey": "rocky",
+      "assetKey": "mountain_meadow",
       "presentationTag": "ground"
     },
     {
@@ -29,7 +29,7 @@
     {
       "id": "rk1",
       "heightLevel": 1,
-      "assetKey": "rocky",
+      "assetKey": "mountain_meadow",
       "presentationTag": "ground"
     },
     {
@@ -41,13 +41,13 @@
     {
       "id": "al2",
       "heightLevel": 2,
-      "assetKey": "alpine",
+      "assetKey": "mountain_meadow",
       "presentationTag": "ground"
     },
     {
       "id": "al3",
       "heightLevel": 3,
-      "assetKey": "alpine",
+      "assetKey": "mountain_meadow",
       "presentationTag": "ground"
     }
   ],
@@ -61,7 +61,7 @@
       },
       "o": {
         "tile": "rk0",
-        "blocker": "boulder"
+        "blocker": "wooden_fence"
       },
       "k": {
         "tile": "rk1"
@@ -71,21 +71,21 @@
       },
       "O": {
         "tile": "rk1",
-        "blocker": "boulder"
+        "blocker": "wooden_fence"
       },
       "a": {
         "tile": "al2"
       },
       "P": {
         "tile": "al2",
-        "blocker": "pine"
+        "blocker": "wooden_fence"
       },
       "h": {
         "tile": "al3"
       },
       "Q": {
         "tile": "al3",
-        "blocker": "pine"
+        "blocker": "wooden_fence"
       }
     },
     "rows": [
@@ -100,6 +100,22 @@
       "rrrrrrrrrrOkkkkkkkkk"
     ]
   },
+  "decorations": [
+    { "assetKey": "mountain_flowers", "position": { "x": 1, "y": 0 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 5, "y": 0 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 7, "y": 1 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 3, "y": 2 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 6, "y": 3 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 1, "y": 4 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 8, "y": 5 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 4, "y": 8 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 13, "y": 0 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 18, "y": 1 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 12, "y": 2 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 17, "y": 3 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 12, "y": 5 } },
+    { "assetKey": "mountain_flowers", "position": { "x": 18, "y": 8 } }
+  ],
   "traversableEdges": [
     {
       "from": {
@@ -114,6 +130,13 @@
     }
   ],
   "entities": [
+    {
+      "type": "LOOT",
+      "id": "pasture_barrel",
+      "assetKey": "barrel",
+      "position": { "x": 2, "y": 7 },
+      "powerReward": 1
+    },
     {
       "type": "ENEMY",
       "id": "cliff_hedgehog",
@@ -221,7 +244,7 @@
       "x": 1,
       "y": 7
     },
-    "catPower": 4,
+    "catPower": 3,
     "catPounces": 2,
     "catStatus": "party"
   },
@@ -301,8 +324,8 @@
           "type": "say",
           "speaker": "enemy:stair_snake",
           "text": {
-            "en": "Twenty-eight power, little ssshell. Bring your whole family.",
-            "de": "Achtundzwanzig Kraft, kleiner Panzer. Bring ruhig deine ganze Familie mit."
+            "en": "Far too ssstrong for you, little ssshell. Bring your whole family.",
+            "de": "Viel zu ssstark für dich, kleiner Panzer. Bring ruhig deine ganze Familie mit."
           }
         },
         {

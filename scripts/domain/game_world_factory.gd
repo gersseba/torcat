@@ -185,15 +185,32 @@ func _create_world_from_definition(source_definition: Dictionary):
 					str(entity.get("id", "shell_item")), position, shell_bonus
 				)
 			"LOOT":
+				var loot_asset := str(entity.get("assetKey", "berries"))
+				if loot_asset not in ["berries", "tree_stump", "barrel", "cracked_stone"]:
+					push_error("Unknown loot asset key: %s" % loot_asset)
+					return _create_fallback_state("Invalid loot asset.")
 				state.lootables_by_pos[position] = GS.LootableObject.new(
 					str(entity.get("id", "loot")),
 					position,
-					int(entity.get("powerReward", 0))
+					int(entity.get("powerReward", 0)),
+					loot_asset
 				)
 			"RESUPPLY":
 				state.resupply_points[position] = true
 			_:
 				pass
+
+	for decoration_variant in definition.get("decorations", []):
+		var decoration: Dictionary = decoration_variant
+		var asset_key := str(decoration.get("assetKey", ""))
+		var position := _read_pos(decoration.get("position", {}))
+		if asset_key not in ["meadow_flowers", "forest_litter", "woodland_ferns", "mountain_flowers", "scree", "dry_bush"]:
+			push_error("Unknown decoration asset key: %s" % asset_key)
+			return _create_fallback_state("Invalid decoration asset.")
+		if not decoration.has("position") or not _is_within_bounds(position, width, height) or state.decorations_by_pos.has(position):
+			push_error("Invalid or duplicate decoration position: %s" % position)
+			return _create_fallback_state("Invalid decoration position.")
+		state.decorations_by_pos[position] = asset_key
 
 	return _normalize_state(state)
 
