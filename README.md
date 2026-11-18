@@ -10,6 +10,7 @@ Open this directory in Godot 4 and run the project to launch the main scene.
 - Tap a reachable spot once to preview a route.
 - Tap the same spot again to confirm movement. Characters walk diagonally and
   stop at the exact point, not at a tile center.
+- The cat and tortoise cannot enter or occupy the same tile.
 - Tap the board during a walk to stop at the character's current position.
 - Tap an enemy or loot container twice to approach the nearest reachable
   cardinally adjacent tile center and attack from there.
@@ -83,7 +84,8 @@ and return afterward if their owners remain on the board.
 Cliffside Descent uses rocky borders to mark height changes. Ramps and stairs
 mark crossings where characters can move between heights; other cliff edges
 cannot be crossed. Elevation stays on the flat board, so taps and movement use
-the same grid as other levels.
+the same grid as other levels. The cat hops over each traversable height edge,
+and the larger ledge marks make ramps and stairs easier to read on mobile.
 
 ## Cutscenes and level scripts
 
@@ -158,6 +160,11 @@ shot shows about a third of the panorama's width.
 Tests and tools can pass `"scripts": false` in the gameplay payload to load a
 level without its events.
 
+Gameplay transitions show a woodland loading screen while the level is prepared.
+The tortoise advances through setup milestones; character animation frames,
+enemy animation sets, and the board atlas are shared between levels so they are
+not rebuilt on every retry or level transition.
+
 Run the gameplay input and animation regression test with:
 
 ```text
@@ -174,6 +181,9 @@ godot --headless --path . --script res://tests/enemy_reactions_test.gd
 godot --headless --path . --script res://tests/level_script_test.gd
 godot --headless --path . --script res://tests/campaign_test.gd
 godot --headless --path . --script res://tests/story_map_camera_test.gd
+godot --headless --path . --script res://tests/settings_localization_test.gd
+godot --headless --path . --script res://tests/practice_routes_test.gd
+godot --headless --path . --script res://tests/gameplay_loading_test.gd
 ```
 
 ## Story campaign
@@ -201,11 +211,65 @@ Tap an unlocked destination to walk there, then choose **Start** for a level or
 **Watch** for a standalone cutscene replay. Start is unavailable during travel;
 locked destinations cannot be selected or started. Replays return to the map,
 and the final story star unlocks only after winning the summit. The **Practice**
-tab keeps the standalone and random levels separate from campaign progression.
+tab keeps standalone and random levels separate from campaign progression. It
+also includes three route-design experiments: **Bramblefork Trail**, with a
+northern supply detour and southern power-building route before a strong eastern
+guard; **The Old Watchtower Loop**, with connected switchbacks and a stronger
+final guard; and **The Hollow Crown**, with a central crossroads, four
+asymmetric loops, mixed-strength room encounters, and a crown room that is
+dangerous early. These are separate practice maps; the five story chapters are
+unchanged.
+
+### Room-based procedural generation direction
+
+The current random levels place obstacles and encounters on a connected grid.
+The next generation step should build a small graph of authored room roles,
+then embed that graph in the map:
+
+1. Start with a camp or crossroads and three branches of unequal length. Join
+   at least two branches back together, then add a short loop or side chamber.
+   The route to the goal should not read as a single horizontal sequence.
+2. Choose room roles before placing enemies: forage room, mixed-threat
+   encounter, shell-charm cache, guarded shortcut, overstrength challenge, and
+   final chamber. Vary room size and exits so the same graph does not produce
+   identical corridors.
+3. Compose encounters as formations rather than a sorted list. For example, a
+   modest foe may share a room with a much stronger guard, or an exposed cache
+   may tempt the party past a threat they cannot yet beat. Put supplies in
+   different branches so players choose which power source or ability to pursue.
+4. Give each branch a power budget and a role in the progression. At the start,
+   provide more than one reachable target; leave at least one clearly
+   overstrength room reachable but unwise to challenge. Its threats should be
+   beatable after gains from other rooms, not merely a larger number at the end
+   of a linear path.
+5. Simulate paths through the real rules before accepting a layout: reachability
+   around enemies and loot, power gained by defeating each enemy, shell-charge
+   reserves, pounce uses, cat carrying/delivery, and whether the boss is
+   beatable after the available rewards. Recheck that there are multiple viable
+   early route choices, not just one solver-discovered mandatory opening.
+6. Use a fixed seed for each candidate, reject bad graphs, and log the seed and
+   failed validation reason. Keep a few authored room-graph templates as
+   fallbacks instead of falling back to an open, featureless arena.
+
+**The Hollow Crown** is a hand-authored test case for this direction: the west,
+north, east and lower loops offer different mixes of threat and supplies, while
+the crossroads and crown room are beyond starting power. It is still a
+prototype for route choice, not a fully balanced level.
+
+One current rule limits how optional these branches can be: victory requires
+defeating every enemy. A branch can offer optional loot or be delayed until the
+party is stronger, but its enemies cannot be skipped to finish the level. If
+generated rooms should contain genuinely optional encounters, first add an
+explicit exit/goal rule or mark optional enemies separately. The current
+procedural solvability search also only branches over the tortoise's normal
+movement; it should be extended to model pounce and Shell Charge before those
+abilities are used as generation requirements.
 
 Unlocked chapters and explicit level completion, including the final chapter,
 are saved to `user://progress.cfg`. Older saves that recorded only unlocks infer
 completion for the preceding chapters, not the last unlocked chapter.
+Language, music, SFX and touch-control preferences are saved separately to
+`user://settings.cfg`.
 After a defeat, **Retry** restarts the level without replaying its intro.
 
 Each chapter rises from left to right and uses its own biome tiles: flower
@@ -259,13 +323,12 @@ Dialogue describes strength naturally rather than quoting combat numbers;
 the numeric HUD remains available for planning attacks.
 
 Free walking stores positions in continuous tile coordinates. Navigation
-checks character clearance, blocks occupied enemy/container tiles, and respects
-stairs and cliffs (including the cat's unlocked climbing ability). Attack
-approaches remain cardinal and tile-centered. Pounce retains its special
+checks character clearance, blocks occupied character/enemy/container tiles,
+and respects stairs and cliffs (including the cat's unlocked climbing ability).
+Attack approaches remain cardinal and tile-centered. Pounce retains its special
 cardinal tile targets and returns to the precise starting point after an attack.
-Characters retain the existing ability to share space; decorations and food
-do not block walking. Tile-entry scripts run after a completed or stopped walk,
-only for its final tile, not for tiles passed through.
+Decorations and food do not block walking. Tile-entry scripts run after a
+completed or stopped walk, only for its final tile, not for tiles passed through.
 
 `tests/free_movement_test.gd` checks exact endpoints, diagonal paths, stopping,
 collision/elevation clearance, attack approaches and attack-only loot:

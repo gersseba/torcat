@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
 var failures := 0
@@ -20,8 +21,7 @@ func _run() -> void:
 	root.add_child(app)
 	await process_frame
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	if screen == null:
 		push_error("Gameplay screen was not found")
 		quit(1)

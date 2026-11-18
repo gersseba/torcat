@@ -217,6 +217,9 @@ static func apply_state_action(state, action: Dictionary) -> bool:
 			if str(action.get("character", "cat")) != "cat":
 				push_error("join_party only supports the cat")
 				return false
+			if state.cat.position == state.player.position:
+				push_error("The cat cannot join the party on the tortoise's tile.")
+				return false
 			state.cat_present = true
 			state.cat_in_party = true
 			return true

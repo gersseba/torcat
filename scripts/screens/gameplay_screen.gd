@@ -20,6 +20,8 @@ const SPEECH_BUBBLE_SCRIPT := preload("res://scripts/ui/speech_bubble.gd")
 const CAMERA := preload("res://scripts/rendering/gameplay_camera.gd")
 const WOODLAND_UI := preload("res://scripts/ui/woodland_ui.gd")
 const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
+static var _character_frames_cache: Dictionary = {}
+static var _enemy_frames_cache: Dictionary = {}
 
 const TILE_SIZE := 64.0
 const POWER_TEXT_COLOR := Color("f7e8c1")
@@ -52,6 +54,7 @@ const ATTACK_IMPACT_FRAMES := {
 const SCRIPT_CAMERA_MIN_ZOOM := 0.75
 const SCRIPT_CAMERA_MAX_ZOOM := 2.5
 const SCRIPT_ENEMY_STEP_DURATION := 0.32
+const CAT_LEDGE_JUMP_HALF_SPAN := 0.22
 const SPEAKER_ANCHOR_HEIGHT := 58.0
 const SPEAKER_NAMES := {
 	"tortoise": {"en": "Tortoise", "de": "Schildkröte"},
@@ -77,7 +80,11 @@ const SPEAKER_NAMES := {
 @onready var _pounce_layer: TileMapLayer = %PounceLayer
 @onready var _pounce_button: Button = %PounceButton
 @onready var _shell_button: Button = %ShellButton
-@onready var _back_confirmation: ConfirmationDialog = %BackConfirmationDialog
+@onready var _back_confirmation: Control = %BackConfirmation
+@onready var _back_confirmation_title: Label = %Title
+@onready var _back_confirmation_message: Label = %Message
+@onready var _back_stay_button: Button = %StayButton
+@onready var _back_leave_button: Button = %LeaveButton
 @onready var _result_panel: PanelContainer = %ResultPanel
 @onready var _result_label: Label = %ResultLabel
 @onready var _result_sub_label: Label = %ResultSubLabel
@@ -130,7 +137,6 @@ var _character_sprites: Dictionary = {}
 var _character_power_labels: Dictionary = {}
 var _enemy_power_labels: Dictionary = {}
 var _enemy_sprites: Dictionary = {}
-var _enemy_frames: Dictionary = {}
 var _power_styles: Dictionary = {}
 var _facing_by_character: Dictionary = {
 	GS.CharacterId.TORTOISE: "south",
@@ -160,6 +166,7 @@ var _backdrop_layer: CanvasLayer
 var _backdrop_rect: ColorRect
 var _overview_running := false
 var _victory_reported := false
+var _overview_enabled := true
 var _audio_pickups := -1
 var _audio_enemies := 0
 var _audio_heroes := 0
@@ -207,7 +214,9 @@ func _ready() -> void:
 	_shell_button.pressed.connect(_toggle_shell_mode)
 	_setup_mobile_controls()
 	_back_button.pressed.connect(_show_back_confirmation)
-	_back_confirmation.confirmed.connect(func() -> void:
+	_back_stay_button.pressed.connect(_back_confirmation.hide)
+	_back_leave_button.pressed.connect(func() -> void:
+		_back_confirmation.hide()
 		back_to_menu_pressed.emit()
 	)
 	_continue_button.set_meta(&"no_tap_sfx", true)
@@ -263,7 +272,7 @@ func _setup_mobile_controls() -> void:
 
 	_mobile_attack_button = Button.new()
 	_mobile_attack_button.name = "AttackButton"
-	_mobile_attack_button.text = "Attack"
+	_mobile_attack_button.text = LEVEL_SCRIPT.localize({"en": "Attack", "de": "Angriff"})
 	WOODLAND_UI.button(_mobile_attack_button)
 	_mobile_attack_button.custom_minimum_size = Vector2(104, 80)
 	_mobile_attack_button.pressed.connect(_mobile_attack_pressed)
@@ -271,7 +280,7 @@ func _setup_mobile_controls() -> void:
 
 	_mobile_special_button = Button.new()
 	_mobile_special_button.name = "SpecialButton"
-	_mobile_special_button.text = "Special"
+	_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Special", "de": "Spezial"})
 	WOODLAND_UI.button(_mobile_special_button)
 	_mobile_special_button.custom_minimum_size = Vector2(104, 80)
 	_mobile_special_button.pressed.connect(_mobile_special_pressed)
@@ -289,14 +298,17 @@ func _round_control_style(color: Color, radius: int, border: Color) -> StyleBoxF
 
 
 func _show_back_confirmation() -> void:
-	_back_confirmation.title = LEVEL_SCRIPT.localize({"en": "Leave level?", "de": "Level verlassen?"})
-	_back_confirmation.dialog_text = LEVEL_SCRIPT.localize({
-		"en": "Return to the menu? Progress in this level will be lost.",
-		"de": "Zum Menü zurückkehren? Der Fortschritt dieses Levels geht verloren.",
+	_back_confirmation_title.text = LEVEL_SCRIPT.localize({
+		"en": "Leave this trail?", "de": "Diesen Pfad verlassen?"
 	})
-	_back_confirmation.ok_button_text = LEVEL_SCRIPT.localize({"en": "Leave level", "de": "Level verlassen"})
-	_back_confirmation.cancel_button_text = LEVEL_SCRIPT.localize({"en": "Stay", "de": "Bleiben"})
-	_back_confirmation.popup_centered(Vector2i(440, 220))
+	_back_confirmation_message.text = LEVEL_SCRIPT.localize({
+		"en": "Your progress in this level will be lost.",
+		"de": "Dein Fortschritt in diesem Level geht verloren.",
+	})
+	_back_stay_button.text = LEVEL_SCRIPT.localize({"en": "Stay", "de": "Bleiben"})
+	_back_leave_button.text = LEVEL_SCRIPT.localize({"en": "Leave level", "de": "Level verlassen"})
+	_back_confirmation.visible = true
+	_back_stay_button.grab_focus()
 
 
 func _layout_mobile_controls() -> void:
@@ -387,7 +399,9 @@ func _process_continuous_movement(delta: float) -> void:
 		_continuous_move_origin_state = _state.duplicate_state()
 		_moving_character_id = _continuous_move_character_id
 		_character_modes[_moving_character_id] = "selected"
-		_state.last_event = "%s moved." % _selected_character_name()
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "%s moved.", "de": "%s bewegt sich."
+		}) % _selected_character_name()
 		_pounce_mode = false
 		_shell_mode = false
 		_pounce_targets.clear()
@@ -575,10 +589,18 @@ func _update_mobile_action_buttons() -> void:
 	)
 	_mobile_special_button.visible = can_special
 	_mobile_special_button.disabled = not can_special or (_moving_character_id != -1 and not _continuous_move_blocked)
-	_mobile_special_button.text = "Pounce" if character_id == GS.CharacterId.CAT else "Shell"
+	if character_id == GS.CharacterId.CAT:
+		_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Pounce", "de": "Sprung"})
+	else:
+		_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Shell", "de": "Panzer"})
 
 
 func configure(payload: Dictionary) -> void:
+	prepare_level(payload)
+	render_prepared_level()
+
+
+func prepare_level(payload: Dictionary) -> void:
 	var level_id: String = str(payload.get("level_id", "unknown"))
 	_level_id = level_id
 	_victory_reported = false
@@ -592,17 +614,25 @@ func configure(payload: Dictionary) -> void:
 	_shell_mode = false
 	_pounce_targets.clear()
 	_state.selected_character_id = GS.CharacterId.TORTOISE
+	_state.last_event = LEVEL_SCRIPT.localize({
+		"en": "Tap a spot to preview a path, then tap again to move.",
+		"de": "Tippe für eine Wegvorschau und erneut, um loszugehen.",
+	})
 	_set_character_mode(GS.CharacterId.TORTOISE, "selected")
 	_set_character_mode(GS.CharacterId.CAT, "passive")
 	_result_panel.visible = false
 	_camera_manual_offset = Vector2.ZERO
 	_scripts_enabled = bool(payload.get("scripts", true))
+	_overview_enabled = bool(payload.get("overview", true))
 	_level_events = LEVEL_SCRIPT.load_events(level_id) if _scripts_enabled else []
 	_apply_backdrop(str(LEVEL_SCRIPT.level_meta(level_id).get("backdrop", "")))
 	_fired_events.clear()
 	_script_queue.clear()
+
+
+func render_prepared_level() -> void:
 	_render_state()
-	if _scripts_enabled and CAMPAIGN.is_campaign_level(level_id) and bool(payload.get("overview", true)):
+	if _scripts_enabled and CAMPAIGN.is_campaign_level(_level_id) and _overview_enabled:
 		call_deferred("_show_chapter_overview")
 	elif not _level_events.is_empty():
 		call_deferred("_start_level_script")
@@ -688,6 +718,11 @@ func _apply_backdrop(color_hex: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _back_confirmation.visible:
+		if event.is_action_pressed("ui_cancel"):
+			_back_confirmation.hide()
+		get_viewport().set_input_as_handled()
+		return
 	if _state == null:
 		return
 	if _overview_running:
@@ -857,7 +892,10 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 
 	var actor = _state.character_state(_state.selected_character_id)
 	if not actor.alive:
-		_state.last_event = "%s is defeated; switch character." % _selected_character_name()
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "%s is defeated; switch character.",
+			"de": "%s ist besiegt; wechsle die Figur.",
+		}) % _selected_character_name()
 		_preview_path.clear()
 		_preview_target = Vector2i(-1, -1)
 		_render_state()
@@ -869,7 +907,9 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		if attacking else _engine.find_free_path(_state, point, _state.selected_character_id)
 	)
 	if path.is_empty():
-		_state.last_event = "No safe route there."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "No safe route there.", "de": "Dorthin führt kein sicherer Weg."
+		})
 		_preview_path.clear()
 		_preview_target = Vector2i(-1, -1)
 		_shake_camera()
@@ -898,7 +938,13 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		for waypoint in path:
 			_preview_path.append(GAME_ENGINE_SCRIPT.NAV.cell_at(waypoint))
 		_preview_target = tile_pos
-		_state.last_event = "Tap again to attack." if attacking else "Tap again to walk to this spot. Tap while walking to stop."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Tap again to attack.",
+			"de": "Tippe erneut, um anzugreifen.",
+		}) if attacking else LEVEL_SCRIPT.localize({
+			"en": "Tap again to walk to this spot. Tap while walking to stop.",
+			"de": "Tippe erneut, um dorthin zu gehen. Tippe unterwegs zum Anhalten.",
+		})
 	_render_state()
 
 
@@ -919,16 +965,55 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 		var destination := path[index]
 		if start.is_equal_approx(destination):
 			continue
-		var direction := _direction_name_from_vector(destination - start)
-		_camera_look_ahead = (destination - start).normalized() * 48.0
-		_facing_by_character[character_id] = direction
-		_play_character_animation(character_id, "walk_%s" % _walking_direction_name(destination - start))
-		_free_walk_tween = create_tween()
-		_free_walk_tween.tween_property(sprite, "position", destination * TILE_SIZE, start.distance_to(destination) * WALK_FRAME_DURATION * WALK_FRAME_COUNT)
-		while _free_walk_tween.is_running():
-			await get_tree().process_frame
-			var camera_target := _camera_position_for(sprite.position + _camera_look_ahead + _camera_manual_offset, _board_camera.zoom.x)
-			_board_camera.position = _board_camera.position.lerp(camera_target, 1.0 - exp(-8.0 * get_process_delta_time()))
+		_play_sfx("move_step")
+		var movement_segments: Array[Dictionary] = []
+		for jump in _ledge_jumps_along(start, destination, character_id):
+			movement_segments.append({"position": jump["start"], "jump": false})
+			movement_segments.append({"position": jump["end"], "jump": true})
+		movement_segments.append({"position": destination, "jump": false})
+		var segment_start := start
+		for segment in movement_segments:
+			var segment_end: Vector2 = segment["position"]
+			if segment_start.is_equal_approx(segment_end):
+				continue
+			var segment_delta := segment_end - segment_start
+			var direction := _direction_name_from_vector(segment_delta)
+			_camera_look_ahead = segment_delta.normalized() * 48.0
+			_facing_by_character[character_id] = direction
+			if bool(segment["jump"]):
+				await _animate_cat_jump(
+					sprite,
+					segment_start * TILE_SIZE,
+					segment_end * TILE_SIZE,
+					direction
+				)
+				_pounce_shadow.visible = false
+			else:
+				_play_character_animation(
+					character_id,
+					"walk_%s" % _walking_direction_name(segment_delta)
+				)
+				_free_walk_tween = create_tween()
+				_free_walk_tween.tween_property(
+					sprite,
+					"position",
+					segment_end * TILE_SIZE,
+					segment_start.distance_to(segment_end) * WALK_FRAME_DURATION * WALK_FRAME_COUNT
+				)
+				while _free_walk_tween.is_running():
+					await get_tree().process_frame
+					var camera_target := _camera_position_for(
+						sprite.position + _camera_look_ahead + _camera_manual_offset,
+						_board_camera.zoom.x
+					)
+					_board_camera.position = _board_camera.position.lerp(
+						camera_target,
+						1.0 - exp(-8.0 * get_process_delta_time())
+					)
+				_free_walk_tween = null
+			segment_start = segment_end
+			if _stop_walk_requested:
+				break
 		var reached: Vector2 = sprite.position / TILE_SIZE
 		next_state = _engine.move_free(next_state, reached, character_id)
 		if _stop_walk_requested:
@@ -945,6 +1030,48 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 	_moving_character_id = -1
 	_reset_character_animation_timer(character_id)
 	await _commit_state(next_state, character_id, [origin, next_state.character_state(character_id).position])
+
+
+func _ledge_jumps_along(start: Vector2, destination: Vector2, character_id: int) -> Array[Dictionary]:
+	var jumps: Array[Dictionary] = []
+	if character_id != GS.CharacterId.CAT:
+		return jumps
+	var distance := start.distance_to(destination)
+	if distance <= 0.001:
+		return jumps
+
+	var sample_count := maxi(1, ceili(distance / GAME_ENGINE_SCRIPT.NAV.SAMPLE_SPACING))
+	var previous_cell: Vector2i = GAME_ENGINE_SCRIPT.NAV.cell_at(start)
+	var previous_height := _height_at_cell(previous_cell)
+	var last_jump_end := 0.0
+	for sample_index in range(1, sample_count + 1):
+		var sample_t := float(sample_index) / sample_count
+		var cell: Vector2i = GAME_ENGINE_SCRIPT.NAV.cell_at(start.lerp(destination, sample_t))
+		if cell == previous_cell:
+			continue
+		var height := _height_at_cell(cell)
+		if (
+			height != previous_height
+			and _engine._can_traverse(_state, previous_cell, cell, character_id)
+		):
+			var crossing_t := (float(sample_index) - 0.5) / sample_count
+			var half_span_t := CAT_LEDGE_JUMP_HALF_SPAN / distance
+			var jump_start_t := maxf(last_jump_end, crossing_t - half_span_t)
+			var jump_end_t := minf(1.0, crossing_t + half_span_t)
+			if jump_end_t > jump_start_t:
+				jumps.append({
+					"start": start.lerp(destination, jump_start_t),
+					"end": start.lerp(destination, jump_end_t),
+				})
+				last_jump_end = jump_end_t
+		previous_cell = cell
+		previous_height = height
+	return jumps
+
+
+func _height_at_cell(cell: Vector2i) -> int:
+	var tile = _state.tile_cells.get(cell)
+	return int(tile.height_level) if tile != null else 0
 
 
 func _direction_name_from_vector(delta: Vector2) -> String:
@@ -974,7 +1101,9 @@ func _select_character(character_id) -> void:
 	_set_character_mode(other_character_id, "passive")
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
-	_state.last_event = "%s selected." % _selected_character_name()
+	_state.last_event = LEVEL_SCRIPT.localize({
+		"en": "%s selected.", "de": "%s ausgewählt."
+	}) % _selected_character_name()
 	_play_sfx("tile_select")
 	_render_state()
 
@@ -995,26 +1124,43 @@ func _toggle_shell_mode() -> void:
 				_pounce_targets[target] = true
 		if _pounce_targets.is_empty():
 			_shell_mode = false
-			_state.last_event = "No adjacent enemy available for Shell Charge."
+			_state.last_event = LEVEL_SCRIPT.localize({
+				"en": "No adjacent enemy available for Shell Charge.",
+				"de": "Kein benachbarter Gegner für den Panzerangriff.",
+			})
 		else:
-			_state.last_event = "Choose an adjacent enemy. Tap again to charge."
+			_state.last_event = LEVEL_SCRIPT.localize({
+				"en": "Choose an adjacent enemy. Tap again to charge.",
+				"de": "Wähle einen benachbarten Gegner. Tippe erneut zum Angreifen.",
+			})
 	else:
-		_state.last_event = "Shell Charge cancelled."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Shell Charge cancelled.", "de": "Panzerangriff abgebrochen."
+		})
 	_render_state()
 
 
 func _handle_shell_target(target: Vector2i) -> void:
 	if not _engine.can_shell_charge(_state, target):
 		_preview_target = Vector2i(-1, -1)
-		_state.last_event = "Choose a highlighted adjacent enemy."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Choose a highlighted adjacent enemy.",
+			"de": "Wähle einen markierten benachbarten Gegner.",
+		})
 		_render_state()
 		return
 	if _preview_target != target:
 		_preview_target = target
 		var enemy = _state.enemies_by_pos[target]
 		var strength: int = _state.player.power + _state.shell_power
-		var outcome := "WIN" if strength >= enemy.power else "DEFEAT"
-		_state.last_event = "Shell: %d + %d = %d vs %d: %s. Shell %d -> %d. Tap again." % [
+		var outcome := LEVEL_SCRIPT.localize(
+			{"en": "WIN", "de": "SIEG"} if strength >= enemy.power
+			else {"en": "DEFEAT", "de": "NIEDERLAGE"}
+		)
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Shell: %d + %d = %d vs %d: %s. Shell %d -> %d. Tap again.",
+			"de": "Panzer: %d + %d = %d gegen %d: %s. Panzer %d -> %d. Erneut tippen.",
+		}) % [
 			_state.player.power, _state.shell_power, strength, enemy.power, outcome,
 			_state.shell_power, maxi(0, _state.shell_power - enemy.power)
 		]
@@ -1025,7 +1171,9 @@ func _handle_shell_target(target: Vector2i) -> void:
 	_shell_mode = false
 	_pounce_targets.clear()
 	_preview_target = Vector2i(-1, -1)
-	_state.last_event = "Tortoise charging!"
+	_state.last_event = LEVEL_SCRIPT.localize({
+		"en": "Tortoise charging!", "de": "Die Schildkröte stürmt los!"
+	})
 	_moving_character_id = GS.CharacterId.TORTOISE
 	_render_state()
 	var sprite: AnimatedSprite2D = _character_sprites[GS.CharacterId.TORTOISE]
@@ -1048,7 +1196,9 @@ func _toggle_pounce_mode() -> void:
 	if _pounce_mode:
 		_pounce_mode = false
 		_pounce_targets.clear()
-		_state.last_event = "Pounce cancelled."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Pounce cancelled.", "de": "Sprung abgebrochen."
+		})
 	elif _state.cat_pounces_remaining > 0 and _state.cat.alive and not _state.game_over and not _state.victory:
 		_pounce_mode = true
 		_pounce_targets.clear()
@@ -1059,9 +1209,14 @@ func _toggle_pounce_mode() -> void:
 					_pounce_targets[target] = _state.enemies_by_pos.has(target)
 		if _pounce_targets.is_empty():
 			_pounce_mode = false
-			_state.last_event = "No available pounce targets."
+			_state.last_event = LEVEL_SCRIPT.localize({
+				"en": "No available pounce targets.", "de": "Keine Sprungziele verfügbar."
+			})
 		else:
-			_state.last_event = "Choose a highlighted tile. Tap again to pounce."
+			_state.last_event = LEVEL_SCRIPT.localize({
+				"en": "Choose a highlighted tile. Tap again to pounce.",
+				"de": "Wähle ein markiertes Feld. Tippe erneut zum Springen.",
+			})
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
 	_render_state()
@@ -1070,7 +1225,10 @@ func _toggle_pounce_mode() -> void:
 func _handle_pounce_target(target: Vector2i) -> void:
 	if not _engine.can_pounce(_state, target):
 		_preview_target = Vector2i(-1, -1)
-		_state.last_event = "Cannot pounce there. Choose a highlighted tile."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Cannot pounce there. Choose a highlighted tile.",
+			"de": "Dorthin kannst du nicht springen. Wähle ein markiertes Feld.",
+		})
 		_render_state()
 		return
 	if _preview_target != target:
@@ -1078,9 +1236,15 @@ func _handle_pounce_target(target: Vector2i) -> void:
 		if _state.enemies_by_pos.has(target):
 			var enemy = _state.enemies_by_pos[target]
 			var remaining: int = maxi(0, enemy.power - _state.cat.power)
-			_state.last_event = "Pounce: enemy power %d -> %d. Tap again to confirm." % [enemy.power, remaining]
+			_state.last_event = LEVEL_SCRIPT.localize({
+				"en": "Pounce: enemy power %d -> %d. Tap again to confirm.",
+				"de": "Sprung: Gegnerkraft %d -> %d. Erneut tippen zum Bestätigen.",
+			}) % [enemy.power, remaining]
 		else:
-			_state.last_event = "Pounce to (%d, %d). Tap again to confirm." % [target.x, target.y]
+			_state.last_event = LEVEL_SCRIPT.localize({
+				"en": "Pounce to (%d, %d). Tap again to confirm.",
+				"de": "Sprung nach (%d, %d). Erneut tippen zum Bestätigen.",
+			}) % [target.x, target.y]
 		_render_state()
 		return
 
@@ -1094,7 +1258,9 @@ func _perform_pounce(target: Vector2i) -> void:
 	var attacking: bool = _state.enemies_by_pos.has(target)
 	var next_state = _engine.pounce(_state, target)
 	_state.cat_pounces_remaining = next_state.cat_pounces_remaining
-	_state.last_event = "Cat pouncing!"
+	_state.last_event = LEVEL_SCRIPT.localize({
+		"en": "Cat pouncing!", "de": "Die Katze springt!"
+	})
 	_pounce_mode = false
 	_pounce_targets.clear()
 	_preview_target = Vector2i(-1, -1)
@@ -1125,10 +1291,10 @@ func _animate_pounce(origin: Vector2i, target: Vector2i, attacking: bool, next_s
 		launch_world = retreat_world
 		_facing_by_character[character_id] = direction
 		_play_character_animation(character_id, "pounce_%s" % direction)
-	await _pounce_jump(sprite, launch_world, landing_world, direction)
+	await _animate_cat_jump(sprite, launch_world, landing_world, direction)
 	if attacking:
 		await _animate_attack(character_id, sprite, direction, target)
-		await _pounce_jump(sprite, landing_world, launch_world, direction)
+		await _animate_cat_jump(sprite, landing_world, launch_world, direction)
 	var previous_state = _state
 	_state = next_state
 	_moving_character_id = -1
@@ -1141,7 +1307,7 @@ func _animate_pounce(origin: Vector2i, target: Vector2i, attacking: bool, next_s
 		await _run_script_queue()
 
 
-func _pounce_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2, direction: String) -> void:
+func _animate_cat_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2, direction: String) -> void:
 	sprite.position = start
 	sprite.offset = Vector2.ZERO
 	_pounce_shadow.position = start + Vector2(0, 18)
@@ -1157,8 +1323,23 @@ func _pounce_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2, dir
 	var base_y := label.position.y
 	tween.tween_property(label, "position:y", base_y - 22.0 / sprite.scale.y, POUNCE_JUMP_DURATION * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "position:y", base_y, POUNCE_JUMP_DURATION * 0.5).set_delay(POUNCE_JUMP_DURATION * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	await tween.finished
+	if _free_walking:
+		_free_walk_tween = tween
+		while tween.is_running():
+			await get_tree().process_frame
+			var camera_target := _camera_position_for(
+				sprite.position + _camera_look_ahead + _camera_manual_offset,
+				_board_camera.zoom.x
+			)
+			_board_camera.position = _board_camera.position.lerp(
+				camera_target,
+				1.0 - exp(-8.0 * get_process_delta_time())
+			)
+		_free_walk_tween = null
+	else:
+		await tween.finished
 	sprite.offset = Vector2.ZERO
+	label.position.y = base_y
 
 
 func _try_step(direction) -> void:
@@ -1173,7 +1354,9 @@ func _try_step(direction) -> void:
 	var current_pos: Vector2i = actor.position
 	var next_pos: Vector2i = _direction_target(current_pos, direction)
 	if not _is_in_bounds(next_pos):
-		_state.last_event = "Blocked by map boundary."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Blocked by map boundary.", "de": "Der Kartenrand blockiert den Weg."
+		})
 		_shake_camera()
 		_render_state()
 		return
@@ -1185,7 +1368,10 @@ func _try_step(direction) -> void:
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
 	if path.is_empty():
-		_state.last_event = "A wall, cliff or occupied tile blocks the way."
+		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "A wall, cliff or occupied tile blocks the way.",
+			"de": "Eine Wand, Klippe oder Figur versperrt den Weg.",
+		})
 		_shake_camera()
 		_render_state()
 		return
@@ -1211,7 +1397,11 @@ func _is_in_bounds(pos: Vector2i) -> bool:
 
 
 func _selected_character_name() -> String:
-	return "Tortoise" if _state.selected_character_id == GS.CharacterId.TORTOISE else "Cat"
+	return LEVEL_SCRIPT.localize(
+		{"en": "Tortoise", "de": "Schildkröte"}
+		if _state.selected_character_id == GS.CharacterId.TORTOISE
+		else {"en": "Cat", "de": "Katze"}
+	)
 
 
 func _selected_character_pos() -> Vector2i:
@@ -1312,6 +1502,10 @@ func _shake_camera() -> void:
 
 
 func _render_state() -> void:
+	_back_button.text = LEVEL_SCRIPT.localize({"en": "Back", "de": "Zurück"})
+	_recenter_button.text = LEVEL_SCRIPT.localize({"en": "Center", "de": "Zentrieren"})
+	_continue_button.text = LEVEL_SCRIPT.localize({"en": "Continue", "de": "Weiter"})
+	_retry_button.text = LEVEL_SCRIPT.localize({"en": "Retry", "de": "Erneut versuchen"})
 	_free_path_line.clear_points()
 	_free_destination_marker.visible = not _preview_path.is_empty() and not _pounce_mode and not _shell_mode
 	if _free_destination_marker.visible:
@@ -1324,22 +1518,34 @@ func _render_state() -> void:
 		_result_panel.visible = false
 	elif _state.victory:
 		_result_panel.visible = true
-		_result_label.text = "Victory"
-		_result_sub_label.text = "All enemies defeated."
+		_result_label.text = LEVEL_SCRIPT.localize({"en": "Victory", "de": "Sieg"})
+		_result_sub_label.text = LEVEL_SCRIPT.localize({
+			"en": "All enemies defeated.", "de": "Alle Gegner sind besiegt."
+		})
 	elif _state.game_over:
 		_result_panel.visible = true
-		_result_label.text = "Defeat"
-		_result_sub_label.text = "A hero was defeated."
+		_result_label.text = LEVEL_SCRIPT.localize({"en": "Defeat", "de": "Niederlage"})
+		_result_sub_label.text = LEVEL_SCRIPT.localize({
+			"en": "A hero was defeated.", "de": "Eine Figur wurde besiegt."
+		})
 	else:
 		_result_panel.visible = false
 	_continue_button.visible = _state.victory and not _state.game_over
 	_retry_button.visible = _state.game_over and not script_pending
 	_pounce_button.visible = not _mobile_controls_enabled and _state.pounce_enabled and _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
 	_pounce_button.disabled = _moving_character_id != -1 or _state.cat_pounces_remaining <= 0 or not _state.cat.alive
-	_pounce_button.text = "Cancel pounce" if _pounce_mode else "Pounce %d/%d" % [_state.cat_pounces_remaining, _state.cat_pounces_max]
+	_pounce_button.text = LEVEL_SCRIPT.localize(
+		{"en": "Cancel pounce", "de": "Sprung abbrechen"}
+	) if _pounce_mode else LEVEL_SCRIPT.localize({
+		"en": "Pounce %d/%d", "de": "Sprung %d/%d",
+	}) % [_state.cat_pounces_remaining, _state.cat_pounces_max]
 	_shell_button.visible = not _mobile_controls_enabled and _state.shell_charge_enabled and _state.selected_character_id == GS.CharacterId.TORTOISE and not _state.game_over and not _state.victory and not script_pending
 	_shell_button.disabled = _moving_character_id != -1 or _state.shell_power <= 0 or not _state.player.alive
-	_shell_button.text = "Cancel charge" if _shell_mode else "Shell Charge: %d" % _state.shell_power
+	_shell_button.text = LEVEL_SCRIPT.localize(
+		{"en": "Cancel charge", "de": "Angriff abbrechen"}
+	) if _shell_mode else LEVEL_SCRIPT.localize({
+		"en": "Shell Charge: %d", "de": "Panzerangriff: %d",
+	}) % _state.shell_power
 	_update_mobile_action_buttons()
 
 	_board_renderer.render(
@@ -1372,7 +1578,9 @@ func _create_character_sprite(character_id: int, character_name: String) -> void
 	sprite.name = "%sSprite" % character_name.capitalize()
 	sprite.z_index = 3
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.sprite_frames = _build_character_frames(character_name)
+	if not _character_frames_cache.has(character_name):
+		_character_frames_cache[character_name] = _build_character_frames(character_name)
+	sprite.sprite_frames = _character_frames_cache[character_name]
 	var base_texture: Texture2D = sprite.sprite_frames.get_frame_texture("idle_south", 0)
 	if base_texture != null:
 		sprite.scale = Vector2(
@@ -1719,11 +1927,25 @@ func _animate_character_path(character_id: int, path: Array, attack_positions: D
 		if attack_positions.get(to_pos, false):
 			await _animate_attack(character_id, sprite, direction, to_pos)
 			break
-		_play_character_animation(character_id, "walk_%s" % direction)
 		_play_sfx("move_step")
-		var tween := create_tween()
-		tween.tween_property(sprite, "position", _tile_center_world(to_pos), WALK_FRAME_DURATION * WALK_FRAME_COUNT)
-		await tween.finished
+		var jumps_ledge: bool = (
+			character_id == GS.CharacterId.CAT
+			and _height_at_cell(from_pos) != _height_at_cell(to_pos)
+			and _engine._can_traverse(_state, from_pos, to_pos, character_id)
+		)
+		if jumps_ledge:
+			await _animate_cat_jump(
+				sprite,
+				_tile_center_world(from_pos),
+				_tile_center_world(to_pos),
+				direction
+			)
+			_pounce_shadow.visible = false
+		else:
+			_play_character_animation(character_id, "walk_%s" % direction)
+			var tween := create_tween()
+			tween.tween_property(sprite, "position", _tile_center_world(to_pos), WALK_FRAME_DURATION * WALK_FRAME_COUNT)
+			await tween.finished
 	_moving_character_id = -1
 	_reset_character_animation_timer(character_id)
 
@@ -1774,10 +1996,10 @@ func _update_enemy_visuals() -> void:
 		if species not in ENEMY_SPECIES:
 			push_error("Unknown enemy species: %s" % species)
 			continue
-		if not _enemy_frames.has(species):
-			_enemy_frames[species] = _build_enemy_frames(species)
+		if not _enemy_frames_cache.has(species):
+			_enemy_frames_cache[species] = _build_enemy_frames(species)
 		var sprite := AnimatedSprite2D.new()
-		sprite.sprite_frames = _enemy_frames[species]
+		sprite.sprite_frames = _enemy_frames_cache[species]
 		sprite.animation = "idle_south"
 		sprite.position = _tile_center_world(position)
 		sprite.z_index = 3
@@ -1887,7 +2109,11 @@ func _render_power_labels() -> void:
 		var label: Label = _character_power_labels[character_id]
 		var power_text := str(_state.character_state(character_id).power)
 		if character_id == GS.CharacterId.CAT and _state.cat_carried_shell > 0:
-			power_text = "%s  Shell+%d" % [power_text, _state.cat_carried_shell]
+			power_text = "%s  %s+%d" % [
+				power_text,
+				LEVEL_SCRIPT.localize({"en": "Shell", "de": "Panzer"}),
+				_state.cat_carried_shell,
+			]
 		_set_power_label_value(label, power_text)
 		label.position = Vector2(-label.size.x * 0.5, -44.0) / sprite.scale
 		if _pounce_in_progress and character_id == GS.CharacterId.CAT:

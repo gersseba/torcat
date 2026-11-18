@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const ENGINE = preload("res://scripts/domain/game_engine.gd")
 const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
@@ -41,6 +42,9 @@ func _touch(position: Vector2) -> void:
 
 
 func _run() -> void:
+	var app_state: Node = root.get_node("AppState")
+	app_state.language = 0
+	app_state.mobile_controls = false
 	var engine := ENGINE.new()
 	var state = _state()
 	var origin: Vector2i = state.cat.position
@@ -111,19 +115,25 @@ func _run() -> void:
 		"meta": {"width": 1, "height": 1},
 		"tileDefinitions": [{"id": "grass", "heightLevel": 0}],
 		"logicTiles": [["PASSABLE"]], "assignedTiles": [["grass"]],
-		"initialState": {"catPounces": 5},
+		"initialState": {"catPounces": 5, "catStatus": "absent"},
 	}
 	var factory := FACTORY.new()
 	_check(factory._create_world_from_definition(definition).cat_pounces_remaining == 5, "Level must configure pounce uses")
 	_check(factory.create_world("level_1").cat_pounces_remaining == 3, "Existing levels default to three uses")
+	var overlapping_definition: Dictionary = definition.duplicate(true)
+	overlapping_definition.initialState.catStatus = "party"
+	var invalid_spawn = factory._create_world_from_definition(overlapping_definition)
+	_check(
+		invalid_spawn.player.position != invalid_spawn.cat.position,
+		"Invalid overlapping starts must fall back to a safe, separated state"
+	)
 
 	root.size = Vector2i(720, 1280)
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
 	await process_frame
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	if screen == null:
 		push_error("Gameplay screen was not found")
 		quit(1)

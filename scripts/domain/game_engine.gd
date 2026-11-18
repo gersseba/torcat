@@ -132,7 +132,7 @@ func move(state, direction: Direction, character_id = GS.CharacterId.TORTOISE):
 
 	if not _can_traverse(state, from, to, character_id):
 		var terrain_state = state.duplicate_state()
-		terrain_state.last_event = "A wall or cliff blocks the way."
+		terrain_state.last_event = "A wall, cliff or occupied tile blocks the way."
 		return terrain_state
 
 	if state.enemies_by_pos.has(to):
@@ -355,7 +355,7 @@ func _is_within_bounds(pos: Vector2i, width: int, height: int) -> bool:
 
 
 func _can_traverse(state, from: Vector2i, to: Vector2i, character_id = GS.CharacterId.TORTOISE) -> bool:
-	if state.is_blocked(to):
+	if state.is_blocked(to) or state.is_occupied_by_other_character(to, character_id):
 		return false
 	var from_cell = state.tile_cells.get(from)
 	var to_cell = state.tile_cells.get(to)

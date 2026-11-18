@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const ENGINE = preload("res://scripts/domain/game_engine.gd")
 const NAV = preload("res://scripts/domain/free_navigation.gd")
@@ -65,6 +66,42 @@ func _test_precision() -> void:
 
 func _test_collisions() -> void:
 	var state = _flat_state()
+	state.cat.position = Vector2i(2, 1)
+	_check(
+		not engine._can_traverse(state, state.player.position, state.cat.position),
+		"The tortoise must not traverse onto the cat's tile"
+	)
+	_check(
+		engine.find_path(state, state.player.position, state.cat.position).is_empty()
+		and engine.find_free_path(state, Vector2(2.5, 1.5)).is_empty(),
+		"Grid and free navigation must treat the other character's tile as occupied"
+	)
+	var blocked_free_move = engine.move_free(state, Vector2(2.5, 1.5))
+	_check(
+		blocked_free_move.player.world_position == state.player.world_position,
+		"Continuous movement must preserve the tortoise's position when the cat blocks the destination"
+	)
+	var blocked_character_move = engine.move(state, ENGINE.Direction.RIGHT)
+	_check(
+		blocked_character_move.player.position == state.player.position,
+		"The tortoise must remain in place when its next tile contains the cat"
+	)
+	blocked_character_move = engine.move(state, ENGINE.Direction.LEFT, GS.CharacterId.CAT)
+	_check(
+		blocked_character_move.cat.position == state.cat.position,
+		"The cat must remain in place when its next tile contains the tortoise"
+	)
+	_check(
+		not NAV.segment_free(engine, state, Vector2(1.5, 1.5), Vector2(2.5, 1.5), GS.CharacterId.TORTOISE),
+		"Free movement must not pass through the other character"
+	)
+	state.cat_present = false
+	_check(
+		engine.move(state, ENGINE.Direction.RIGHT).player.position == Vector2i(2, 1),
+		"An absent cat must not block the tortoise's tile"
+	)
+
+	state = _flat_state()
 	state.blocked_tiles[Vector2i(2, 1)] = true
 	var path: PackedVector2Array = engine.find_free_path(state, Vector2(3.6, 1.5))
 	_check(path.size() > 2, "Navigation must go around obstacles rather than through them")
@@ -92,7 +129,7 @@ func _test_elevation() -> void:
 	for index in range(1, path.size()):
 		_check(NAV.segment_free(engine, state, path[index - 1], path[index], GS.CharacterId.TORTOISE), "Smoothed paths must use the stairs, not cut the cliff")
 	state.traversable_edges.clear()
-	state.cat.position = Vector2i(1, 1)
+	state.cat.position = Vector2i(1, 2)
 	_check(engine.find_free_path(state, target, GS.CharacterId.CAT).is_empty(), "Cats need their climbing ability to cross cliffs")
 	state.cat_can_climb = true
 	_check(not engine.find_free_path(state, target, GS.CharacterId.CAT).is_empty(), "Climbing cats can move freely across one height change")
@@ -172,8 +209,7 @@ func _test_screen() -> void:
 	root.add_child(app)
 	await process_frame
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	_check(screen != null, "Gameplay must load")
 	if screen == null:
 		return
@@ -223,6 +259,35 @@ func _test_screen() -> void:
 			if screen._moving_character_id != -1:
 				return
 			_check(screen._state.character_state(character_id).world_position.is_equal_approx(endpoint), "All walk directions must preserve exact endpoints at the same speed")
+	var ledge_state = _flat_state()
+	for y in ledge_state.height:
+		for x in range(3, ledge_state.width):
+			ledge_state.tile_cells[Vector2i(x, y)].height_level = 1
+	ledge_state.cat_can_climb = true
+	ledge_state.cat.position = Vector2i(2, 1)
+	ledge_state.selected_character_id = GS.CharacterId.CAT
+	screen._state = ledge_state
+	screen._render_state()
+	var cat_sprite: AnimatedSprite2D = screen._character_sprites[GS.CharacterId.CAT]
+	var ledge_path := PackedVector2Array([Vector2(2.5, 1.5), Vector2(3.5, 1.5)])
+	_check(
+		screen._ledge_jumps_along(ledge_path[0], ledge_path[1], GS.CharacterId.CAT).size() == 1,
+		"A free-walk path crossing a ledge must include one cat jump"
+	)
+	screen._walk_freely(GS.CharacterId.CAT, ledge_path)
+	await create_timer(0.3).timeout
+	_check(
+		cat_sprite.animation == "pounce_east" and screen._pounce_shadow.visible,
+		"The cat should use its jump animation and shadow while crossing a ledge"
+	)
+	var jump_deadline := Time.get_ticks_msec() + 3000
+	while screen._moving_character_id != -1 and Time.get_ticks_msec() < jump_deadline:
+		await process_frame
+	_check(
+		screen._moving_character_id == -1
+		and cat_sprite.position.is_equal_approx(Vector2(3.5, 1.5) * screen.TILE_SIZE),
+		"The cat should land at the exact requested position after jumping"
+	)
 	screen._state = _flat_state()
 	screen._render_state()
 	var nearby := Vector2(1.6, 1.7)

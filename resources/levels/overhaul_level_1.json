@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "id": "overhaul_level_1",
+    "name": "Bramblefork Trail",
+    "backdrop": "#354a2c"
+  },
+  "abilities": {
+    "shellCharge": false,
+    "pounce": false
+  },
+  "tileDefinitions": [
+    { "id": "meadow", "heightLevel": 0, "assetKey": "flower_meadow", "presentationTag": "ground" },
+    { "id": "trail", "heightLevel": 0, "assetKey": "path", "presentationTag": "ground" }
+  ],
+  "map": {
+    "legend": {
+      ".": { "tile": "meadow" },
+      "=": { "tile": "trail" },
+      "#": { "tile": "meadow", "blocker": "thick_bush" }
+    },
+    "rows": [
+      "#####################",
+      "#####################",
+      "#######.........#####",
+      "#######.###.###.#####",
+      "#######.###.....#####",
+      "####============#####",
+      "####.##########.#####",
+      "##=================##",
+      "####.##########.#####",
+      "####============#####",
+      "########.###.########",
+      "########.###.########",
+      "########.....########",
+      "#####################",
+      "#####################"
+    ]
+  },
+  "decorations": [
+    { "assetKey": "meadow_flowers", "position": { "x": 8, "y": 2 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 14, "y": 2 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 11, "y": 3 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 12, "y": 4 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 5, "y": 5 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 14, "y": 5 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 6, "y": 9 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 9, "y": 9 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 9, "y": 12 } },
+    { "assetKey": "meadow_flowers", "position": { "x": 11, "y": 12 } }
+  ],
+  "entities": [
+    { "type": "ENEMY", "id": "north_hedgehog", "species": "hedgehog", "position": { "x": 9, "y": 2 }, "power": 2 },
+    { "type": "LOOT", "id": "north_barrel", "assetKey": "barrel", "position": { "x": 12, "y": 2 }, "powerReward": 2 },
+    { "type": "ENEMY", "id": "north_goose", "species": "goose", "position": { "x": 13, "y": 4 }, "power": 4 },
+    { "type": "ENEMY", "id": "north_mouse", "species": "mouse", "position": { "x": 10, "y": 5 }, "power": 5 },
+    { "type": "ENEMY", "id": "south_goose", "species": "goose", "position": { "x": 7, "y": 9 }, "power": 3 },
+    { "type": "ENEMY", "id": "south_hedgehog", "species": "hedgehog", "position": { "x": 11, "y": 9 }, "power": 5 },
+    { "type": "ENEMY", "id": "south_badger", "species": "badger", "position": { "x": 14, "y": 9 }, "power": 7 },
+    { "type": "LOOT", "id": "south_stump", "assetKey": "tree_stump", "position": { "x": 10, "y": 12 }, "powerReward": 3 },
+    { "type": "ENEMY", "id": "fork_guard", "species": "snake", "position": { "x": 18, "y": 7 }, "power": 21 }
+  ],
+  "initialState": {
+    "tortoise": { "x": 2, "y": 7 },
+    "tortoisePower": 4,
+    "catStatus": "absent"
+  },
+  "events": [
+    {
+      "id": "fork_hint",
+      "trigger": { "type": "level_start" },
+      "actions": [
+        {
+          "type": "message",
+          "text": {
+            "en": "The guard to the east is too strong for now. Explore the north trail for a little food, then take the south fork to build enough strength.",
+            "de": "Der Wächter im Osten ist noch zu stark. Suche im Norden nach etwas Futter und nimm dann den südlichen Weg, um stärker zu werden."
+          }
+        }
+      ]
+    }
+  ]
+}

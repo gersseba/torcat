@@ -18,6 +18,9 @@ var _theme = BoardThemeScript.new()
 var _atlas_coords_by_role: Dictionary = {}
 var _source_id: int = -1
 var _tile_set: TileSet
+static var _shared_atlas_coords_by_role: Dictionary = {}
+static var _shared_source_id: int = -1
+static var _shared_tile_set: TileSet
 var _token_by_asset_key := {
 	"grass": "ground_a",
 	"meadow": "ground_a",
@@ -200,6 +203,12 @@ func render(
 
 
 func _build_tile_set() -> void:
+	if _shared_tile_set != null:
+		_tile_set = _shared_tile_set
+		_atlas_coords_by_role = _shared_atlas_coords_by_role
+		_source_id = _shared_source_id
+		return
+
 	var tokens: Array[String] = [
 		"ground_a", "ground_b", "ground_c", "ground_d", "path", "trail", "wall", "rubble", "resupply",
 		"blocker_tree", "blocker_log", "blocker_bush", "blocker_boulder", "blocker_pine",
@@ -237,6 +246,9 @@ func _build_tile_set() -> void:
 	_tile_set = TileSet.new()
 	_tile_set.tile_size = TILE_SIZE
 	_source_id = _tile_set.add_source(atlas_source)
+	_shared_atlas_coords_by_role = _atlas_coords_by_role
+	_shared_source_id = _source_id
+	_shared_tile_set = _tile_set
 
 
 func tile_world_size() -> int:
@@ -332,10 +344,10 @@ func _elevation_edge_image(token: String) -> Image:
 	edge.fill(Color.TRANSPARENT)
 	var rock := CLIFF_TEXTURE.get_image()
 	for x in range(TILE_SIZE.x):
-		var crossing := kind != "cliff" and x >= 18 and x < 46
+		var crossing := kind != "cliff" and x >= 10 and x < 54
 		if crossing:
 			continue
-		var depth := 7 + (x / 8) % 3
+		var depth := 12 + (x / 8) % 4
 		for y in range(depth):
 			var color := rock.get_pixel(x, y)
 			if y == 0:
@@ -345,8 +357,14 @@ func _elevation_edge_image(token: String) -> Image:
 		var texture: Texture2D = RAMP_TEXTURE if kind == "ramp" else STAIRS_TEXTURE
 		var glyph := texture.get_image()
 		glyph = glyph.get_region(glyph.get_used_rect())
-		glyph.resize(28, 30, Image.INTERPOLATE_NEAREST)
-		edge.blend_rect(glyph, Rect2i(0, 0, 28, 30), Vector2i(18, 0))
+		var glyph_scale := minf(44.0 / glyph.get_width(), 48.0 / glyph.get_height())
+		var glyph_size := Vector2i(
+			maxi(1, roundi(glyph.get_width() * glyph_scale)),
+			maxi(1, roundi(glyph.get_height() * glyph_scale))
+		)
+		glyph.resize(glyph_size.x, glyph_size.y, Image.INTERPOLATE_NEAREST)
+		var glyph_position := Vector2i((TILE_SIZE.x - glyph_size.x) / 2, 0)
+		edge.blend_rect(glyph, Rect2i(Vector2i.ZERO, glyph_size), glyph_position)
 	var rotations := EDGE_NAMES.find(parts[1])
 	for i in range(rotations):
 		edge.rotate_90(CLOCKWISE)

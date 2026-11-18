@@ -12,6 +12,9 @@ const LEVEL_PATHS := {
 	"chapter_3_rocky_pass": "res://resources/levels/chapter_3_rocky_pass.json",
 	"chapter_4_cliffs": "res://resources/levels/chapter_4_cliffs.json",
 	"chapter_5_summit": "res://resources/levels/chapter_5_summit.json",
+	"overhaul_level_1": "res://resources/levels/overhaul_level_1.json",
+	"overhaul_level_2": "res://resources/levels/overhaul_level_2.json",
+	"hollow_crown": "res://resources/levels/hollow_crown.json",
 }
 
 
@@ -104,6 +107,9 @@ func _create_world_from_definition(source_definition: Dictionary):
 		return _create_fallback_state("Invalid cat status.")
 	if cat_status == "absent":
 		cat_pos = tortoise_pos
+	elif cat_pos == tortoise_pos:
+		push_error("Tortoise and cat cannot start on the same tile.")
+		return _create_fallback_state("Player characters cannot share a tile.")
 
 	var state = GS.new(
 		width,
@@ -358,12 +364,13 @@ func _is_within_bounds(pos: Vector2i, width: int, height: int) -> bool:
 
 func _create_fallback_state(message: String):
 	var state = GS.new(
-		1,
+		2,
 		1,
 		GS.PlayerState.new(Vector2i.ZERO, 1, true),
-		GS.PlayerState.new(Vector2i.ZERO, 1, true)
+		GS.PlayerState.new(Vector2i(1, 0), 1, true)
 	)
 	state.tile_cells[Vector2i.ZERO] = GS.TileCellState.new("fallback", GS.TileLogicType.PASSABLE, 0)
+	state.tile_cells[Vector2i(1, 0)] = GS.TileCellState.new("fallback", GS.TileLogicType.PASSABLE, 0)
 	state.last_event = message
 	return state
 
@@ -429,11 +436,14 @@ func _build_procedural_candidate(rng: RandomNumberGenerator, backward_variant: b
 
 	var boss_pos: Vector2i = farthest if not backward_variant else anchor
 	var player_spawn: Vector2i = anchor if not backward_variant else farthest
-	var cat_spawn := Vector2i(min(player_spawn.x + 1, width - 1), player_spawn.y)
-	if blocked_tiles.has(cat_spawn):
-		cat_spawn = Vector2i(max(player_spawn.x - 1, 0), player_spawn.y)
-	if blocked_tiles.has(cat_spawn):
-		cat_spawn = player_spawn
+	var available_cat_spawns: Array[Vector2i] = []
+	for offset in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var candidate: Vector2i = player_spawn + offset
+		if _is_within_bounds(candidate, width, height) and not blocked_tiles.has(candidate):
+			available_cat_spawns.append(candidate)
+	if available_cat_spawns.is_empty():
+		return null
+	var cat_spawn: Vector2i = available_cat_spawns[rng.randi_range(0, available_cat_spawns.size() - 1)]
 
 	var state = GS.new(
 		width,

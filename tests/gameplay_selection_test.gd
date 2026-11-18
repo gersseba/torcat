@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 
 var failures := 0
@@ -43,13 +44,15 @@ func _touch(position: Vector2) -> void:
 
 
 func _run() -> void:
+	var app_state: Node = root.get_node("AppState")
+	app_state.language = 0
+	app_state.mobile_controls = false
 	root.size = Vector2i(720, 1280)
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
 	await process_frame
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	if screen == null:
 		push_error("Gameplay screen was not found")
 		quit(1)
@@ -170,12 +173,34 @@ func _run() -> void:
 	_mouse_click(screen._back_button.get_global_rect().get_center())
 	await process_frame
 	_check(not back_pressed[0] and screen._back_confirmation.visible, "Back should ask for confirmation before leaving the level")
-	screen._back_confirmation.get_cancel_button().pressed.emit()
+	_check(
+		screen._back_confirmation_title.text == "Leave this trail?"
+		and screen._back_confirmation_message.text.contains("progress"),
+		"The themed confirmation must explain the consequence"
+	)
+	screen._back_stay_button.pressed.emit()
 	await process_frame
 	_check(not back_pressed[0] and not screen._back_confirmation.visible, "Cancelling should stay in the level")
 	_mouse_click(screen._back_button.get_global_rect().get_center())
 	await process_frame
-	screen._back_confirmation.confirmed.emit()
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.pressed = true
+	screen._unhandled_input(escape)
+	_check(not back_pressed[0] and not screen._back_confirmation.visible, "Escape should dismiss the themed confirmation")
+	app_state.language = 1
+	screen._show_back_confirmation()
+	_check(
+		screen._back_confirmation_title.text == "Diesen Pfad verlassen?"
+		and screen._back_stay_button.text == "Bleiben"
+		and screen._back_leave_button.text == "Level verlassen",
+		"Themed confirmation controls must be localized"
+	)
+	screen._back_stay_button.pressed.emit()
+	app_state.language = 0
+	_mouse_click(screen._back_button.get_global_rect().get_center())
+	await process_frame
+	screen._back_leave_button.pressed.emit()
 	await process_frame
 	_check(back_pressed[0], "Confirming the dialog should return to the menu")
 	print("Gameplay selection tests: %d failure(s)" % failures)

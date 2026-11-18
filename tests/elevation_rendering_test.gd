@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const ENGINE = preload("res://scripts/domain/game_engine.gd")
 const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
@@ -27,8 +28,7 @@ func _run() -> void:
 	root.add_child(app)
 	await process_frame
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	if screen == null:
 		push_error("Gameplay screen was not found")
 		quit(1)
@@ -116,6 +116,13 @@ func _check_atlas_uses_imported_textures(screen: GameplayScreen) -> void:
 	var renderer = screen._board_renderer
 	var atlas_source := renderer._tile_set.get_source(renderer._source_id) as TileSetAtlasSource
 	var atlas: Image = atlas_source.texture.get_image()
+	for kind in ["ramp", "stairs"]:
+		var glyph_image: Image = renderer._elevation_edge_image("%s_n" % kind)
+		var glyph_area := glyph_image.get_region(Rect2i(8, 16, 48, 48))
+		_check(
+			glyph_area.get_used_rect().size.y > 20,
+			"%s ledge glyph should remain clearly visible at gameplay tile scale" % kind
+		)
 	for token in ["ground_a", "path", "wall", "rubble", "resupply", "blocker_tree", "tortoise", "shell_item"]:
 		var coords: Vector2i = renderer._atlas_coords_by_role[token]
 		var tile := atlas.get_region(Rect2i(coords * renderer.TILE_SIZE, renderer.TILE_SIZE))

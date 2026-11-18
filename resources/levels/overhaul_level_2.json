@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "id": "overhaul_level_2",
+    "name": "The Old Watchtower Loop",
+    "backdrop": "#182c20"
+  },
+  "abilities": {
+    "shellCharge": true,
+    "pounce": true,
+    "catClimb": true,
+    "catCarry": true
+  },
+  "tileDefinitions": [
+    { "id": "forest", "heightLevel": 0, "assetKey": "forest_moss", "presentationTag": "ground" },
+    { "id": "trail", "heightLevel": 0, "assetKey": "path", "presentationTag": "ground" }
+  ],
+  "map": {
+    "legend": {
+      ".": { "tile": "forest" },
+      "=": { "tile": "trail" },
+      "#": { "tile": "forest", "blocker": "pine" }
+    },
+    "rows": [
+      "#########################",
+      "#########################",
+      "######################.##",
+      "##########.....#######.##",
+      "##########.###.........##",
+      "##########.###..######.##",
+      "######.....####.######.##",
+      "####.......####.######.##",
+      "####.#.#.....##.######.##",
+      "####.#.#.###.##.###.##.##",
+      "####...#.###.##........##",
+      "######.......######.#####",
+      "######.#####.######.#####",
+      "######.#####.######.#####",
+      "##=====#####........#####",
+      "#########################",
+      "#########################"
+    ]
+  },
+  "decorations": [
+    { "assetKey": "forest_litter", "position": { "x": 3, "y": 14 } },
+    { "assetKey": "forest_litter", "position": { "x": 6, "y": 13 } },
+    { "assetKey": "forest_litter", "position": { "x": 8, "y": 10 } },
+    { "assetKey": "forest_litter", "position": { "x": 16, "y": 10 } },
+    { "assetKey": "forest_litter", "position": { "x": 19, "y": 13 } },
+    { "assetKey": "forest_litter", "position": { "x": 16, "y": 14 } },
+    { "assetKey": "forest_litter", "position": { "x": 19, "y": 11 } },
+    { "assetKey": "forest_litter", "position": { "x": 15, "y": 8 } },
+    { "assetKey": "forest_litter", "position": { "x": 21, "y": 4 } },
+    { "assetKey": "forest_litter", "position": { "x": 14, "y": 3 } },
+    { "assetKey": "forest_litter", "position": { "x": 10, "y": 6 } },
+    { "assetKey": "forest_litter", "position": { "x": 4, "y": 7 } }
+  ],
+  "entities": [
+    { "type": "ENEMY", "id": "loop_entrance_mouse", "species": "mouse", "position": { "x": 6, "y": 14 }, "power": 5 },
+    { "type": "ENEMY", "id": "loop_lower_hedgehog", "species": "hedgehog", "position": { "x": 6, "y": 10 }, "power": 6 },
+    { "type": "ENEMY", "id": "loop_lower_goose", "species": "goose", "position": { "x": 6, "y": 12 }, "power": 8 },
+    { "type": "LOOT", "id": "loop_lower_cache", "assetKey": "barrel", "position": { "x": 4, "y": 8 }, "powerReward": 4 },
+    { "type": "ENEMY", "id": "loop_clearing_hedgehog", "species": "hedgehog", "position": { "x": 8, "y": 7 }, "power": 10 },
+    { "type": "ENEMY", "id": "loop_watch_mouse", "species": "mouse", "position": { "x": 10, "y": 3 }, "power": 11 },
+    { "type": "LOOT", "id": "loop_watch_cache", "assetKey": "cracked_stone", "position": { "x": 13, "y": 3 }, "powerReward": 5 },
+    { "type": "SHELL_ITEM", "id": "loop_upper_shell", "position": { "x": 11, "y": 3 }, "power": 10 },
+    { "type": "ENEMY", "id": "loop_crossroads_snake", "species": "snake", "position": { "x": 12, "y": 10 }, "power": 16 },
+    { "type": "SHELL_ITEM", "id": "loop_ridge_shell", "position": { "x": 12, "y": 13 }, "power": 8 },
+    { "type": "LOOT", "id": "loop_ridge_cache", "assetKey": "tree_stump", "position": { "x": 18, "y": 14 }, "powerReward": 8 },
+    { "type": "ENEMY", "id": "loop_ridge_badger", "species": "badger", "position": { "x": 17, "y": 14 }, "power": 22 },
+    { "type": "ENEMY", "id": "loop_east_hedgehog", "species": "hedgehog", "position": { "x": 15, "y": 9 }, "power": 26 },
+    { "type": "ENEMY", "id": "loop_gate_mouse", "species": "mouse", "position": { "x": 20, "y": 4 }, "power": 30 },
+    { "type": "ENEMY", "id": "watchtower_guard", "species": "badger", "position": { "x": 22, "y": 2 }, "power": 125 }
+  ],
+  "initialState": {
+    "tortoise": { "x": 2, "y": 14 },
+    "tortoisePower": 8,
+    "cat": { "x": 3, "y": 14 },
+    "catPower": 7,
+    "catPounces": 3,
+    "catStatus": "party"
+  },
+  "events": [
+    {
+      "id": "watchtower_hint",
+      "trigger": { "type": "level_start" },
+      "actions": [
+        {
+          "type": "message",
+          "text": {
+            "en": "The watchtower route loops back on itself. Search the western clearing and upper trail for supplies before facing the guard.",
+            "de": "Der Weg zum Wachturm führt in Schleifen zurück. Durchsuche die westliche Lichtung und den oberen Pfad nach Vorräten, bevor du dich dem Wächter stellst."
+          }
+        }
+      ]
+    }
+  ]
+}

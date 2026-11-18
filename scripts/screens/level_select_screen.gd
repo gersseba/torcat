@@ -65,6 +65,9 @@ func _ready() -> void:
 	var levels := [
 		["level_1", {"en": "Meadow Ruins", "de": "Wiesenruinen"}],
 		["level_2_descent", {"en": "Cliffside Descent", "de": "Abstieg an den Klippen"}],
+		["overhaul_level_1", {"en": "Bramblefork Trail", "de": "Brombeer-Gabelung"}],
+		["overhaul_level_2", {"en": "The Old Watchtower Loop", "de": "Die Runde am alten Wachturm"}],
+		["hollow_crown", {"en": "The Hollow Crown", "de": "Der hohle Kronenring"}],
 		["random", {"en": "Random level", "de": "Zufallslevel"}],
 		["random_backward", {"en": "Random level · backward", "de": "Zufallslevel · rückwärts"}],
 	]

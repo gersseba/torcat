@@ -22,11 +22,12 @@ static func center(cell: Vector2i) -> Vector2:
 	return Vector2(cell) + Vector2(0.5, 0.5)
 
 
-static func _tile_free(state, cell: Vector2i) -> bool:
+static func _tile_free(state, cell: Vector2i, character_id: int) -> bool:
 	return (
 		cell.x >= 0 and cell.y >= 0 and cell.x < state.width and cell.y < state.height
 		and not state.is_blocked(cell)
 		and not state.enemies_by_pos.has(cell) and not state.lootables_by_pos.has(cell)
+		and not state.is_occupied_by_other_character(cell, character_id)
 	)
 
 
@@ -40,7 +41,7 @@ static func _crossing_allowed(engine, state, from: Vector2i, to: Vector2i, chara
 		var horizontal := from + Vector2i(delta.x, 0)
 		var vertical := from + Vector2i(0, delta.y)
 		return (
-			_tile_free(state, horizontal) and _tile_free(state, vertical)
+			_tile_free(state, horizontal, character_id) and _tile_free(state, vertical, character_id)
 			and engine._can_traverse(state, from, horizontal, character_id)
 			and engine._can_traverse(state, horizontal, to, character_id)
 			and engine._can_traverse(state, from, vertical, character_id)
@@ -53,11 +54,11 @@ static func point_free(engine, state, point: Vector2, character_id: int) -> bool
 	if not point.is_finite():
 		return false
 	var cell := cell_at(point)
-	if not _tile_free(state, cell):
+	if not _tile_free(state, cell, character_id):
 		return false
 	for offset in BODY_CORNERS:
 		var touched := cell_at(point + offset)
-		if not _tile_free(state, touched) or not _crossing_allowed(engine, state, cell, touched, character_id):
+		if not _tile_free(state, touched, character_id) or not _crossing_allowed(engine, state, cell, touched, character_id):
 			return false
 	return true
 
@@ -86,13 +87,13 @@ static func find_path(engine, state, start: Vector2, target: Vector2, character_
 	for y in state.height:
 		for x in state.width:
 			var cell := Vector2i(x, y)
-			if _tile_free(state, cell):
+			if _tile_free(state, cell, character_id):
 				graph.add_point(y * state.width + x, center(cell))
 	for id in graph.get_point_ids():
 		var cell := cell_at(graph.get_point_position(id))
 		for offset in NEIGHBORS:
 			var neighbor: Vector2i = cell + offset
-			if not _tile_free(state, neighbor):
+			if not _tile_free(state, neighbor, character_id):
 				continue
 			var next_id: int = neighbor.y * state.width + neighbor.x
 			# Center-to-center edges need only their crossed tiles/edges checked.
@@ -108,7 +109,7 @@ static func find_path(engine, state, start: Vector2, target: Vector2, character_
 		for y in range(cell.y - 1, cell.y + 2):
 			for x in range(cell.x - 1, cell.x + 2):
 				var neighbor := Vector2i(x, y)
-				if not _tile_free(state, neighbor):
+				if not _tile_free(state, neighbor, character_id):
 					continue
 				var id: int = y * state.width + x
 				if segment_free(engine, state, point, center(neighbor), character_id):
@@ -133,7 +134,7 @@ static func attack_path(engine, state, target: Vector2i, character_id: int) -> P
 	var start: Vector2 = state.character_state(character_id).world_position
 	for offset in CARDINAL_NEIGHBORS:
 		var stand: Vector2i = target + offset
-		if not _tile_free(state, stand) or not engine._can_traverse(state, stand, target, character_id):
+		if not _tile_free(state, stand, character_id) or not engine._can_traverse(state, stand, target, character_id):
 			continue
 		var path := find_path(engine, state, start, center(stand), character_id)
 		if path.is_empty():

@@ -10,11 +10,13 @@ const MAIN_MENU_SCENE := preload("res://scenes/screens/main_menu.tscn")
 const LEVEL_SELECT_SCENE := preload("res://scenes/screens/level_select.tscn")
 const SETTINGS_SCENE := preload("res://scenes/screens/settings.tscn")
 const GAMEPLAY_SCENE := preload("res://scenes/screens/gameplay.tscn")
+const LOADING_SCENE := preload("res://scenes/screens/loading.tscn")
 const CUTSCENE_SCREEN_SCRIPT := preload("res://scripts/screens/cutscene_screen.gd")
 const LEVEL_SCRIPT := preload("res://scripts/domain/level_script.gd")
 const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
 
 @onready var _screen_host: Control = $screen_host
+var _transition_generation := 0
 
 
 func _ready() -> void:
@@ -22,11 +24,78 @@ func _ready() -> void:
 	if AppRouter.current_route.is_empty():
 		AppRouter.navigate(ROUTE_MAIN_MENU)
 	else:
-		_show_route(AppRouter.current_route, AppRouter.current_payload)
+		_on_route_changed(AppRouter.current_route, AppRouter.current_payload)
 
 
 func _on_route_changed(route: String, payload: Variant) -> void:
+	_transition_generation += 1
+	if route == ROUTE_GAMEPLAY:
+		_show_gameplay_route(payload, _transition_generation)
+		return
 	_show_route(route, payload)
+
+
+func _show_gameplay_route(payload: Variant, generation: int) -> void:
+	for child in _screen_host.get_children():
+		child.queue_free()
+
+	_update_music(ROUTE_GAMEPLAY, payload)
+	var loading := LOADING_SCENE.instantiate() as Control
+	_screen_host.add_child(loading)
+	loading.call("set_progress", 0.08, LEVEL_SCRIPT.localize({
+		"en": "Opening the trail...", "de": "Der Pfad öffnet sich...",
+	}))
+	await get_tree().process_frame
+	if generation != _transition_generation:
+		return
+
+	loading.call("set_progress", 0.24, LEVEL_SCRIPT.localize({
+		"en": "Gathering the companions...", "de": "Die Gefährten sammeln sich...",
+	}))
+	await get_tree().process_frame
+	if generation != _transition_generation:
+		return
+
+	var gameplay := _build_screen(ROUTE_GAMEPLAY, payload) as GameplayScreen
+	if gameplay == null:
+		push_error("Failed to create gameplay screen.")
+		return
+	_screen_host.add_child(gameplay)
+	gameplay.visible = false
+	loading.move_to_front()
+	loading.call("set_progress", 0.50, LEVEL_SCRIPT.localize({
+		"en": "Unfolding the map...", "de": "Die Karte wird entfaltet...",
+	}))
+	await get_tree().process_frame
+	if generation != _transition_generation:
+		return
+
+	gameplay.prepare_level(payload if payload is Dictionary else {})
+	loading.call("set_progress", 0.72, LEVEL_SCRIPT.localize({
+		"en": "Marking the trails...", "de": "Die Wege werden eingezeichnet...",
+	}))
+	await get_tree().process_frame
+	if generation != _transition_generation:
+		return
+
+	gameplay.render_prepared_level()
+	loading.call("set_progress", 0.94, LEVEL_SCRIPT.localize({
+		"en": "Almost ready...", "de": "Gleich geht es los...",
+	}))
+	await get_tree().process_frame
+	if generation != _transition_generation:
+		return
+
+	loading.call("set_progress", 1.0, LEVEL_SCRIPT.localize({
+		"en": "Let's go!", "de": "Los geht's!",
+	}))
+	await get_tree().create_timer(0.1).timeout
+	if generation != _transition_generation:
+		return
+	_screen_host.remove_child(loading)
+	loading.queue_free()
+	gameplay.visible = true
+	gameplay.move_to_front()
 
 
 func _show_route(route: String, payload: Variant) -> void:

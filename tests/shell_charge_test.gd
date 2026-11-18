@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const ENGINE = preload("res://scripts/domain/game_engine.gd")
 const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
@@ -42,6 +43,9 @@ func _screen_position(screen: GameplayScreen, tile: Vector2i) -> Vector2:
 
 func _run() -> void:
 	var engine := ENGINE.new()
+	var app_state: Node = root.get_node("AppState")
+	app_state.language = 0
+	app_state.mobile_controls = false
 	var state = _state()
 	var target := Vector2i(3, 2)
 	_check(state.shell_power == 0 and state.duplicate_state().shell_power == 0, "Shell starts at zero and copies")
@@ -113,8 +117,7 @@ func _run() -> void:
 	root.add_child(app)
 	await process_frame
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	if screen == null:
 		push_error("Gameplay screen was not found")
 		quit(1)

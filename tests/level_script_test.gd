@@ -17,7 +17,11 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _run() -> void:
+	var app_state: Node = root.get_node("AppState")
+	app_state.language = 0
+	app_state.mobile_controls = false
 	_test_parsing()
+	_test_join_party()
 	_test_triggers()
 	_test_authored_content()
 	root.size = Vector2i(720, 1280)
@@ -43,6 +47,21 @@ func _test_parsing() -> void:
 	_check(events.size() == 1 and events[0]["id"] == "ok", "Only the first valid event may survive validation")
 	_check(LS.read_pos({"x": 2, "y": 3}) == Vector2i(2, 3) and LS.read_pos([4, 5]) == Vector2i(4, 5), "Positions accept objects and arrays")
 	_check(LS.localize({"en": "Hi", "de": "Hallo"}) == "Hi" and LS.localize("Plain") == "Plain", "Localization falls back to English and plain strings")
+
+
+func _test_join_party() -> void:
+	var state = GS.new(2, 1, GS.PlayerState.new(Vector2i.ZERO, 3), GS.PlayerState.new(Vector2i.ZERO, 2))
+	state.cat_present = false
+	var join_action := {"type": "join_party", "character": "cat"}
+	_check(
+		not LS.apply_state_action(state, join_action) and not state.cat_present,
+		"The cat must not join on the tortoise's tile"
+	)
+	state.cat.position = Vector2i(1, 0)
+	_check(
+		LS.apply_state_action(state, join_action) and state.cat_present and state.cat_in_party,
+		"The cat may join when it occupies a separate tile"
+	)
 
 
 func _test_triggers() -> void:

@@ -1,6 +1,8 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
+const TEST_SETTINGS_PATH := "user://mobile_controls_test.cfg"
 var failures := 0
 
 
@@ -20,6 +22,7 @@ func _run() -> void:
 	root.add_child(app)
 	await process_frame
 	var app_state: Node = root.get_node("AppState")
+	app_state.settings_path = TEST_SETTINGS_PATH
 	app_state.set("mobile_controls", false)
 	root.get_node("AppRouter").navigate("settings")
 	await process_frame
@@ -37,8 +40,7 @@ func _run() -> void:
 	_check(bool(app_state.get("mobile_controls")), "Settings must enable the mobile control scheme")
 
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
-	await process_frame
-	var screen: GameplayScreen = root.find_child("GameplayScreen", true, false)
+	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	_check(screen != null and screen._mobile_controls_enabled, "Gameplay must apply the selected mobile scheme")
 	if screen == null:
 		quit(1)
@@ -90,4 +92,6 @@ func _run() -> void:
 	)
 
 	print("Mobile controls tests: %d failure(s)" % failures)
+	if FileAccess.file_exists(TEST_SETTINGS_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SETTINGS_PATH))
 	quit(1 if failures else 0)

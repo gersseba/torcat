@@ -1,5 +1,6 @@
 extends SceneTree
 
+const TEST_HELPERS := preload("res://tests/test_helpers.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const LS = preload("res://scripts/domain/level_script.gd")
 const FACTORY = preload("res://scripts/domain/game_world_factory.gd")
@@ -90,6 +91,8 @@ func _test_chapter_content() -> void:
 		_check(FACTORY.LEVEL_PATHS.has(level_id), "%s must be registered in LEVEL_PATHS" % level_id)
 		var raw: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(FACTORY.LEVEL_PATHS[level_id]))
 		var state = _factory.create_world(level_id)
+		if state.cat_present:
+			_check(state.player.position != state.cat.position, "%s must start with the characters on separate tiles" % level_id)
 		var expected := {"ENEMY": 0, "ITEM": 0, "SHELL_ITEM": 0, "LOOT": 0}
 		for entity in raw.get("entities", []):
 			expected[str(entity["type"])] += 1
@@ -251,8 +254,7 @@ func _test_campaign_flow(app_state: Node) -> void:
 	await process_frame
 	var router: Node = root.get_node("AppRouter")
 	router.navigate("gameplay", {"level_id": "chapter_1_meadow", "scripts": false})
-	await process_frame
-	var completed := _current_screen(app) as GameplayScreen
+	var completed: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(app)
 	completed._state.victory = true
 	completed._render_state()
 	app_state.load_progress()
@@ -279,9 +281,7 @@ func _test_campaign_flow(app_state: Node) -> void:
 		gameplay._render_state()
 		_check(gameplay._retry_button.visible, "Defeat offers a retry")
 		gameplay._retry_button.pressed.emit()
-		await process_frame
-		await process_frame
-		var retried := _current_screen(app) as GameplayScreen
+		var retried: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(app)
 		_check(router.current_route == "gameplay" and retried != null and retried != gameplay and retried._level_id == "chapter_2_foothills", "Retry restarts the same chapter without its intro")
 		_check(retried != null and not retried._overview_running, "Retry skips the chapter overview")
 

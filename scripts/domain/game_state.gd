@@ -202,6 +202,12 @@ func character_state(character_id: CharacterId) -> PlayerState:
 	return player if character_id == CharacterId.TORTOISE else cat
 
 
+func is_occupied_by_other_character(pos: Vector2i, character_id: int) -> bool:
+	if character_id == CharacterId.TORTOISE:
+		return cat_present and cat.position == pos
+	return player.position == pos
+
+
 func is_character_controllable(character_id: CharacterId) -> bool:
 	if character_id == CharacterId.TORTOISE:
 		return true
