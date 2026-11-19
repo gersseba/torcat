@@ -21,7 +21,7 @@ func _run() -> void:
 	await process_frame
 	root.get_node("AppRouter").navigate(
 		"gameplay",
-		{"level_id": "hollow_crown", "scripts": false, "overview": false}
+		{"level_id": "chapter_5_summit", "scripts": false, "overview": false}
 	)
 
 	var loading := root.find_child("LoadingScreen", true, false)
@@ -45,7 +45,7 @@ func _run() -> void:
 
 	_check(gameplay != null and gameplay.visible, "Gameplay should appear after setup completes")
 	if gameplay != null:
-		_check(gameplay._level_id == "hollow_crown", "The requested level should be the one rendered")
+		_check(gameplay._level_id == "chapter_5_summit", "The requested level should be the one rendered")
 	_check(root.find_child("LoadingScreen", true, false) == null, "The loading screen should be removed when ready")
 	print("gameplay_loading_test: %d failure(s)" % failures)
 	quit(1 if failures else 0)

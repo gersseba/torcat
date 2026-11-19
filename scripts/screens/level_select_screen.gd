@@ -63,11 +63,6 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 16)
 	_practice.add_child(column)
 	var levels := [
-		["level_1", {"en": "Meadow Ruins", "de": "Wiesenruinen"}],
-		["level_2_descent", {"en": "Cliffside Descent", "de": "Abstieg an den Klippen"}],
-		["overhaul_level_1", {"en": "Bramblefork Trail", "de": "Brombeer-Gabelung"}],
-		["overhaul_level_2", {"en": "The Old Watchtower Loop", "de": "Die Runde am alten Wachturm"}],
-		["hollow_crown", {"en": "The Hollow Crown", "de": "Der hohle Kronenring"}],
 		["random", {"en": "Random level", "de": "Zufallslevel"}],
 		["random_backward", {"en": "Random level · backward", "de": "Zufallslevel · rückwärts"}],
 	]
@@ -101,6 +96,8 @@ func _ready() -> void:
 	resized.connect(_layout_screen)
 	_footer.minimum_size_changed.connect(func() -> void: _layout_screen.call_deferred())
 	_show_practice(false)
+	if _story_map.selected_index >= 0:
+		_on_destination_selected(_story_map.destinations[_story_map.selected_index], _story_map.can_start())
 
 
 func chapter_buttons() -> Array:

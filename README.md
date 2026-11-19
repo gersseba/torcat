@@ -211,14 +211,8 @@ Tap an unlocked destination to walk there, then choose **Start** for a level or
 **Watch** for a standalone cutscene replay. Start is unavailable during travel;
 locked destinations cannot be selected or started. Replays return to the map,
 and the final story star unlocks only after winning the summit. The **Practice**
-tab keeps standalone and random levels separate from campaign progression. It
-also includes three route-design experiments: **Bramblefork Trail**, with a
-northern supply detour and southern power-building route before a strong eastern
-guard; **The Old Watchtower Loop**, with connected switchbacks and a stronger
-final guard; and **The Hollow Crown**, with a central crossroads, four
-asymmetric loops, mixed-strength room encounters, and a crown room that is
-dangerous early. These are separate practice maps; the five story chapters are
-unchanged.
+tab remains available for the forward and backward procedural level variants.
+Hand-authored standalone and experimental levels are disabled.
 
 ### Room-based procedural generation direction
 
@@ -251,10 +245,8 @@ then embed that graph in the map:
    failed validation reason. Keep a few authored room-graph templates as
    fallbacks instead of falling back to an open, featureless arena.
 
-**The Hollow Crown** is a hand-authored test case for this direction: the west,
-north, east and lower loops offer different mixes of threat and supplies, while
-the crossroads and crown room are beyond starting power. It is still a
-prototype for route choice, not a fully balanced level.
+These notes describe a possible future direction; the current procedural
+generator remains grid-based and does not yet build these room graphs.
 
 One current rule limits how optional these branches can be: victory requires
 defeating every enemy. A branch can offer optional loot or be delayed until the

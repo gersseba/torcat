@@ -51,7 +51,7 @@ func _run() -> void:
 		_check(settings._language_button.text == "Sprache: DE", "Settings language label must be localized")
 		_check(settings._mobile_controls_toggle.text == "Touch-Steuerung", "Touch setting must be localized")
 
-	root.get_node("AppRouter").navigate("gameplay", {"level_id": "overhaul_level_2", "scripts": false})
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "chapter_4_cliffs", "scripts": false})
 	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)
 	_check(screen != null, "Gameplay screen must load")
 	if screen != null:

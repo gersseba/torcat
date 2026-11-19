@@ -12,9 +12,6 @@ const LEVEL_PATHS := {
 	"chapter_3_rocky_pass": "res://resources/levels/chapter_3_rocky_pass.json",
 	"chapter_4_cliffs": "res://resources/levels/chapter_4_cliffs.json",
 	"chapter_5_summit": "res://resources/levels/chapter_5_summit.json",
-	"overhaul_level_1": "res://resources/levels/overhaul_level_1.json",
-	"overhaul_level_2": "res://resources/levels/overhaul_level_2.json",
-	"hollow_crown": "res://resources/levels/hollow_crown.json",
 }
 
 
