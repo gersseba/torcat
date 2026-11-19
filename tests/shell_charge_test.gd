@@ -124,7 +124,10 @@ func _run() -> void:
 		return
 	screen._state = _state()
 	screen._state.shell_power = 6
-	screen._state.enemies_by_pos[target] = GS.Enemy.new("enemy", target, 15)
+	var distant := Vector2i(4, 2)
+	screen._state.enemies_by_pos[distant] = GS.Enemy.new("enemy", distant, 3)
+	var second := Vector2i(4, 3)
+	screen._state.enemies_by_pos[second] = GS.Enemy.new("second", second, 13)
 	screen._render_state()
 	screen._update_camera_target(true)
 	screen._board_camera.force_update_scroll()
@@ -132,34 +135,44 @@ func _run() -> void:
 	_check(screen._shell_button.visible and screen._shell_button.text.contains("6"), "Button shows shell reserve")
 	_touch(screen._shell_button.get_global_rect().get_center())
 	await process_frame
-	_check(screen._shell_mode and screen._pounce_targets.has(target), "Touch enters targeting and highlights adjacent enemy")
-	_touch(_screen_position(screen, target))
-	await process_frame
-	_check(screen._state.last_event.contains("DEFEAT") and screen._state.last_event.contains("6 -> 0"), "Preview warns of defeat and shows cost")
+	_check(screen._shell_mode and screen._shell_effect.armed and screen._pounce_targets.is_empty()
+		and screen._state.shell_power == 6, "Touch arms gold sparks without requiring a target or spending reserve")
 	screen._toggle_shell_mode()
-	_check(not screen._shell_mode and screen._state.shell_power == 6, "Cancel spends nothing")
+	_check(not screen._shell_mode and not screen._shell_effect.armed and screen._state.shell_power == 6, "Toggling off hides sparks and spends nothing")
 	screen._toggle_shell_mode()
 	screen._select_character(GS.CharacterId.CAT)
-	_check(not screen._shell_mode and not screen._shell_button.visible, "Switching cancels charge")
+	_check(screen._shell_mode and screen._shell_effect.armed and not screen._shell_button.visible, "Switching preserves the tortoise's charge")
 	screen._select_character(GS.CharacterId.TORTOISE)
-	screen._state.enemies_by_pos[target].power = 12
-	screen._render_state()
-	_touch(screen._shell_button.get_global_rect().get_center())
+	_touch(_screen_position(screen, distant))
 	await process_frame
-	_touch(_screen_position(screen, target))
-	await process_frame
-	_check(screen._state.last_event.contains("WIN"), "Preview displays victory")
-	_touch(_screen_position(screen, target))
-	await create_timer(1.7).timeout
-	_check(screen._state.victory and screen._state.player.power == 20 and screen._state.shell_power == 0, "Touch confirms and resolves charge")
-	screen._state = _state()
-	screen._state.shell_power = 6
-	screen._state.enemies_by_pos[target] = GS.Enemy.new("enemy", target, 15)
+	_check(screen._preview_target == distant and screen._state.shell_power == 6, "Normal attack preview can approach a distant enemy without spending shell")
+	_touch(_screen_position(screen, distant))
+	var deadline := Time.get_ticks_msec() + 4000
+	while screen._shell_effect.impact_frame < 0 and Time.get_ticks_msec() < deadline:
+		await process_frame
+	_check(screen._shell_effect.impact_frame >= 0 and not screen._attack_effect.visible
+		and screen._shell_effect.impact_position == screen._tile_center_world(distant),
+		"Charged impact replaces the normal bump with a burst at the enemy")
+	while screen._moving_character_id != -1 and Time.get_ticks_msec() < deadline:
+		await process_frame
+	_check(screen._state.player.power == 11 and screen._state.shell_power == 3 and screen._shell_mode
+		and screen._shell_effect.armed and screen._shell_effect.impact_frame == -1, "Charge stays enabled after an attack if reserve remains")
+
+	screen._mobile_controls_enabled = true
+	screen._facing_by_character[GS.CharacterId.TORTOISE] = "east"
+	screen._state.enemies_by_pos[distant] = GS.Enemy.new("mobile", distant, 13)
 	screen._render_state()
-	screen._toggle_shell_mode()
-	screen._handle_shell_target(target)
-	screen._handle_shell_target(target)
-	await create_timer(1.7).timeout
-	_check(screen._state.game_over and not screen._state.player.alive and screen._state.shell_power == 0, "Confirmed losing charge resolves as defeat")
+	_touch(screen._mobile_special_button.get_global_rect().get_center())
+	await process_frame
+	_check(not screen._shell_mode and screen._state.enemies_by_pos.has(distant), "Mobile Special toggles off without attacking")
+	_touch(screen._mobile_special_button.get_global_rect().get_center())
+	await process_frame
+	_check(screen._shell_mode and screen._state.shell_power == 3, "Mobile Special toggles on without attacking")
+	_touch(screen._mobile_attack_button.get_global_rect().get_center())
+	deadline = Time.get_ticks_msec() + 3000
+	while screen._state.enemies_by_pos.has(distant) and Time.get_ticks_msec() < deadline:
+		await process_frame
+	_check(screen._state.player.power == 24 and screen._state.shell_power == 0 and not screen._shell_mode
+		and not screen._shell_effect.armed, "Mobile normal attack uses charge and disarms when the reserve runs out")
 	print("Shell charge tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)

@@ -14,6 +14,7 @@ const LOADING_SCENE := preload("res://scenes/screens/loading.tscn")
 const CUTSCENE_SCREEN_SCRIPT := preload("res://scripts/screens/cutscene_screen.gd")
 const LEVEL_SCRIPT := preload("res://scripts/domain/level_script.gd")
 const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
+const MEADOW_ROOMS := preload("res://scripts/domain/meadow_room_generator.gd")
 
 @onready var _screen_host: Control = $screen_host
 var _transition_generation := 0
@@ -30,6 +31,9 @@ func _ready() -> void:
 func _on_route_changed(route: String, payload: Variant) -> void:
 	_transition_generation += 1
 	if route == ROUTE_GAMEPLAY:
+		if payload is Dictionary and payload.get("level_id") == MEADOW_ROOMS.LEVEL_ID and not payload.has("seed"):
+			payload = payload.duplicate()
+			payload["seed"] = randi()
 		_show_gameplay_route(payload, _transition_generation)
 		return
 	_show_route(route, payload)
@@ -202,7 +206,10 @@ func _build_screen(route: String, payload: Variant) -> Node:
 				complete_level(level_id)
 			)
 			screen.retry_requested.connect(func(level_id: String) -> void:
-				AppRouter.navigate(ROUTE_GAMEPLAY, {"level_id": level_id, "overview": false})
+				var retry_payload := {"level_id": level_id, "overview": false}
+				if level_id == MEADOW_ROOMS.LEVEL_ID and payload is Dictionary and payload.has("seed"):
+					retry_payload["seed"] = payload["seed"]
+				AppRouter.navigate(ROUTE_GAMEPLAY, retry_payload)
 			)
 			return screen
 		ROUTE_CUTSCENE:

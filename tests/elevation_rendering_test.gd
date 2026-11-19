@@ -21,6 +21,9 @@ func _check_edge(screen: GameplayScreen, pos: Vector2i, direction: int, token: S
 	var actual := screen._elevation_layers[direction].get_cell_atlas_coords(pos)
 	var expected: Vector2i = screen._board_renderer._atlas_coords_by_role[token] if not token.is_empty() else Vector2i(-1, -1)
 	_check(actual == expected, "Unexpected %s edge at %s: %s" % [token, pos, actual])
+	if token.begins_with("stairs_") or token.begins_with("ramp_"):
+		_check(screen._elevation_layers[direction].get_cell_source_id(pos) == screen._board_renderer._crossing_source_id,
+			"Crossing must use the atlas that extends beyond the tile")
 
 
 func _run() -> void:
@@ -116,13 +119,20 @@ func _check_atlas_uses_imported_textures(screen: GameplayScreen) -> void:
 	var renderer = screen._board_renderer
 	var atlas_source := renderer._tile_set.get_source(renderer._source_id) as TileSetAtlasSource
 	var atlas: Image = atlas_source.texture.get_image()
+	var crossing_source := renderer._tile_set.get_source(renderer._crossing_source_id) as TileSetAtlasSource
+	var crossing_atlas := crossing_source.texture.get_image()
 	for kind in ["ramp", "stairs"]:
-		var glyph_image: Image = renderer._elevation_edge_image("%s_n" % kind)
-		var glyph_area := glyph_image.get_region(Rect2i(8, 16, 48, 48))
-		_check(
-			glyph_area.get_used_rect().size.y > 20,
-			"%s ledge glyph should remain clearly visible at gameplay tile scale" % kind
-		)
+		for i in renderer.EDGE_NAMES.size():
+			var token := "%s_%s" % [kind, renderer.EDGE_NAMES[i]]
+			var region := crossing_source.get_tile_texture_region(renderer._atlas_coords_by_role[token])
+			var crossing := crossing_atlas.get_region(region)
+			for rotation in (4 - i) % 4:
+				crossing.rotate_90(CLOCKWISE)
+			# Sample the gap in the cliff lip so only crossing pixels count.
+			var glyph := crossing.get_region(Rect2i(42, 0, 44, crossing.get_height())).get_used_rect()
+			var seam: int = (crossing.get_height() - renderer.TILE_SIZE.y) / 2
+			_check(glyph.size.y > 20 and absi(glyph.position.y + glyph.end.y - seam * 2) <= 1,
+				"%s must be readable and evenly straddle the shared tile edge" % token)
 	for token in ["ground_a", "path", "wall", "rubble", "resupply", "blocker_tree", "tortoise", "shell_item"]:
 		var coords: Vector2i = renderer._atlas_coords_by_role[token]
 		var tile := atlas.get_region(Rect2i(coords * renderer.TILE_SIZE, renderer.TILE_SIZE))

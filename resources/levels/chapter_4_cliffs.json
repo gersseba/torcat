@@ -245,7 +245,7 @@
       "y": 7
     },
     "catPower": 3,
-    "catPounces": 2,
+    "catPounces": 6,
     "catStatus": "party"
   },
   "events": [
@@ -268,8 +268,8 @@
           "type": "say",
           "speaker": "cat",
           "text": {
-            "en": "Look—shell charms up on those ledges! I can climb, one step at a time.",
-            "de": "Schau – Panzer-Amulette auf den Felsvorsprüngen! Ich kann klettern, Stufe für Stufe."
+            "en": "Look—shell charms up on those ledges! I can Pounce up to reach them.",
+            "de": "Schau – Panzer-Amulette auf den Felsvorsprüngen! Ich kann zu ihnen hinaufspringen."
           }
         },
         {
@@ -291,8 +291,8 @@
         {
           "type": "message",
           "text": {
-            "en": "The cat climbs one height level at a time. Shell charms it collects are delivered when it stands next to the tortoise.",
-            "de": "Die Katze klettert jeweils eine Höhenstufe. Gesammelte Panzer-Amulette übergibt sie, sobald sie neben der Schildkröte steht."
+            "en": "Use Pounce to go up bare ledges. Stairs and ramps are free to cross. Bring shell charms back to the tortoise by standing next to it.",
+            "de": "Benutze den Sprung, um Felsvorsprünge ohne Aufstieg zu erklimmen. Treppen und Rampen kosten keinen Sprung. Bring Panzer-Amulette zur Schildkröte, indem du dich neben sie stellst."
           }
         },
         {

@@ -9,6 +9,7 @@ const STAIRS_TEXTURE := preload("res://resources/assets/glyphs/elevation_stairs.
 const SHELL_ITEM_TEXTURE := preload("res://resources/assets/items/shell_charm.png")
 
 const TILE_SIZE := Vector2i(64, 64)
+const CROSSING_REGION := TILE_SIZE * 2
 ## A grid keeps the generated atlas well under the 4096 px WebGL/mobile texture limit.
 const ATLAS_COLUMNS := 16
 const EDGE_DIRECTIONS := [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
@@ -17,9 +18,11 @@ const EDGE_NAMES := ["n", "e", "s", "w"]
 var _theme = BoardThemeScript.new()
 var _atlas_coords_by_role: Dictionary = {}
 var _source_id: int = -1
+var _crossing_source_id: int = -1
 var _tile_set: TileSet
 static var _shared_atlas_coords_by_role: Dictionary = {}
 static var _shared_source_id: int = -1
+static var _shared_crossing_source_id: int = -1
 static var _shared_tile_set: TileSet
 var _token_by_asset_key := {
 	"grass": "ground_a",
@@ -28,16 +31,21 @@ var _token_by_asset_key := {
 	"meadow_patch": "ground_c",
 	"path": "path",
 	"trail": "trail",
+	"summit_dirt": "summit_dirt",
+	"summit_sand": "summit_sand",
+	"summit_trail": "summit_trail",
 	"wall": "wall",
 	"rubble": "rubble",
 	"resupply": "resupply",
 	"resupply_tile": "resupply",
-	"shallow_water": "shallow_water",
 }
 var _ground_cycle_tokens: Array[String] = ["ground_a", "ground_b", "ground_c", "ground_d"]
 ## Biome asset keys cycle through their variants in small patches so the
 ## ground reads as one surface per height band without visible repetition.
 const BIOME_TOKENS := {
+	"summit_dirt": ["summit_dirt", "summit_dirt_b", "summit_dirt_c"],
+	"summit_sand": ["summit_sand", "summit_sand_b", "summit_sand_c"],
+	"summit_trail": ["summit_trail", "summit_trail_b", "summit_trail_c"],
 	"flower_meadow": ["flowers_a", "flowers_b", "flowers_c", "flowers_d"],
 	"foothill": ["foothill_a", "foothill_b", "foothill_c"],
 	"rocky": ["rocky_a", "rocky_b", "rocky_c"],
@@ -82,17 +90,31 @@ const TOKEN_FILES := {
 	"blocker_stone_wall": "res://resources/assets/blockers/stone_wall.png",
 	"blocker_thick_bush": "res://resources/assets/blockers/thick_bush.png",
 	"blocker_fence": "res://resources/assets/blockers/wooden_fence.png",
-	"shallow_water": "res://resources/assets/tiles/shallow_water.png",
 	"forest_moss": "res://resources/assets/tiles/forest_moss.png",
 	"light_woodland": "res://resources/assets/tiles/light_woodland.png",
 	"mountain_meadow": "res://resources/assets/tiles/mountain_meadow.png",
 	"hilltop": "res://resources/assets/tiles/hilltop.png",
+	"summit_dirt": "res://resources/assets/tiles/summit_dirt.png",
+	"summit_sand": "res://resources/assets/tiles/summit_sand.png",
+	"summit_trail": "res://resources/assets/tiles/summit_trail.png",
+	"summit_dirt_b": "res://resources/assets/tiles/summit_dirt_b.png",
+	"summit_dirt_c": "res://resources/assets/tiles/summit_dirt_c.png",
+	"summit_sand_b": "res://resources/assets/tiles/summit_sand_b.png",
+	"summit_sand_c": "res://resources/assets/tiles/summit_sand_c.png",
+	"summit_trail_b": "res://resources/assets/tiles/summit_trail_b.png",
+	"summit_trail_c": "res://resources/assets/tiles/summit_trail_c.png",
 	"decor_meadow_flowers": "res://resources/assets/decorations/meadow_flowers.png",
 	"decor_forest_litter": "res://resources/assets/decorations/forest_litter.png",
 	"decor_woodland_ferns": "res://resources/assets/decorations/woodland_ferns.png",
 	"decor_mountain_flowers": "res://resources/assets/decorations/mountain_flowers.png",
 	"decor_scree": "res://resources/assets/decorations/scree.png",
 	"decor_dry_bush": "res://resources/assets/decorations/dry_bush.png",
+	"decor_summit_succulent": "res://resources/assets/decorations/summit_succulent.png",
+	"decor_summit_lupine": "res://resources/assets/decorations/summit_lupine.png",
+	"decor_summit_buttercup": "res://resources/assets/decorations/summit_buttercup.png",
+	"decor_summit_pinks": "res://resources/assets/decorations/summit_pinks.png",
+	"decor_summit_harebell": "res://resources/assets/decorations/summit_harebell.png",
+	"decor_summit_scrub": "res://resources/assets/decorations/summit_scrub.png",
 	"loot_tree_stump": "res://resources/assets/items/tree_stump.png",
 	"loot_barrel": "res://resources/assets/items/barrel.png",
 	"loot_cracked_stone": "res://resources/assets/items/cracked_stone.png",
@@ -117,6 +139,10 @@ const LOOT_TOKENS := {
 	"barrel": "loot_barrel",
 	"cracked_stone": "loot_cracked_stone",
 }
+
+
+static func loot_texture(asset_key: String) -> Texture2D:
+	return load(TOKEN_FILES[LOOT_TOKENS[asset_key]])
 
 
 func render(
@@ -207,6 +233,7 @@ func _build_tile_set() -> void:
 		_tile_set = _shared_tile_set
 		_atlas_coords_by_role = _shared_atlas_coords_by_role
 		_source_id = _shared_source_id
+		_crossing_source_id = _shared_crossing_source_id
 		return
 
 	var tokens: Array[String] = [
@@ -215,9 +242,8 @@ func _build_tile_set() -> void:
 		"tortoise", "cat", "enemy", "item", "shell_item", "loot", "resupply_marker", "preview", "selection",
 		"pounce_empty", "pounce_enemy", "pounce_selected"
 	]
-	for kind in ["cliff", "ramp", "stairs"]:
-		for direction in EDGE_NAMES:
-			tokens.append("%s_%s" % [kind, direction])
+	for direction in EDGE_NAMES:
+		tokens.append("cliff_%s" % direction)
 	for biome_tokens in BIOME_TOKENS.values():
 		for biome_token in biome_tokens:
 			tokens.append(biome_token)
@@ -246,9 +272,30 @@ func _build_tile_set() -> void:
 	_tile_set = TileSet.new()
 	_tile_set.tile_size = TILE_SIZE
 	_source_id = _tile_set.add_source(atlas_source)
+	_build_crossing_source()
 	_shared_atlas_coords_by_role = _atlas_coords_by_role
 	_shared_source_id = _source_id
+	_shared_crossing_source_id = _crossing_source_id
 	_shared_tile_set = _tile_set
+
+
+func _build_crossing_source() -> void:
+	# A wider atlas region lets the glyph extend past the high tile without shifting its cliff lip.
+	var atlas := Image.create(CROSSING_REGION.x * EDGE_NAMES.size(), CROSSING_REGION.y * 2, false, Image.FORMAT_RGBA8)
+	var source := TileSetAtlasSource.new()
+	for kind in ["ramp", "stairs"]:
+		for i in EDGE_NAMES.size():
+			var token := "%s_%s" % [kind, EDGE_NAMES[i]]
+			var coords := Vector2i(i, 0 if kind == "ramp" else 1)
+			var art := elevation_edge_image(token)
+			atlas.blit_rect(art, Rect2i(Vector2i.ZERO, CROSSING_REGION), coords * CROSSING_REGION)
+			_atlas_coords_by_role[token] = coords
+	source.texture = ImageTexture.create_from_image(atlas)
+	source.texture_region_size = CROSSING_REGION
+	for y in range(2):
+		for x in EDGE_NAMES.size():
+			source.create_tile(Vector2i(x, y))
+	_crossing_source_id = _tile_set.add_source(source)
 
 
 func tile_world_size() -> int:
@@ -338,13 +385,20 @@ func _ground_token_for_cell(cell, pos: Vector2i) -> String:
 
 
 func _elevation_edge_image(token: String) -> Image:
+	return elevation_edge_image(token)
+
+
+static func elevation_edge_image(token: String) -> Image:
 	var parts := token.split("_")
 	var kind := parts[0]
-	var edge := Image.create(TILE_SIZE.x, TILE_SIZE.y, false, Image.FORMAT_RGBA8)
+	var is_crossing := is_crossing_token(token)
+	var size := CROSSING_REGION if is_crossing else TILE_SIZE
+	var inset := (size - TILE_SIZE) / 2
+	var edge := Image.create(size.x, size.y, false, Image.FORMAT_RGBA8)
 	edge.fill(Color.TRANSPARENT)
 	var rock := CLIFF_TEXTURE.get_image()
 	for x in range(TILE_SIZE.x):
-		var crossing := kind != "cliff" and x >= 10 and x < 54
+		var crossing := is_crossing and x >= 10 and x < 54
 		if crossing:
 			continue
 		var depth := 12 + (x / 8) % 4
@@ -352,8 +406,8 @@ func _elevation_edge_image(token: String) -> Image:
 			var color := rock.get_pixel(x, y)
 			if y == 0:
 				color = Color("29291e")
-			edge.set_pixel(x, y, color)
-	if kind != "cliff":
+			edge.set_pixelv(inset + Vector2i(x, y), color)
+	if is_crossing:
 		var texture: Texture2D = RAMP_TEXTURE if kind == "ramp" else STAIRS_TEXTURE
 		var glyph := texture.get_image()
 		glyph = glyph.get_region(glyph.get_used_rect())
@@ -363,12 +417,16 @@ func _elevation_edge_image(token: String) -> Image:
 			maxi(1, roundi(glyph.get_height() * glyph_scale))
 		)
 		glyph.resize(glyph_size.x, glyph_size.y, Image.INTERPOLATE_NEAREST)
-		var glyph_position := Vector2i((TILE_SIZE.x - glyph_size.x) / 2, 0)
+		var glyph_position := inset + Vector2i((TILE_SIZE.x - glyph_size.x) / 2, -glyph_size.y / 2)
 		edge.blend_rect(glyph, Rect2i(Vector2i.ZERO, glyph_size), glyph_position)
 	var rotations := EDGE_NAMES.find(parts[1])
 	for i in range(rotations):
 		edge.rotate_90(CLOCKWISE)
 	return edge
+
+
+static func is_crossing_token(token: String) -> bool:
+	return token.begins_with("ramp_") or token.begins_with("stairs_")
 
 
 func _elevation_token_for_edge(state, pos: Vector2i, direction_index: int) -> String:
@@ -384,12 +442,20 @@ func _elevation_token_for_edge(state, pos: Vector2i, direction_index: int) -> St
 	var neighbor_height: int = int(neighbor.height_level) if neighbor != null else 0
 	if int(cell.height_level) <= neighbor_height:
 		return ""
-	var kind := "cliff"
-	for edge in state.traversable_edges:
-		if edge.contains(pos, next_pos) and not state.is_blocked(pos) and not state.is_blocked(next_pos):
-			kind = "ramp" if edge.kind == GS.TraversalKind.RAMP else "stairs"
-			break
-	return "%s_%s" % [kind, EDGE_NAMES[direction_index]]
+	var crossing := ""
+	var blocked: bool = state.is_blocked(pos) or state.is_blocked(next_pos)
+	if not blocked:
+		for edge in state.traversable_edges:
+			if edge.contains(pos, next_pos):
+				crossing = "ramp" if edge.kind == GS.TraversalKind.RAMP else "stairs"
+				break
+	return elevation_edge_token(cell.height_level, neighbor_height, direction_index, crossing, blocked)
+
+
+static func elevation_edge_token(height: int, neighbor_height: int, direction: int, crossing: String, blocked: bool) -> String:
+	if height <= neighbor_height:
+		return ""
+	return "%s_%s" % ["cliff" if blocked or crossing.is_empty() else crossing, EDGE_NAMES[direction]]
 
 
 func _is_in_bounds(pos: Vector2i, width: int, height: int) -> bool:
@@ -402,4 +468,4 @@ func _tile_hash(x: int, y: int) -> int:
 
 func _set_role_cell(layer: TileMapLayer, pos: Vector2i, role: String) -> void:
 	var atlas_coords: Vector2i = _atlas_coords_by_role.get(role, _atlas_coords_by_role["ground_a"])
-	layer.set_cell(pos, _source_id, atlas_coords, 0)
+	layer.set_cell(pos, _crossing_source_id if is_crossing_token(role) else _source_id, atlas_coords, 0)

@@ -17,6 +17,14 @@ Open this directory in Godot 4 and run the project to launch the main scene.
 - Drag with one finger to pan the board.
 - Pinch with two fingers to zoom.
 - Use **Center** to return the camera to the selected character.
+- **Back** opens a confirmation above the board. Choose **Stay** to resume or
+  **Leave level** to return to the main menu.
+- Defeated enemies flash white and fade out. When a win grants power, golden
+  orbs fly to the hero who earned it. Breaking loot leaves debris you can walk
+  over. To compare the two enemy effects, open
+  [the gameplay scene](scenes/screens/gameplay.tscn) in Godot and toggle
+  **Enemy Defeat Glow Enabled** and **Power Transfer Orbs Enabled** separately
+  under **Combat Feedback** on `GameplayScreen`.
 - Menu and gameplay buttons use touch-sized hit areas.
 - Enable **Touch controls** in Settings for a left virtual joystick and right-side
   attack and special-action buttons.
@@ -55,37 +63,43 @@ enemies can specify `species` as `mouse`, `goose`, `hedgehog`, `badger`, or
 `snake`; older levels default to `mouse`.
 The cat starts with three pounces per level (level JSON may override this
 with `initialState.catPounces`). Select the cat, tap **Pounce**, then tap a
-highlighted cardinal destination up to two tiles away twice to confirm.
+highlighted destination up to two tiles away in any of the eight directions
+twice to confirm. With joystick controls, Pounce uses the last aimed direction.
 Tap **Cancel pounce** to cancel for free. Pounce ignores intervening tiles and
 elevation, but cannot land on a blocker or the tortoise. Landing collects items.
 Pouncing on an enemy subtracts the cat's power from the enemy and
 lands directly in front of it for the strike before jumping back. If already
 adjacent, the cat first walks one tile back and ends there after the strike.
 Pounces award no power, even on a defeat.
-Pounce uses do not replenish during the level. Its special destinations remain
-cardinal tiles; normal walking is continuous. Unopened loot containers cannot
+Pounce uses do not replenish during the level. Going up a bare ledge costs one
+Pounce; stairs and ramps are free to cross. Unopened loot containers cannot
 be pounce landing destinations and require a normal adjacent attack.
 The tortoise starts each level with zero shell power. Only the tortoise can
 use shell charms, which add to its reserve. The cat leaves charms in place
 unless the level enables `catCarry` (see [Story campaign](#story-campaign)).
-Select the tortoise and tap **Shell Charge**, then tap a highlighted adjacent
-enemy twice to preview and confirm. Cancel for free. The charge replaces a
-normal attack and follows normal terrain and elevation rules. Its strength is
+Select the tortoise and toggle **Shell** on or off. While on, golden sparks
+orbit the shell and normal attacks against enemies use Shell Charge, with a
+golden burst at impact. It stays on until toggled off or the reserve runs out.
+Walking and breaking loot do not spend reserve. Its strength is
 tortoise power plus shell power; equality wins, while an insufficient charge
 defeats the tortoise. The enemy's power is subtracted from the shell reserve
 (minimum zero), whether the attack wins or loses. On victory the tortoise
 gains the enemy's power normally, not the temporary shell bonus. Authored levels
 can place charms using entities of type `SHELL_ITEM` with positive `power`.
 Power indicators follow their characters while moving. Green brush strokes
-identify characters, blue identifies items and loot, and wine red identifies
-enemies. During an attack, the attacker's and target's indicators fade out
+identify characters, blue identifies loose items, and wine red identifies
+enemies. Unopened loot containers hide their reward; breaking one plays its
+animation and adds the reward to the character's displayed total.
+During an attack, the attacker's and target's indicators fade out
 and return afterward if their owners remain on the board.
 
 Cliffside Descent uses rocky borders to mark height changes. Ramps and stairs
 mark crossings where characters can move between heights; other cliff edges
 cannot be crossed. Elevation stays on the flat board, so taps and movement use
-the same grid as other levels. The cat hops over each traversable height edge,
-and the larger ledge marks make ramps and stairs easier to read on mobile.
+the same grid as other levels. On a tap-to-move route, the cat hops from half a
+tile before a traversable height edge to half a tile after it. Short routes or
+closely spaced ledges shorten the hop rather than overshooting the destination.
+The larger ledge marks make ramps and stairs easier to read on mobile.
 
 ## Cutscenes and level scripts
 
@@ -183,6 +197,8 @@ godot --headless --path . --script res://tests/campaign_test.gd
 godot --headless --path . --script res://tests/story_map_camera_test.gd
 godot --headless --path . --script res://tests/settings_localization_test.gd
 godot --headless --path . --script res://tests/practice_routes_test.gd
+godot --headless --path . --script res://tests/practice_scene_test.gd
+godot --headless --path . --script res://tests/meadow_room_generator_test.gd
 godot --headless --path . --script res://tests/gameplay_loading_test.gd
 ```
 
@@ -211,51 +227,190 @@ Tap an unlocked destination to walk there, then choose **Start** for a level or
 **Watch** for a standalone cutscene replay. Start is unavailable during travel;
 locked destinations cannot be selected or started. Replays return to the map,
 and the final story star unlocks only after winning the summit. The **Practice**
-tab remains available for the forward and backward procedural level variants.
-Hand-authored standalone and experimental levels are disabled.
+tab offers the forward and backward random-grid variants and **Meadow Rooms**.
+Older standalone and experimental JSON levels are not listed. Editable Godot
+scenes appear below the generated modes.
 
-### Room-based procedural generation direction
+### Editing your own Practice copy in Godot
 
-The current random levels place obstacles and encounters on a connected grid.
-The next generation step should build a small graph of authored room roles,
-then embed that graph in the map:
+1. Open [chapter_1_meadow_copy.tscn](scenes/practice/chapter_1_meadow_copy.tscn)
+   in Godot's **2D** editor. To make a fresh copy of any chapter, use
+   **Project > Tools > Torcat: Copy Story to Practice** and choose the chapter.
+   The command creates a new file without overwriting existing copies.
+2. Select **Ground**, **Blockers**, or **Decorations** in the Scene tree and
+   paint that layer using the TileMap panel. Choose terrain brushes on Ground,
+   obstacle brushes on Blockers, and scenery such as flowers on Decorations.
+   Terrain brushes with different heights are named in the tile source list.
+   An unpainted cell is impassable; place ground under each actor or pickup.
+3. Move or duplicate a node under **Markers** to place an enemy, pickup, or
+   loot container. Set its **Kind**, **Species**, and **Power** in the
+   Inspector. Keep exactly one Tortoise spawn and use separate cells for
+   actors and pickups. For stairs or ramps, put a marker on the shared edge
+   and set **Edge Direction** to point across it. Older markers at tile centers
+   still work.
+   The editor previews cliff edges, stairs, and ramps automatically while
+   you paint or move markers. A crossing glyph appears only between two
+   different heights with neither endpoint blocked.
+4. To change the name in the list, select the scene root and edit
+   **Practice Title**. Save your `.tscn` directly in
+   [scenes/practice/](scenes/practice/), run the project, and select the draft
+   under **Practice**. To branch from an edited draft, use **Save Scene As**
+   in the same folder and give the copy a new title. No JSON export or menu
+   registration is needed.
 
-1. Start with a camp or crossroads and three branches of unequal length. Join
-   at least two branches back together, then add a short loop or side chamber.
-   The route to the goal should not read as a single horizontal sequence.
-2. Choose room roles before placing enemies: forage room, mixed-threat
-   encounter, shell-charm cache, guarded shortcut, overstrength challenge, and
-   final chamber. Vary room size and exits so the same graph does not produce
-   identical corridors.
-3. Compose encounters as formations rather than a sorted list. For example, a
-   modest foe may share a room with a much stronger guard, or an exposed cache
-   may tempt the party past a threat they cannot yet beat. Put supplies in
-   different branches so players choose which power source or ability to pursue.
-4. Give each branch a power budget and a role in the progression. At the start,
-   provide more than one reachable target; leave at least one clearly
-   overstrength room reachable but unwise to challenge. Its threats should be
-   beatable after gains from other rooms, not merely a larger number at the end
-   of a linear path.
-5. Simulate paths through the real rules before accepting a layout: reachability
-   around enemies and loot, power gained by defeating each enemy, shell-charge
-   reserves, pounce uses, cat carrying/delivery, and whether the boss is
-   beatable after the available rewards. Recheck that there are multiple viable
-   early route choices, not just one solver-discovered mandatory opening.
-6. Use a fixed seed for each candidate, reject bad graphs, and log the seed and
-   failed validation reason. Keep a few authored room-graph templates as
-   fallbacks instead of falling back to an open, featureless arena.
+The scene supplies the terrain and placements; Torcat still uses its usual
+movement, combat, and renderer. Chapter copies omit Story dialogue,
+cutscenes, and scripted events. A copied chapter with a stranded cat starts
+with the cat in the party since its recruitment event is not copied.
 
-These notes describe a possible future direction; the current procedural
-generator remains grid-based and does not yet build these room graphs.
+**Meadow Rooms** generates a tortoise-only trail with two branching areas.
+Start on either side of the lower loop, then return to the stronger crossing
+encounter once you've powered up. The goose opens the upper grove and glade;
+clear those in either order before challenging the hill mouse. The lower
+shortcut, upper loop, and boss approach vary by seed. A new selection rolls
+a new seed; **Retry** keeps the same map. The map opens with a board overview
+and the hill mouse's power in the HUD.
 
-One current rule limits how optional these branches can be: victory requires
-defeating every enemy. A branch can offer optional loot or be delayed until the
-party is stronger, but its enemies cannot be skipped to finish the level. If
-generated rooms should contain genuinely optional encounters, first add an
-explicit exit/goal rule or mark optional enemies separately. The current
-procedural solvability search also only branches over the tortoise's normal
-movement; it should be extended to model pounce and Shell Charge before those
-abilities are used as generation requirements.
+### Room-graph procedural generation
+
+The two original random modes still place encounters on a connected grid.
+[Meadow Rooms](scripts/domain/meadow_room_generator.gd) implements the room-graph
+approach separately. It samples a constrained 10–11-room graph with 1–3 loops,
+then assigns power budgets, encounter families, and oriented layout masks.
+It is not a general graph embedder. Broad clearings, crooked glades, narrow
+lanes, and flower glades use different footprints and entity sockets, while connector
+paths remain clear of room encounters. The strongest enemy in each open
+encounter requires the entry power plus its supporting rewards. The goose
+and hill mouse are tuned to the full budget of the stage before them.
+The baker uses existing Meadow assets and the standard level importer.
+The validator follows two different branch orders and executes movement and
+combat using `GameEngine`. It checks that the crossing captain takes more
+power than the lower support enemies and pickups alone can provide, and
+that the goose guards all upper rewards even after the lower loop is cleared.
+Rejected seeds are logged, and alternate candidates are bounded.
+
+The generator plans progression before baking into the existing tile and
+entity model. Keep two related graphs:
+
+- The **physical room graph** describes which rooms and corridors connect. It
+  may contain loops and support backtracking.
+- The **progression dependency graph** is a directed acyclic graph (DAG). Its
+  edges express which power/reward gains make a later room safe to clear. It
+  must not imply that physical loops themselves are one-way or monotonic.
+
+#### Room power model
+
+Each planned room can record an entry requirement and expected reward, but
+these are summaries for planning and display—not proof of solvability.
+
+- Define the requirement as the minimum supported game state from which a
+  solver can clear the intended encounter and reach a usable exit. For the
+  first, tortoise-only profile this can be a single power value. For the full
+  party it must account for separate cat/tortoise power and relevant ability
+  resources.
+- Define power increase as the **net reward actually collectible on a valid
+  clear**, not simply the sum of everything authored into the room. Include
+  normal enemy defeat power, item bonuses, and lootable `powerReward`; do not
+  count inaccessible pickups or shell charms as character power.
+- In the current combat rules, a normal attacker with power `P` can defeat
+  enemy `E` only when `P >= E`, then gains `E` power. Thus `5 -> defeat 5 ->
+  10 -> defeat 10 -> 20` is a valid snowball chain. A weaker attacker loses;
+  enemies do not grant an arbitrary room-clear bonus.
+- An item behind an enemy, a blocked approach tile, or a strong enemy covering
+  the room exit can change the true requirement. Calculate the room's transfer
+  outcomes by simulating legal action order, rather than deriving them from
+  totals alone. Preserve the individual enemy and pickup values in room data.
+- For later profiles, the summary is a state transition, not one number:
+  inputs include character powers, cat presence/controllability, pounce uses,
+  shell reserve, and carrying state where applicable. Pounce weakening does
+  not grant the enemy's power; Shell Charge consumes shell reserve and uses
+  the tortoise's normal defeat reward.
+
+There is no room-level power gate in the current game. Treat `entryRequirement`
+as generation/validation metadata and use a visible strong guard on a
+chokepoint for a soft gate. If the design requires an underpowered party to be
+physically unable to enter, add and test a real gate rule first. Let players
+backtrack from a telegraphed future challenge; do not make a required route
+depend on losing combat. Victory currently requires defeating every enemy, so
+an enemy branch is not optional unless an exit/goal or optional-enemy rule is
+added.
+
+#### Encounter and layout templates
+
+Use the proposed entity combinations as **formation families** with bounded
+variants, rather than fixed room scripts:
+
+- One strong enemy plus one strong item.
+- Several enemies plus one item.
+- Several enemies plus one or more loot containers.
+- Several weaker enemies supporting a strong enemy.
+- One strong enemy guarding multiple loot containers.
+
+Each family should declare compatible room roles, enemy/item ranges, a power
+budget, allowed placement sockets, and its intended progression tier. Keep
+threats and rewards spatially readable; never assume a strong item is usable
+before its guard unless the baked layout provides a safe approach.
+
+A layout template should declare more than maximum width and height in tiles:
+
+- Minimum/maximum footprint and legal rotations/reflections.
+- Explicit connection ports (position, side, and opening width) and the
+  clearance/vestibule reserved around each port.
+- An interior walkable mask proving each required port can reach the others.
+- Entity sockets and forbidden tiles for blockers, elevation edges, and
+  decorations.
+- Biome/style tags and a room role or set of roles it supports.
+
+Place connectors as part of graph embedding, not as an afterthought. Reserve
+at least a clear tile connection between room ports; wider or scenic corridors
+can be selected by profile. Reject overlapping room footprints, blocked ports,
+disconnected entrances, and routes too narrow for character occupancy. Assign
+entities only to legal sockets after the layout and its connections are fixed.
+
+#### Generation and validation pipeline
+
+1. Choose a generation profile: story stage/biome, starting party state,
+   target room count and board size, desired duration, boss goal, and enabled
+   abilities. For the first-stage Meadow profile, use the tortoise alone,
+   meadow/flower/path tiles, stone walls, and the existing
+   mouse, goose, hedgehog, and barrel roles. Introduce later biomes and abilities
+   only when their rules are included in validation.
+2. Generate a physical room graph with a start, a visible boss/final room,
+   two or three asymmetric early routes, useful loops, and retreat paths.
+   Separately assign the progression DAG and room tiers. Leave at least two
+   viable early choices and make at least one stronger room a readable future
+   goal.
+3. Assign room requirements and reward budgets using the actual combat
+   equations and local encounter simulation. Then assign compatible formation
+   families and solve their enemy/pickup ordering. Reject a room whose only
+   clear path requires an underpowered attack.
+4. Choose compatible layout templates, embed the rooms and corridors in board
+   space, and verify all graph edges have corresponding traversable tile paths.
+5. Bake the result into the project's existing level representation:
+   `tileDefinitions`, `map`/grid data, `entities`, `blockers`, `decorations`,
+   and `traversableEdges`. Reuse current asset keys and 64x64 tile coordinates;
+   the runtime need not understand room objects unless room-aware gameplay is
+   explicitly added later.
+6. Run a whole-level solver over the baked world. Its state must include the
+   current room/tile, actor powers and status, defeated enemies, collected
+   items, opened loot, and relevant abilities/resources. Backtracking revisits
+   previously reached rooms with their solved contents persisted. Confirm a
+   winning route, boss reachability, no forced loss, no spawn overlap, legal
+   approaches, and at least two viable early route choices.
+7. Measure quality separately from solvability: route length, empty walking,
+   number of reachable choices at each tier, optional reward value, threat
+   spacing, and mobile readability. Use hard rejection rules first; do not rely
+   on one aggregate difficulty score as a substitute for a solvability proof.
+8. Use a recorded seed for every candidate and include it in failure logs.
+   Validate authored graph/layout fallbacks with the same solver instead of
+   returning an unchecked open arena.
+
+The current `_is_procedural_candidate_solvable` search is a starting point, not
+the whole-level solver this design needs: it explores the tortoise's normal
+cardinal moves and does not model cat movement, Pounce, or Shell Charge actions.
+The current level factory also normalizes away some overlapping entity
+placements, so the generator must reject collisions before constructing the
+final state rather than treating normalization as validation.
 
 Unlocked chapters and explicit level completion, including the final chapter,
 are saved to `user://progress.cfg`. Older saves that recorded only unlocks infer
@@ -272,7 +427,7 @@ Level JSON options used by the campaign:
 
 - `abilities`: `shellCharge` and `pounce` (default `true`), and `catClimb` and
   `catCarry` (default `false`).
-  - A climbing cat can step up or down one height level without stairs.
+  - A climbing cat can hop down one height level without stairs or spending a Pounce.
   - A carrying cat picks up shell charms and delivers them as soon as it ends a
     move or pounce next to the tortoise.
 - `initialState.catStatus`: one of these values:
@@ -290,8 +445,10 @@ Level JSON options used by the campaign:
 - `decorations`: an optional array of `{assetKey, position: {x, y}}`.
   Decorations are always passable, remain after pickups, and draw beneath
   actors and loot. Keys: `meadow_flowers`, `forest_litter`, `woodland_ferns`,
-  `mountain_flowers`, `scree`, and `dry_bush`. Positions must be unique and
-  within the board.
+  `mountain_flowers`, `scree`, `dry_bush`, and the six Summit plants
+  (`summit_succulent`, `summit_lupine`, `summit_buttercup`, `summit_pinks`,
+  `summit_harebell`, `summit_scrub`). Positions must be unique and within the
+  board.
 - `LOOT` entities accept `assetKey`: `berries` (the backwards-compatible
   default), `tree_stump`, `barrel`, or `cracked_stone`. Confirming a container
   target approaches an adjacent tile center; attacking searches, opens, or
@@ -303,14 +460,16 @@ The story chapters have distinct environments and obstacle silhouettes:
 
 | Chapter | Terrain and decoration | Impassable objects | Loot |
 | --- | --- | --- | --- |
-| Flower Meadow | Flowers, green grass, shallow traversable ponds | Old stone walls | Barrel |
+| Flower Meadow | Flowers, green grass, dirt paths | Old stone walls | Barrel |
 | Mossy Forest | Dark moss, fallen sticks, leaves, mushrooms | Dense trees | Hollow stump |
 | Woodland Clearings | Light woodland grass, ferns, pebbles | Thick bushes, a few trees | Hollow stump, cracked stone |
 | Alpine Pasture (Alm) | Green mountain grass, edelweiss and gentians | Wooden fences | Barrel |
-| Summit | Rugged stone, scree, dry scrub, sparse mountain flowers | Boulders | Cracked stone, berries |
+| Summit | Ochre dirt, sandy terraces, a pale trail, and small alpine plants | Boulders | Cracked stone, berries |
 
-Shallow water follows ordinary movement and elevation rules; it is not a
-hazard and requires no swimming ability. Decoration never changes movement.
+Summit ground mixes three baked-in pebble and twig variants per surface. These
+details are decorative only and add no nodes, collisions, or per-frame work.
+
+Decoration never changes movement.
 Dialogue describes strength naturally rather than quoting combat numbers;
 the numeric HUD remains available for planning attacks.
 
@@ -333,7 +492,7 @@ godot --headless --path . --script res://tests/free_movement_test.gd
 chapter can be won, and that chapters 2–4 cannot be won without their new
 mechanic. Run it after rebalancing a chapter.
 `tests/biome_presentation_test.gd` checks biome identity, obstacle density,
-passable decorations and water, loot collection, imported artwork, and
+passable decorations, loot collection, imported artwork, and
 organic dialogue:
 
 ```text

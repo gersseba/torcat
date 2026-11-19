@@ -3,6 +3,7 @@ extends RefCounted
 
 const GS = preload("res://scripts/domain/game_state.gd")
 const NAV = preload("res://scripts/domain/free_navigation.gd")
+const POUNCE_RANGE := 2
 
 enum Direction {
 	UP,
@@ -38,13 +39,14 @@ func shell_charge(state, target: Vector2i):
 
 func can_pounce(state, target: Vector2i) -> bool:
 	var delta: Vector2i = target - state.cat.position
-	var distance := absi(delta.x) + absi(delta.y)
+	var distance := maxi(absi(delta.x), absi(delta.y))
 	if not (
 		not state.game_over and not state.victory and state.cat.alive
 		and state.pounce_enabled and state.is_character_controllable(GS.CharacterId.CAT)
 		and state.cat_pounces_remaining > 0
 		and _is_within_bounds(target, state.width, state.height)
-		and (delta.x == 0 or delta.y == 0) and distance >= 1 and distance <= 2
+		and (delta.x == 0 or delta.y == 0 or absi(delta.x) == absi(delta.y))
+		and distance >= 1 and distance <= POUNCE_RANGE
 		and target != state.player.position and not state.is_blocked(target)
 		and not state.lootables_by_pos.has(target)
 	):
@@ -66,7 +68,7 @@ func can_pounce(state, target: Vector2i) -> bool:
 		_is_within_bounds(retreat, state.width, state.height)
 		and retreat != state.player.position and not state.is_blocked(retreat)
 		and not state.enemies_by_pos.has(retreat) and not state.lootables_by_pos.has(retreat)
-		and _can_traverse(state, state.cat.position, retreat, GS.CharacterId.CAT)
+		and NAV._crossing_allowed(self, state, state.cat.position, retreat, GS.CharacterId.CAT)
 	)
 
 
@@ -363,7 +365,7 @@ func _can_traverse(state, from: Vector2i, to: Vector2i, character_id = GS.Charac
 	var to_height: int = to_cell.height_level if to_cell != null else 0
 	if from_height == to_height:
 		return true
-	if character_id == GS.CharacterId.CAT and state.cat_can_climb and absi(from_height - to_height) == 1:
+	if character_id == GS.CharacterId.CAT and state.cat_can_climb and from_height - to_height == 1:
 		return true
 	for edge in state.traversable_edges:
 		if edge.contains(from, to):

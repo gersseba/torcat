@@ -8,6 +8,8 @@ signal retry_requested(level_id: String)
 
 const GAME_WORLD_FACTORY_SCRIPT := preload("res://scripts/domain/game_world_factory.gd")
 const BOARD_RENDERER_SCRIPT := preload("res://scripts/rendering/board_renderer.gd")
+const COMBAT_REWARDS := preload("res://scripts/rendering/combat_rewards.gd")
+const SHELL_CHARGE_EFFECT := preload("res://scripts/rendering/shell_charge_effect.gd")
 const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
 const GS = preload("res://scripts/domain/game_state.gd")
 const CAT_SLASH_TEXTURE := preload("res://resources/assets/vfx/slash.png")
@@ -22,6 +24,11 @@ const WOODLAND_UI := preload("res://scripts/ui/woodland_ui.gd")
 const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
 static var _character_frames_cache: Dictionary = {}
 static var _enemy_frames_cache: Dictionary = {}
+
+@export_group("Combat Feedback")
+@export var enemy_defeat_glow_enabled := true
+@export var power_transfer_orbs_enabled := true
+@export_group("")
 
 const TILE_SIZE := 64.0
 const POWER_TEXT_COLOR := Color("f7e8c1")
@@ -54,7 +61,7 @@ const ATTACK_IMPACT_FRAMES := {
 const SCRIPT_CAMERA_MIN_ZOOM := 0.75
 const SCRIPT_CAMERA_MAX_ZOOM := 2.5
 const SCRIPT_ENEMY_STEP_DURATION := 0.32
-const CAT_LEDGE_JUMP_HALF_SPAN := 0.22
+const CAT_LEDGE_JUMP_HALF_SPAN := 0.5
 const SPEAKER_ANCHOR_HEIGHT := 58.0
 const SPEAKER_NAMES := {
 	"tortoise": {"en": "Tortoise", "de": "Schildkröte"},
@@ -87,6 +94,7 @@ const SPEAKER_NAMES := {
 @onready var _back_leave_button: Button = %LeaveButton
 @onready var _result_panel: PanelContainer = %ResultPanel
 @onready var _result_label: Label = %ResultLabel
+@onready var _meadow_goal: Label = %MeadowGoal
 @onready var _result_sub_label: Label = %ResultSubLabel
 @onready var _recenter_button: Button = %RecenterButton
 @onready var _continue_button: Button = %ContinueButton
@@ -108,6 +116,7 @@ var _stop_walk_requested := false
 var _continuous_move_origin_state
 var _continuous_move_character_id := -1
 var _continuous_move_blocked := false
+var _cat_pounce_heading := Vector2i.DOWN
 var _mobile_controls_root: Control
 var _joystick_base: Panel
 var _joystick_knob: Panel
@@ -148,6 +157,9 @@ var _character_animation_delays: Dictionary = {}
 var _character_animation_serials: Dictionary = {}
 var _moving_character_id: int = -1
 var _attack_effect: Sprite2D
+var _shell_effect: SHELL_CHARGE_EFFECT
+var _combat_rewards: COMBAT_REWARDS
+var _victory_reveal: Tween
 var _pounce_shadow: Polygon2D
 var _level_events: Array = []
 var _fired_events: Dictionary = {}
@@ -167,6 +179,7 @@ var _backdrop_rect: ColorRect
 var _overview_running := false
 var _victory_reported := false
 var _overview_enabled := true
+var _practice_load_failed := false
 var _audio_pickups := -1
 var _audio_enemies := 0
 var _audio_heroes := 0
@@ -189,6 +202,16 @@ func _ready() -> void:
 	_create_character_sprite(GS.CharacterId.TORTOISE, "tortoise")
 	_create_character_sprite(GS.CharacterId.CAT, "cat")
 	_create_attack_effect()
+	_shell_effect = SHELL_CHARGE_EFFECT.new()
+	_shell_effect.name = "ShellChargeEffect"
+	_shell_effect.z_index = 4
+	_shell_effect.tortoise = _character_sprites[GS.CharacterId.TORTOISE]
+	_board_root.add_child(_shell_effect)
+	_shell_effect.set_armed(false)
+	_combat_rewards = COMBAT_REWARDS.new()
+	_combat_rewards.name = "CombatRewards"
+	_combat_rewards.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_board_root.add_child(_combat_rewards)
 	_free_path_line = Line2D.new()
 	_free_path_line.width = 3.0
 	_free_path_line.default_color = Color("f5e5a6")
@@ -403,7 +426,6 @@ func _process_continuous_movement(delta: float) -> void:
 			"en": "%s moved.", "de": "%s bewegt sich."
 		}) % _selected_character_name()
 		_pounce_mode = false
-		_shell_mode = false
 		_pounce_targets.clear()
 		_preview_path.clear()
 		_preview_target = Vector2i(-1, -1)
@@ -415,6 +437,8 @@ func _process_continuous_movement(delta: float) -> void:
 		return
 	var sprite: AnimatedSprite2D = _character_sprites[character_id]
 	_facing_by_character[character_id] = _direction_name_from_vector(direction)
+	if character_id == GS.CharacterId.CAT:
+		_cat_pounce_heading = _pounce_heading(direction)
 	var start: Vector2 = actor.world_position
 	var step := direction * CONTINUOUS_MOVE_SPEED * delta
 	var destination := start + step
@@ -507,8 +531,9 @@ func _mobile_attack_pressed() -> void:
 		_joystick_vector = Vector2.ZERO
 		_finish_continuous_movement()
 	var direction := _facing_direction(_state.selected_character_id)
-	if _direction_target(_state.character_state(_state.selected_character_id).position, direction) in _state.enemies_by_pos:
-		_try_step(direction)
+	var front := _direction_target(_state.character_state(_state.selected_character_id).position, direction)
+	if _state.enemies_by_pos.has(front):
+		await _try_step(direction)
 
 
 func _mobile_special_pressed() -> void:
@@ -523,6 +548,7 @@ func _mobile_special_pressed() -> void:
 	var direction: int = _facing_direction(character_id)
 	var step: Vector2i = _direction_vector(direction)
 	if character_id == GS.CharacterId.CAT:
+		step = _cat_pounce_heading
 		for distance in [1, 2]:
 			var target: Vector2i = _state.cat.position + step * distance
 			if _state.enemies_by_pos.has(target) and _engine.can_pounce(_state, target):
@@ -534,10 +560,7 @@ func _mobile_special_pressed() -> void:
 				await _perform_pounce(target)
 				return
 	else:
-		var target: Vector2i = _state.player.position + step
-		if _engine.can_shell_charge(_state, target):
-			await _handle_shell_target(target)
-			await _handle_shell_target(target)
+		_toggle_shell_mode()
 
 
 func _facing_direction(character_id: int) -> int:
@@ -592,7 +615,7 @@ func _update_mobile_action_buttons() -> void:
 	if character_id == GS.CharacterId.CAT:
 		_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Pounce", "de": "Sprung"})
 	else:
-		_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Shell", "de": "Panzer"})
+		_mobile_special_button.text = _shell_toggle_text()
 
 
 func configure(payload: Dictionary) -> void:
@@ -601,13 +624,20 @@ func configure(payload: Dictionary) -> void:
 
 
 func prepare_level(payload: Dictionary) -> void:
+	_combat_rewards.clear_effects()
+	if _victory_reveal != null:
+		_victory_reveal.kill()
+		_victory_reveal = null
 	var level_id: String = str(payload.get("level_id", "unknown"))
 	_level_id = level_id
+	_cat_pounce_heading = Vector2i.DOWN
 	_victory_reported = false
 	_result_sting_played = false
 	_audio_pickups = -1
 	var factory = GAME_WORLD_FACTORY_SCRIPT.new()
-	_state = factory.create_world(level_id)
+	_state = factory.create_world(level_id, payload.get("seed"))
+	var is_meadow := level_id == GAME_WORLD_FACTORY_SCRIPT.MEADOW_ROOMS.LEVEL_ID
+	_practice_load_failed = _state.game_over and (is_meadow or level_id.begins_with(GAME_WORLD_FACTORY_SCRIPT.PRACTICE_SCENES.PREFIX))
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
 	_pounce_mode = false
@@ -618,21 +648,31 @@ func prepare_level(payload: Dictionary) -> void:
 		"en": "Tap a spot to preview a path, then tap again to move.",
 		"de": "Tippe für eine Wegvorschau und erneut, um loszugehen.",
 	})
+	_meadow_goal.text = ""
+	if is_meadow:
+		for enemy in _state.enemies_by_pos.values():
+			if enemy.id == "boss_0":
+				_meadow_goal.text = LEVEL_SCRIPT.localize({
+					"en": "Hill mouse: %d\nStart on the side trails",
+					"de": "Hügelmaus: %d\nBeginne auf den Nebenpfaden",
+				}) % enemy.power
+				break
 	_set_character_mode(GS.CharacterId.TORTOISE, "selected")
 	_set_character_mode(GS.CharacterId.CAT, "passive")
 	_result_panel.visible = false
 	_camera_manual_offset = Vector2.ZERO
 	_scripts_enabled = bool(payload.get("scripts", true))
-	_overview_enabled = bool(payload.get("overview", true))
+	_overview_enabled = bool(payload.get("overview", true)) and not _practice_load_failed
 	_level_events = LEVEL_SCRIPT.load_events(level_id) if _scripts_enabled else []
-	_apply_backdrop(str(LEVEL_SCRIPT.level_meta(level_id).get("backdrop", "")))
+	var backdrop := GAME_WORLD_FACTORY_SCRIPT.MEADOW_ROOMS.BACKDROP if is_meadow else str(LEVEL_SCRIPT.level_meta(level_id).get("backdrop", ""))
+	_apply_backdrop(backdrop)
 	_fired_events.clear()
 	_script_queue.clear()
 
 
 func render_prepared_level() -> void:
 	_render_state()
-	if _scripts_enabled and CAMPAIGN.is_campaign_level(_level_id) and _overview_enabled:
+	if _scripts_enabled and _overview_enabled and (CAMPAIGN.is_campaign_level(_level_id) or _level_id == GAME_WORLD_FACTORY_SCRIPT.MEADOW_ROOMS.LEVEL_ID):
 		call_deferred("_show_chapter_overview")
 	elif not _level_events.is_empty():
 		call_deferred("_start_level_script")
@@ -679,7 +719,9 @@ func _show_chapter_overview() -> void:
 	var zoom := minf(normal_zoom, CAMERA.overview_zoom(board_size, _camera_usable_rect()))
 	_board_camera.zoom = Vector2.ONE * zoom
 	_board_camera.position = _camera_position_for(board_size * 0.5, zoom)
-	_state.last_event = LEVEL_SCRIPT.localize(CAMPAIGN.chapters()[CAMPAIGN.chapter_index(_level_id)]["title"])
+	var chapter_index := CAMPAIGN.chapter_index(_level_id)
+	if chapter_index >= 0:
+		_state.last_event = LEVEL_SCRIPT.localize(CAMPAIGN.chapters()[chapter_index]["title"])
 	_render_state()
 	await get_tree().create_timer(0.55).timeout
 	var focus: Vector2 = _state.player.world_position * TILE_SIZE
@@ -886,9 +928,6 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 	if _pounce_mode:
 		_handle_pounce_target(tile_pos)
 		return
-	if _shell_mode:
-		_handle_shell_target(tile_pos)
-		return
 
 	var actor = _state.character_state(_state.selected_character_id)
 	if not actor.alive:
@@ -1025,8 +1064,12 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 		var stand: Vector2i = next_state.character_state(character_id).position
 		var direction := _direction_name_from_positions(stand, attack_target)
 		_facing_by_character[character_id] = direction
-		await _animate_attack(character_id, sprite, direction, attack_target)
-		next_state = _engine.move(next_state, _engine._direction_between(stand, attack_target), character_id)
+		var charged: bool = _shell_mode and character_id == GS.CharacterId.TORTOISE and _engine.can_shell_charge(next_state, attack_target)
+		await _animate_attack(character_id, sprite, direction, attack_target, charged)
+		if charged:
+			next_state = _engine.shell_charge(next_state, attack_target)
+		else:
+			next_state = _engine.move(next_state, _engine._direction_between(stand, attack_target), character_id)
 	_moving_character_id = -1
 	_reset_character_animation_timer(character_id)
 	await _commit_state(next_state, character_id, [origin, next_state.character_state(character_id).position])
@@ -1036,36 +1079,40 @@ func _ledge_jumps_along(start: Vector2, destination: Vector2, character_id: int)
 	var jumps: Array[Dictionary] = []
 	if character_id != GS.CharacterId.CAT:
 		return jumps
-	var distance := start.distance_to(destination)
+	var delta := destination - start
+	var distance := delta.length()
 	if distance <= 0.001:
 		return jumps
 
-	var sample_count := maxi(1, ceili(distance / GAME_ENGINE_SCRIPT.NAV.SAMPLE_SPACING))
-	var previous_cell: Vector2i = GAME_ENGINE_SCRIPT.NAV.cell_at(start)
-	var previous_height := _height_at_cell(previous_cell)
-	var last_jump_end := 0.0
-	for sample_index in range(1, sample_count + 1):
-		var sample_t := float(sample_index) / sample_count
-		var cell: Vector2i = GAME_ENGINE_SCRIPT.NAV.cell_at(start.lerp(destination, sample_t))
-		if cell == previous_cell:
-			continue
-		var height := _height_at_cell(cell)
+	var cell: Vector2i = GAME_ENGINE_SCRIPT.NAV.cell_at(start)
+	var end_cell: Vector2i = GAME_ENGINE_SCRIPT.NAV.cell_at(destination)
+	var step := Vector2i(signf(delta.x), signf(delta.y))
+	var crossings: Array[float] = []
+	while cell != end_cell:
+		var tx := INF if cell.x == end_cell.x else (cell.x + maxi(step.x, 0) - start.x) / delta.x
+		var ty := INF if cell.y == end_cell.y else (cell.y + maxi(step.y, 0) - start.y) / delta.y
+		var next_cell := cell
+		if tx <= ty + 0.0000001:
+			next_cell.x += step.x
+		if ty <= tx + 0.0000001:
+			next_cell.y += step.y
 		if (
-			height != previous_height
-			and _engine._can_traverse(_state, previous_cell, cell, character_id)
+			_height_at_cell(cell) != _height_at_cell(next_cell)
+			and GAME_ENGINE_SCRIPT.NAV._crossing_allowed(_engine, _state, cell, next_cell, character_id)
 		):
-			var crossing_t := (float(sample_index) - 0.5) / sample_count
-			var half_span_t := CAT_LEDGE_JUMP_HALF_SPAN / distance
-			var jump_start_t := maxf(last_jump_end, crossing_t - half_span_t)
-			var jump_end_t := minf(1.0, crossing_t + half_span_t)
-			if jump_end_t > jump_start_t:
-				jumps.append({
-					"start": start.lerp(destination, jump_start_t),
-					"end": start.lerp(destination, jump_end_t),
-				})
-				last_jump_end = jump_end_t
-		previous_cell = cell
-		previous_height = height
+			crossings.append(clampf(minf(tx, ty), 0.0, 1.0))
+		cell = next_cell
+
+	var half_span_t := CAT_LEDGE_JUMP_HALF_SPAN / distance
+	for i in crossings.size():
+		var crossing_t := crossings[i]
+		# Short segments and neighboring jumps cannot borrow space past their limits.
+		var lower := 0.0 if i == 0 else (crossings[i - 1] + crossing_t) * 0.5
+		var upper := 1.0 if i == crossings.size() - 1 else (crossing_t + crossings[i + 1]) * 0.5
+		jumps.append({
+			"start": start.lerp(destination, maxf(lower, crossing_t - half_span_t)),
+			"end": start.lerp(destination, minf(upper, crossing_t + half_span_t)),
+		})
 	return jumps
 
 
@@ -1091,7 +1138,6 @@ func _select_character(character_id) -> void:
 	if not _state.is_character_controllable(character_id):
 		return
 	_pounce_mode = false
-	_shell_mode = false
 	_pounce_targets.clear()
 	_state.selected_character_id = character_id
 	_set_character_mode(character_id, "selected")
@@ -1109,85 +1155,18 @@ func _select_character(character_id) -> void:
 
 
 func _toggle_shell_mode() -> void:
-	if _state == null or _state.selected_character_id != GS.CharacterId.TORTOISE or _moving_character_id != -1:
+	if _state == null or _state.selected_character_id != GS.CharacterId.TORTOISE or _moving_character_id != -1 or _script_running or _overview_running:
 		return
-	if not _shell_mode and (_state.shell_power <= 0 or not _state.player.alive or _state.game_over or _state.victory):
+	if not _shell_mode and (not _state.shell_charge_enabled or _state.shell_power <= 0 or not _state.player.alive or _state.game_over or _state.victory):
 		return
 	_shell_mode = not _shell_mode
-	_pounce_targets.clear()
-	_preview_path.clear()
-	_preview_target = Vector2i(-1, -1)
-	if _shell_mode:
-		for direction in [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]:
-			var target: Vector2i = _state.player.position + direction
-			if _engine.can_shell_charge(_state, target):
-				_pounce_targets[target] = true
-		if _pounce_targets.is_empty():
-			_shell_mode = false
-			_state.last_event = LEVEL_SCRIPT.localize({
-				"en": "No adjacent enemy available for Shell Charge.",
-				"de": "Kein benachbarter Gegner für den Panzerangriff.",
-			})
-		else:
-			_state.last_event = LEVEL_SCRIPT.localize({
-				"en": "Choose an adjacent enemy. Tap again to charge.",
-				"de": "Wähle einen benachbarten Gegner. Tippe erneut zum Angreifen.",
-			})
-	else:
-		_state.last_event = LEVEL_SCRIPT.localize({
-			"en": "Shell Charge cancelled.", "de": "Panzerangriff abgebrochen."
-		})
+	_state.last_event = _shell_toggle_text()
 	_render_state()
 
 
-func _handle_shell_target(target: Vector2i) -> void:
-	if not _engine.can_shell_charge(_state, target):
-		_preview_target = Vector2i(-1, -1)
-		_state.last_event = LEVEL_SCRIPT.localize({
-			"en": "Choose a highlighted adjacent enemy.",
-			"de": "Wähle einen markierten benachbarten Gegner.",
-		})
-		_render_state()
-		return
-	if _preview_target != target:
-		_preview_target = target
-		var enemy = _state.enemies_by_pos[target]
-		var strength: int = _state.player.power + _state.shell_power
-		var outcome := LEVEL_SCRIPT.localize(
-			{"en": "WIN", "de": "SIEG"} if strength >= enemy.power
-			else {"en": "DEFEAT", "de": "NIEDERLAGE"}
-		)
-		_state.last_event = LEVEL_SCRIPT.localize({
-			"en": "Shell: %d + %d = %d vs %d: %s. Shell %d -> %d. Tap again.",
-			"de": "Panzer: %d + %d = %d gegen %d: %s. Panzer %d -> %d. Erneut tippen.",
-		}) % [
-			_state.player.power, _state.shell_power, strength, enemy.power, outcome,
-			_state.shell_power, maxi(0, _state.shell_power - enemy.power)
-		]
-		_render_state()
-		return
-	var origin: Vector2i = _state.player.position
-	var next_state = _engine.shell_charge(_state, target)
-	_shell_mode = false
-	_pounce_targets.clear()
-	_preview_target = Vector2i(-1, -1)
-	_state.last_event = LEVEL_SCRIPT.localize({
-		"en": "Tortoise charging!", "de": "Die Schildkröte stürmt los!"
-	})
-	_moving_character_id = GS.CharacterId.TORTOISE
-	_render_state()
-	var sprite: AnimatedSprite2D = _character_sprites[GS.CharacterId.TORTOISE]
-	var pulse := create_tween()
-	pulse.tween_property(sprite, "modulate", Color(1.3, 1.35, 0.8), 0.15)
-	pulse.tween_property(sprite, "modulate", Color.WHITE, 0.15)
-	await pulse.finished
-	var center := _tile_center_world(origin)
-	if not sprite.position.is_equal_approx(center):
-		var alignment := create_tween()
-		alignment.tween_property(sprite, "position", center, sprite.position.distance_to(center) / TILE_SIZE * WALK_FRAME_DURATION * WALK_FRAME_COUNT)
-		await alignment.finished
-	await _animate_character_path(GS.CharacterId.TORTOISE, [origin, target], {target: true})
-	await _commit_state(next_state, GS.CharacterId.TORTOISE, [origin, target])
+func _shell_toggle_text() -> String:
+	var state_text := LEVEL_SCRIPT.localize({"en": "On", "de": "An"} if _shell_mode else {"en": "Off", "de": "Aus"})
+	return LEVEL_SCRIPT.localize({"en": "Shell %s (%d)", "de": "Panzer %s (%d)"}) % [state_text, _state.shell_power]
 
 
 func _toggle_pounce_mode() -> void:
@@ -1202,8 +1181,8 @@ func _toggle_pounce_mode() -> void:
 	elif _state.cat_pounces_remaining > 0 and _state.cat.alive and not _state.game_over and not _state.victory:
 		_pounce_mode = true
 		_pounce_targets.clear()
-		for direction in [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]:
-			for distance in [1, 2]:
+		for direction in GAME_ENGINE_SCRIPT.NAV.NEIGHBORS:
+			for distance in range(1, GAME_ENGINE_SCRIPT.POUNCE_RANGE + 1):
 				var target: Vector2i = _state.cat.position + direction * distance
 				if _engine.can_pounce(_state, target):
 					_pounce_targets[target] = _state.enemies_by_pos.has(target)
@@ -1251,10 +1230,16 @@ func _handle_pounce_target(target: Vector2i) -> void:
 	await _perform_pounce(target)
 
 
+func _pounce_heading(delta: Vector2) -> Vector2i:
+	var angle := roundf(delta.angle() / (PI / 4.0)) * (PI / 4.0)
+	return Vector2i(Vector2.from_angle(angle).round())
+
+
 func _perform_pounce(target: Vector2i) -> void:
 	if not _engine.can_pounce(_state, target):
 		return
 	var origin: Vector2i = _state.cat.position
+	_cat_pounce_heading = _pounce_heading(Vector2(target - origin))
 	var attacking: bool = _state.enemies_by_pos.has(target)
 	var next_state = _engine.pounce(_state, target)
 	_state.cat_pounces_remaining = next_state.cat_pounces_remaining
@@ -1295,16 +1280,11 @@ func _animate_pounce(origin: Vector2i, target: Vector2i, attacking: bool, next_s
 	if attacking:
 		await _animate_attack(character_id, sprite, direction, target)
 		await _animate_cat_jump(sprite, landing_world, launch_world, direction)
-	var previous_state = _state
-	_state = next_state
 	_moving_character_id = -1
 	_pounce_in_progress = false
 	_pounce_shadow.visible = false
 	_reset_character_animation_timer(character_id)
-	var events_queued := _queue_triggered_events(previous_state, next_state, character_id, [origin, next_state.cat.position])
-	_render_state()
-	if events_queued:
-		await _run_script_queue()
+	await _commit_state(next_state, character_id, [origin, next_state.cat.position], false)
 
 
 func _animate_cat_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2, direction: String) -> void:
@@ -1345,9 +1325,8 @@ func _animate_cat_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2
 func _try_step(direction) -> void:
 	if _moving_character_id != -1 or _script_running:
 		return
-	if _pounce_mode or _shell_mode:
+	if _pounce_mode:
 		_pounce_mode = false
-		_shell_mode = false
 		_pounce_targets.clear()
 	var actor_id: int = _state.selected_character_id
 	var actor = _state.character_state(actor_id)
@@ -1506,21 +1485,32 @@ func _render_state() -> void:
 	_recenter_button.text = LEVEL_SCRIPT.localize({"en": "Center", "de": "Zentrieren"})
 	_continue_button.text = LEVEL_SCRIPT.localize({"en": "Continue", "de": "Weiter"})
 	_retry_button.text = LEVEL_SCRIPT.localize({"en": "Retry", "de": "Erneut versuchen"})
+	_meadow_goal.visible = not _meadow_goal.text.is_empty() and not _state.game_over and not _state.victory
 	_free_path_line.clear_points()
-	_free_destination_marker.visible = not _preview_path.is_empty() and not _pounce_mode and not _shell_mode
+	if _state.shell_power <= 0 or not _state.player.alive or not _state.shell_charge_enabled or _state.game_over or _state.victory:
+		_shell_mode = false
+	_shell_effect.set_armed(_shell_mode)
+	_free_destination_marker.visible = not _preview_path.is_empty() and not _pounce_mode
 	if _free_destination_marker.visible:
 		for point in _free_preview:
 			_free_path_line.add_point(point * TILE_SIZE)
 		if not _free_preview.is_empty():
 			_free_destination_marker.position = _free_preview[_free_preview.size() - 1] * TILE_SIZE
 	var script_pending := _overview_running or _script_running or not _script_queue.is_empty()
-	if script_pending:
+	if script_pending or _victory_reveal != null:
 		_result_panel.visible = false
 	elif _state.victory:
 		_result_panel.visible = true
 		_result_label.text = LEVEL_SCRIPT.localize({"en": "Victory", "de": "Sieg"})
 		_result_sub_label.text = LEVEL_SCRIPT.localize({
 			"en": "All enemies defeated.", "de": "Alle Gegner sind besiegt."
+		})
+	elif _practice_load_failed:
+		_result_panel.visible = true
+		_result_label.text = LEVEL_SCRIPT.localize({"en": "Trail unavailable", "de": "Pfad nicht verfügbar"})
+		_result_sub_label.text = LEVEL_SCRIPT.localize({
+			"en": "This Practice trail could not be loaded. Check the Godot output for details.",
+			"de": "Dieser Übungspfad konnte nicht geladen werden. Details stehen in der Godot-Ausgabe.",
 		})
 	elif _state.game_over:
 		_result_panel.visible = true
@@ -1530,8 +1520,8 @@ func _render_state() -> void:
 		})
 	else:
 		_result_panel.visible = false
-	_continue_button.visible = _state.victory and not _state.game_over
-	_retry_button.visible = _state.game_over and not script_pending
+	_continue_button.visible = _state.victory and not _state.game_over and _victory_reveal == null
+	_retry_button.visible = _state.game_over and not script_pending and not _practice_load_failed
 	_pounce_button.visible = not _mobile_controls_enabled and _state.pounce_enabled and _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
 	_pounce_button.disabled = _moving_character_id != -1 or _state.cat_pounces_remaining <= 0 or not _state.cat.alive
 	_pounce_button.text = LEVEL_SCRIPT.localize(
@@ -1541,11 +1531,7 @@ func _render_state() -> void:
 	}) % [_state.cat_pounces_remaining, _state.cat_pounces_max]
 	_shell_button.visible = not _mobile_controls_enabled and _state.shell_charge_enabled and _state.selected_character_id == GS.CharacterId.TORTOISE and not _state.game_over and not _state.victory and not script_pending
 	_shell_button.disabled = _moving_character_id != -1 or _state.shell_power <= 0 or not _state.player.alive
-	_shell_button.text = LEVEL_SCRIPT.localize(
-		{"en": "Cancel charge", "de": "Angriff abbrechen"}
-	) if _shell_mode else LEVEL_SCRIPT.localize({
-		"en": "Shell Charge: %d", "de": "Panzerangriff: %d",
-	}) % _state.shell_power
+	_shell_button.text = _shell_toggle_text()
 	_update_mobile_action_buttons()
 
 	_board_renderer.render(
@@ -1558,10 +1544,10 @@ func _render_state() -> void:
 		_elevation_layers,
 		_preview_layer,
 		_pounce_layer,
-		_preview_path if _pounce_mode or _shell_mode else [],
+		_preview_path if _pounce_mode else [],
 		_state.selected_character_id,
 		_pounce_targets,
-		_preview_target if _pounce_mode or _shell_mode else Vector2i(-1, -1)
+		_preview_target if _pounce_mode else Vector2i(-1, -1)
 	)
 	_play_state_audio(script_pending)
 	_update_enemy_visuals()
@@ -1954,7 +1940,8 @@ func _animate_attack(
 	character_id: int,
 	sprite: AnimatedSprite2D,
 	direction: String,
-	target_pos: Variant = null
+	target_pos: Variant = null,
+	charged := false
 ) -> void:
 	var animation_name := "attack_%s" % direction
 	if not sprite.sprite_frames.has_animation(animation_name):
@@ -1966,6 +1953,8 @@ func _animate_attack(
 	if enemy_label != null:
 		_fade_power_label(enemy_label, 0.0)
 	var effect_updater := _update_attack_effect.bind(character_id, sprite, direction)
+	if charged:
+		effect_updater = _update_shell_impact.bind(sprite, direction, _tile_center_world(target_pos))
 	var reaction_updater := _update_enemy_reaction.bind(character_id, sprite, direction, target_pos)
 	sprite.frame_changed.connect(effect_updater)
 	sprite.frame_changed.connect(reaction_updater)
@@ -1976,6 +1965,8 @@ func _animate_attack(
 	sprite.frame_changed.disconnect(effect_updater)
 	sprite.frame_changed.disconnect(reaction_updater)
 	_attack_effect.visible = false
+	if charged:
+		_shell_effect.show_impact(Vector2.ZERO, -1)
 	var enemy_sprite: AnimatedSprite2D = _enemy_sprites.get(target_pos)
 	if is_instance_valid(enemy_sprite) and enemy_sprite.is_playing():
 		await enemy_sprite.animation_finished
@@ -2095,6 +2086,11 @@ func _update_attack_effect(character_id: int, sprite: AnimatedSprite2D, directio
 		_attack_effect.frame = effect_frame
 
 
+func _update_shell_impact(sprite: AnimatedSprite2D, direction: String, at: Vector2) -> void:
+	var frame := sprite.frame - int(ATTACK_IMPACT_FRAMES[GS.CharacterId.TORTOISE][direction])
+	_shell_effect.show_impact(at, frame if frame >= 0 and frame < 5 else -1)
+
+
 func _render_power_labels() -> void:
 	var enemy_labels := _enemy_power_labels.values()
 	for child in _marker_layer.get_children():
@@ -2129,8 +2125,6 @@ func _render_power_labels() -> void:
 		_add_power_label(position, str(_state.items_by_pos[position].power_bonus), "item")
 	for position in _state.shell_items_by_pos:
 		_add_power_label(position, "Shell +%d" % _state.shell_items_by_pos[position].power_bonus, "item")
-	for position in _state.lootables_by_pos:
-		_add_power_label(position, str(_state.lootables_by_pos[position].power_reward), "item")
 
 
 func _create_power_label(category: String) -> Label:
@@ -2167,13 +2161,37 @@ func _start_level_script() -> void:
 	await _run_script_queue()
 
 
-func _commit_state(next_state, actor_id: int, path: Array) -> void:
+func _commit_state(next_state, actor_id: int, path: Array, grants_enemy_power := true) -> void:
 	var previous_state = _state
+	_play_combat_rewards(previous_state, next_state, actor_id, grants_enemy_power)
 	_state = next_state
 	var events_queued := _queue_triggered_events(previous_state, next_state, actor_id, path)
 	_render_state()
 	if events_queued:
 		await _run_script_queue()
+
+
+func _play_combat_rewards(previous_state, next_state, actor_id: int, grants_enemy_power: bool) -> void:
+	var duration := 0.0
+	for position in previous_state.enemies_by_pos:
+		if next_state.enemies_by_pos.has(position):
+			continue
+		var enemy: AnimatedSprite2D = _enemy_sprites.get(position)
+		if enemy_defeat_glow_enabled and is_instance_valid(enemy):
+			duration = maxf(duration, _combat_rewards.play_enemy_defeat(enemy))
+		if power_transfer_orbs_enabled and grants_enemy_power and previous_state.enemies_by_pos[position].power > 0:
+			duration = maxf(duration, _combat_rewards.play_power_transfer(_tile_center_world(position), _character_sprites[actor_id]))
+	for position in previous_state.lootables_by_pos:
+		if not next_state.lootables_by_pos.has(position):
+			var asset_key: String = previous_state.lootables_by_pos[position].asset_key
+			_combat_rewards.play_loot_break(_tile_center_world(position), BOARD_RENDERER_SCRIPT.loot_texture(asset_key))
+	if next_state.victory and not previous_state.victory and duration > 0.0:
+		_victory_reveal = create_tween()
+		_victory_reveal.tween_interval(duration)
+		_victory_reveal.tween_callback(func() -> void:
+			_victory_reveal = null
+			_render_state()
+		)
 
 
 func _queue_triggered_events(previous_state, next_state, actor_id: int, path: Array) -> bool:
@@ -2201,7 +2219,6 @@ func _run_script_queue() -> void:
 		return
 	_script_running = true
 	_pounce_mode = false
-	_shell_mode = false
 	_pounce_targets.clear()
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)

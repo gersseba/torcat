@@ -32,7 +32,15 @@ func _run() -> void:
 		screen.chapter_buttons().size() == CAMPAIGN.chapters().size(),
 		"All Story chapter destinations must remain available"
 	)
-	_check(screen._practice_buttons.size() == 2, "Practice must offer forward and backward generated levels")
+	var selected: Array[String] = []
+	screen.level_selected.connect(func(id: String) -> void: selected.append(id))
+	if practice_tab != null:
+		practice_tab.pressed.emit()
+	for button in screen._practice_buttons:
+		button.pressed.emit()
+	_check(selected.slice(0, 3) == ["random", "random_backward", "room_meadow"],
+		"Practice must keep all generated modes")
+	_check(selected.has("practice_scene:chapter_1_meadow_copy"), "The editable Meadow must appear in Practice")
 	_check(
 		FACTORY.new().create_world("random").width > 0
 		and FACTORY.new().create_world("random_backward").width > 0,

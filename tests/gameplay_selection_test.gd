@@ -32,6 +32,10 @@ func _mouse_click(position: Vector2) -> void:
 	root.push_input(event)
 
 
+func _control_center(control: Control) -> Vector2:
+	return control.get_global_transform_with_canvas() * (control.size * 0.5)
+
+
 func _touch(position: Vector2) -> void:
 	var event := InputEventScreenTouch.new()
 	event.index = 0
@@ -170,23 +174,28 @@ func _run() -> void:
 	_check(screen._moving_character_id == -1, "Attack should complete")
 	var back_pressed := [false]
 	screen.back_to_menu_pressed.connect(func() -> void: back_pressed[0] = true)
-	_mouse_click(screen._back_button.get_global_rect().get_center())
+	screen._board_camera.position += Vector2(4000, 3000)
+	screen._board_camera.force_update_scroll()
+	_mouse_click(_control_center(screen._back_button))
 	await process_frame
 	_check(not back_pressed[0] and screen._back_confirmation.visible, "Back should ask for confirmation before leaving the level")
+	var modal_center := _control_center(screen._back_confirmation)
+	_check(modal_center.is_equal_approx(root.get_visible_rect().get_center()),
+		"The confirmation must stay centered in the viewport when the board camera is far away")
 	_check(
 		screen._back_confirmation_title.text == "Leave this trail?"
 		and screen._back_confirmation_message.text.contains("progress"),
 		"The themed confirmation must explain the consequence"
 	)
-	screen._back_stay_button.pressed.emit()
+	_mouse_click(_control_center(screen._back_stay_button))
 	await process_frame
 	_check(not back_pressed[0] and not screen._back_confirmation.visible, "Cancelling should stay in the level")
-	_mouse_click(screen._back_button.get_global_rect().get_center())
+	_mouse_click(_control_center(screen._back_button))
 	await process_frame
 	var escape := InputEventKey.new()
 	escape.keycode = KEY_ESCAPE
 	escape.pressed = true
-	screen._unhandled_input(escape)
+	root.push_input(escape)
 	_check(not back_pressed[0] and not screen._back_confirmation.visible, "Escape should dismiss the themed confirmation")
 	app_state.language = 1
 	screen._show_back_confirmation()
@@ -198,10 +207,11 @@ func _run() -> void:
 	)
 	screen._back_stay_button.pressed.emit()
 	app_state.language = 0
-	_mouse_click(screen._back_button.get_global_rect().get_center())
+	_mouse_click(_control_center(screen._back_button))
 	await process_frame
-	screen._back_leave_button.pressed.emit()
+	_mouse_click(_control_center(screen._back_leave_button))
 	await process_frame
-	_check(back_pressed[0], "Confirming the dialog should return to the menu")
+	_check(back_pressed[0] and root.get_node("AppRouter").current_route == "main_menu",
+		"Clicking Leave must return to the main menu")
 	print("Gameplay selection tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)

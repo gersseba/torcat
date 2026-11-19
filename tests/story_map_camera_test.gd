@@ -117,7 +117,7 @@ func _test_map(state: Node) -> void:
 	_check(watched == ["story_2_climb"], "Stars replay their cutscene independently")
 	screen._show_practice(true)
 	_check(not map.visible and screen._practice.visible and not screen._start_button.visible, "Practice stays separate from the Story map")
-	_check(screen._practice_buttons.size() == 2, "Practice keeps both generated level options")
+	_check(screen._practice_buttons.size() >= 4, "Practice keeps the generators and includes the editable Meadow")
 	screen._practice_buttons[0].pressed.emit()
 	_check(started.back() == "random", "The forward generated level remains available")
 	screen._show_practice(false)

@@ -37,12 +37,6 @@
       "presentationTag": "ground"
     },
     {
-      "id": "water0",
-      "heightLevel": 0,
-      "assetKey": "shallow_water",
-      "presentationTag": "ground"
-    },
-    {
       "id": "rubble",
       "heightLevel": 0,
       "assetKey": "rubble",
@@ -78,19 +72,16 @@
       "p": {
         "tile": "fh1",
         "blocker": "stone_wall"
-      },
-      "~": {
-        "tile": "water0"
       }
     },
     "rows": [
       "b,,..,T,,..,,b.^pp",
-      ",~~.,,T..,,..,,^^^",
-      ".~~..,T,..,,.o,^^^",
-      "..~,.,T.,,..,,.^^^",
+      ",...,,T..,,..,,^^^",
+      ".....,T,..,,.o,^^^",
+      "...,.,T.,,..,,.^^^",
       "=====.=========^^^",
-      ".,,..,T..~~.,,.^^^",
-      ",..,,.T,,~~,o.,^^^",
+      ".,,..,T.....,,.^^^",
+      ",..,,.T,,..,o.,^^^",
       ",,..,,T.,,..,,.^^^",
       "bb,,.,T,,..,bb,^pp"
     ]
@@ -239,8 +230,8 @@
         {
           "type": "message",
           "text": {
-            "en": "Tap a spot to preview a path, tap again to walk. Tap while walking to stop. The shallow water is safe. Tap a barrel twice to walk beside it and attack it for food.",
-            "de": "Tippe eine Stelle für eine Wegvorschau, erneut zum Laufen. Tippe unterwegs zum Anhalten. Das flache Wasser ist sicher. Tippe ein Fass zweimal an, um daneben zu laufen und es für Futter aufzubrechen."
+            "en": "Tap a spot to preview a path, tap again to walk. Tap while walking to stop. Tap a barrel twice to walk beside it and attack it for food.",
+            "de": "Tippe eine Stelle für eine Wegvorschau, erneut zum Laufen. Tippe unterwegs zum Anhalten. Tippe ein Fass zweimal an, um daneben zu laufen und es für Futter aufzubrechen."
           }
         }
       ]

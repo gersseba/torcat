@@ -18,37 +18,37 @@
     {
       "id": "al0",
       "heightLevel": 0,
-      "assetKey": "hilltop",
+      "assetKey": "summit_dirt",
       "presentationTag": "ground"
     },
     {
       "id": "tr0",
       "heightLevel": 0,
-      "assetKey": "trail",
+      "assetKey": "summit_trail",
       "presentationTag": "ground"
     },
     {
       "id": "al1",
       "heightLevel": 1,
-      "assetKey": "hilltop",
+      "assetKey": "summit_dirt",
       "presentationTag": "ground"
     },
     {
       "id": "tr1",
       "heightLevel": 1,
-      "assetKey": "trail",
+      "assetKey": "summit_trail",
       "presentationTag": "ground"
     },
     {
       "id": "sm2",
       "heightLevel": 2,
-      "assetKey": "hilltop",
+      "assetKey": "summit_sand",
       "presentationTag": "ground"
     },
     {
       "id": "sm3",
       "heightLevel": 3,
-      "assetKey": "hilltop",
+      "assetKey": "summit_sand",
       "presentationTag": "ground"
     }
   ],
@@ -98,22 +98,22 @@
     ]
   },
   "decorations": [
-    { "assetKey": "scree", "position": { "x": 3, "y": 0 } },
-    { "assetKey": "dry_bush", "position": { "x": 4, "y": 1 } },
-    { "assetKey": "scree", "position": { "x": 1, "y": 2 } },
-    { "assetKey": "dry_bush", "position": { "x": 4, "y": 4 } },
-    { "assetKey": "scree", "position": { "x": 2, "y": 6 } },
-    { "assetKey": "dry_bush", "position": { "x": 6, "y": 8 } },
-    { "assetKey": "mountain_flowers", "position": { "x": 6, "y": 0 } },
-    { "assetKey": "scree", "position": { "x": 12, "y": 0 } },
-    { "assetKey": "dry_bush", "position": { "x": 8, "y": 2 } },
-    { "assetKey": "scree", "position": { "x": 10, "y": 4 } },
-    { "assetKey": "dry_bush", "position": { "x": 13, "y": 7 } },
-    { "assetKey": "scree", "position": { "x": 17, "y": 1 } },
-    { "assetKey": "mountain_flowers", "position": { "x": 20, "y": 1 } },
-    { "assetKey": "scree", "position": { "x": 15, "y": 3 } },
-    { "assetKey": "dry_bush", "position": { "x": 19, "y": 6 } },
-    { "assetKey": "scree", "position": { "x": 18, "y": 8 } }
+    { "assetKey": "summit_succulent", "position": { "x": 3, "y": 0 } },
+    { "assetKey": "summit_lupine", "position": { "x": 4, "y": 1 } },
+    { "assetKey": "summit_buttercup", "position": { "x": 1, "y": 2 } },
+    { "assetKey": "summit_pinks", "position": { "x": 4, "y": 4 } },
+    { "assetKey": "summit_harebell", "position": { "x": 2, "y": 6 } },
+    { "assetKey": "summit_scrub", "position": { "x": 6, "y": 8 } },
+    { "assetKey": "summit_harebell", "position": { "x": 6, "y": 0 } },
+    { "assetKey": "summit_buttercup", "position": { "x": 12, "y": 0 } },
+    { "assetKey": "summit_lupine", "position": { "x": 8, "y": 2 } },
+    { "assetKey": "summit_scrub", "position": { "x": 10, "y": 4 } },
+    { "assetKey": "summit_pinks", "position": { "x": 13, "y": 7 } },
+    { "assetKey": "summit_succulent", "position": { "x": 17, "y": 1 } },
+    { "assetKey": "summit_harebell", "position": { "x": 20, "y": 1 } },
+    { "assetKey": "summit_lupine", "position": { "x": 15, "y": 3 } },
+    { "assetKey": "summit_buttercup", "position": { "x": 19, "y": 6 } },
+    { "assetKey": "summit_succulent", "position": { "x": 18, "y": 8 } }
   ],
   "traversableEdges": [
     {
@@ -319,7 +319,7 @@
       "y": 6
     },
     "catPower": 6,
-    "catPounces": 3,
+    "catPounces": 5,
     "catStatus": "party"
   },
   "events": [

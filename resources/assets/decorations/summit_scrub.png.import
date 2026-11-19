@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bllabvf1v6met"
-path="res://.godot/imported/shallow_water.png-a6146e81c46cc23c0caa4067e5d0da5e.ctex"
+uid="uid://dmcf8ihddfn52"
+path="res://.godot/imported/summit_scrub.png-e2a88a5f22122f93f9638c8655ee6ea2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/assets/tiles/shallow_water.png"
-dest_files=["res://.godot/imported/shallow_water.png-a6146e81c46cc23c0caa4067e5d0da5e.ctex"]
+source_file="res://resources/assets/decorations/summit_scrub.png"
+dest_files=["res://.godot/imported/summit_scrub.png-e2a88a5f22122f93f9638c8655ee6ea2.ctex"]
 
 [params]
 

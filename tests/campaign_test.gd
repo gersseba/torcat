@@ -170,12 +170,12 @@ func _test_engine_features() -> void:
 	cliff.shell_items_by_pos[Vector2i(3, 0)] = GS.Item.new("ledge", Vector2i(3, 0), 5)
 	_check(_engine.find_path(cliff, Vector2i(1, 0), Vector2i(2, 0), GS.CharacterId.CAT).is_empty(), "Cats without climbing respect cliffs")
 	cliff.cat_can_climb = true
-	_check(_engine.find_path(cliff, Vector2i(1, 0), Vector2i(2, 0), GS.CharacterId.CAT).size() == 2, "Climbing cats cross one height level")
+	_check(_engine.find_path(cliff, Vector2i(1, 0), Vector2i(2, 0), GS.CharacterId.CAT).is_empty(), "Climbing cats must Pounce up a bare ledge")
 	_check(_engine.find_path(cliff, Vector2i(1, 0), Vector2i(2, 0)).is_empty(), "The tortoise still needs stairs")
-	var ledge = _engine.move_along_path(cliff, [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0)], GS.CharacterId.CAT)
+	var ledge = _engine.pounce(cliff, Vector2i(3, 0))
 	_check(ledge.cat.position == Vector2i(3, 0) and ledge.shell_items_by_pos.has(Vector2i(3, 0)), "Cats without carrying leave shells alone")
 	cliff.cat_can_carry = true
-	var carrying = _engine.move_along_path(cliff, [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0)], GS.CharacterId.CAT)
+	var carrying = _engine.pounce(cliff, Vector2i(3, 0))
 	_check(carrying.cat_carried_shell == 5 and carrying.shell_power == 0, "Carrying cats pick up shells")
 	var back = _engine.move_along_path(carrying, [Vector2i(3, 0), Vector2i(2, 0), Vector2i(1, 0)], GS.CharacterId.CAT)
 	_check(back.cat_carried_shell == 0 and back.shell_power == 5, "Shells are delivered when the cat is next to the tortoise")
@@ -210,17 +210,94 @@ func _test_progress(app_state: Node) -> void:
 
 func _test_solvability() -> void:
 	for level_id in EXPECTED_CHAPTERS:
+		if level_id in ["chapter_4_cliffs", "chapter_5_summit"]:
+			continue
 		var result := _solve(level_id, {})
 		_check(result["won"], "%s must be winnable (searched %d nodes)" % [level_id, result["nodes"]])
+	_test_terrace_routes()
 	var required := [
 		["chapter_2_foothills", {"shell_charge_enabled": false}, "Shell Charge"],
 		["chapter_3_rocky_pass", {"pounce_enabled": false}, "Pounce"],
-		["chapter_4_cliffs", {"cat_can_carry": false}, "shell carrying"],
+		["chapter_4_cliffs", {"pounce_enabled": false}, "Pounce"],
 		["chapter_5_summit", {"cat_present": false, "cat_in_party": false}, "teamwork with the cat"],
 	]
 	for entry in required:
 		var result := _solve(entry[0], entry[1], false)
 		_check(not result["won"] and result["exhausted"], "%s must require %s (won=%s, nodes=%d)" % [entry[0], entry[2], str(result["won"]), result["nodes"]])
+
+
+func _test_terrace_routes() -> void:
+	# Explicit witnesses avoid a search over equivalent empty landings and return routes.
+	var routes := {
+		"chapter_4_cliffs": [
+			[Vector2i(8, 4), Vector2i(8, 2)], [Vector2i(3, 2), Vector2i(3, 0)],
+			"deliver", "stair_snake",
+			[Vector2i(18, 4), Vector2i(18, 2)], [Vector2i(15, 3), Vector2i(13, 3)],
+			["attack", "crag_hedgehog"], [Vector2i(15, 2), Vector2i(15, 0)],
+			"deliver", [Vector2i(16, 6), Vector2i(18, 6)], "mouse_champion",
+		],
+		"chapter_5_summit": [
+			[Vector2i(1, 2), Vector2i(1, 0)], "deliver", "gate_snake",
+			[Vector2i(10, 2), Vector2i(10, 0)], "deliver",
+			[Vector2i(12, 5), Vector2i(14, 5)],
+			[Vector2i(16, 2), Vector2i(16, 0)], "deliver",
+			[Vector2i(18, 4), Vector2i(20, 4)], Vector2i(17, 4), "badger",
+		],
+	}
+	for level_id in routes:
+		_events = LS.load_events(level_id)
+		var run := [_factory.create_world(level_id), {}]
+		for action in routes[level_id]:
+			run = _greedy_closure(run[0], run[1])
+			var state = run[0]
+			var cat := GS.CharacterId.CAT
+			if action is Vector2i:
+				var parents := _reach(state, cat)
+				if not parents.has(action):
+					_check(false, "%s cannot move the cat clear of the crossing" % level_id)
+					break
+				run = _walk(state, run[1], cat, parents, action)
+			elif action is Array and action[0] is String:
+				var target := _find_enemy(state, action[1])
+				var parents := _reach(state, cat)
+				var stand := _stand_tile(state, parents, target, cat)
+				if stand == Vector2i(-1, -1):
+					_check(false, "%s cannot approach %s with the cat" % [level_id, action[1]])
+					break
+				run = _attack(state, run[1], cat, parents, stand, target)
+			elif action is Array:
+				var parents := _reach(state, cat)
+				if not parents.has(action[0]):
+					_check(false, "%s cannot walk to Pounce launch %s" % [level_id, action[0]])
+					break
+				var walked := _walk(state, run[1], cat, parents, action[0])
+				var next = _engine.pounce(walked[0], action[1])
+				_check(next.cat_pounces_remaining == state.cat_pounces_remaining - 1, "%s must execute Pounce %s" % [level_id, str(action)])
+				run = _transition(walked[0], next, walked[1], {cat: next.cat.position})
+			elif action == "deliver":
+				var parents := _reach(state, cat)
+				var carried: int = state.cat_carried_shell
+				var neighbors := _engine._cardinal_neighbors(state.player.position)
+				neighbors.reverse()
+				for adjacent in neighbors:
+					if parents.has(adjacent):
+						run = _walk(state, run[1], cat, parents, adjacent)
+						break
+				_check(carried > 0 and run[0].cat_carried_shell == 0, "%s must deliver its shell charms" % level_id)
+			else:
+				var target := _find_enemy(state, action)
+				if target == Vector2i(-1, -1):
+					continue
+				var tortoise := GS.CharacterId.TORTOISE
+				var parents := _reach(state, tortoise)
+				var stand := _stand_tile(state, parents, target, tortoise)
+				if stand == Vector2i(-1, -1):
+					_check(false, "%s cannot approach %s" % [level_id, action])
+					break
+				var walked := _walk(state, run[1], tortoise, parents, stand)
+				run = _transition(walked[0], _engine.shell_charge(walked[0], target), walked[1], {})
+		run = _greedy_closure(run[0], run[1])
+		_check(run[0].victory, "%s must be winnable using the authored Pounce budget" % level_id)
 
 
 func _test_level_select(app_state: Node) -> void:
@@ -501,7 +578,7 @@ func _pickup_reachable(state, parents: Dictionary, target: Vector2i, character_i
 func _line_tiles(target: Vector2i) -> Array:
 	var result: Array = []
 	for distance in [1, 2]:
-		for direction in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		for direction in ENGINE.NAV.NEIGHBORS:
 			result.append(target + direction * distance)
 	return result
 

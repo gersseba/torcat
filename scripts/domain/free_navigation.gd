@@ -58,7 +58,11 @@ static func point_free(engine, state, point: Vector2, character_id: int) -> bool
 		return false
 	for offset in BODY_CORNERS:
 		var touched := cell_at(point + offset)
-		if not _tile_free(state, touched, character_id) or not _crossing_allowed(engine, state, cell, touched, character_id):
+		if not _tile_free(state, touched, character_id):
+			return false
+		# Footprint overlap is not movement; direction is checked as the center crosses.
+		if not (_crossing_allowed(engine, state, cell, touched, character_id)
+				or _crossing_allowed(engine, state, touched, cell, character_id)):
 			return false
 	return true
 
@@ -96,9 +100,8 @@ static func find_path(engine, state, start: Vector2, target: Vector2, character_
 			if not _tile_free(state, neighbor, character_id):
 				continue
 			var next_id: int = neighbor.y * state.width + neighbor.x
-			# Center-to-center edges need only their crossed tiles/edges checked.
-			if next_id > id and _crossing_allowed(engine, state, cell, neighbor, character_id):
-				graph.connect_points(id, next_id)
+			if _crossing_allowed(engine, state, cell, neighbor, character_id):
+				graph.connect_points(id, next_id, false)
 	var start_id: int = state.width * state.height
 	var target_id := start_id + 1
 	graph.add_point(start_id, start)
@@ -112,8 +115,11 @@ static func find_path(engine, state, start: Vector2, target: Vector2, character_
 				if not _tile_free(state, neighbor, character_id):
 					continue
 				var id: int = y * state.width + x
-				if segment_free(engine, state, point, center(neighbor), character_id):
-					graph.connect_points(extra_id, id)
+				var neighbor_center := center(neighbor)
+				if extra_id == start_id and segment_free(engine, state, point, neighbor_center, character_id):
+					graph.connect_points(start_id, id, false)
+				elif extra_id == target_id and segment_free(engine, state, neighbor_center, point, character_id):
+					graph.connect_points(id, target_id, false)
 	var path := graph.get_point_path(start_id, target_id)
 	if path.is_empty():
 		return path

@@ -46,6 +46,8 @@ static func level_cutscene(level_id: String, kind: String) -> String:
 
 
 static func level_meta(level_id: String) -> Dictionary:
+	if level_id.begins_with(FACTORY.PRACTICE_SCENES.PREFIX):
+		return FACTORY.PRACTICE_SCENES.metadata(level_id)
 	var meta: Variant = _load_level_definition(level_id).get("meta", {})
 	return meta if meta is Dictionary else {}
 

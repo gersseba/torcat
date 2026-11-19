@@ -3,6 +3,12 @@ extends RefCounted
 
 const GS = preload("res://scripts/domain/game_state.gd")
 const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
+const MEADOW_ROOMS := preload("res://scripts/domain/meadow_room_generator.gd")
+const PRACTICE_SCENES := preload("res://scripts/domain/practice_scene_catalog.gd")
+const DECORATION_ASSETS := [
+	"meadow_flowers", "forest_litter", "woodland_ferns", "mountain_flowers", "scree", "dry_bush",
+	"summit_succulent", "summit_lupine", "summit_buttercup", "summit_pinks", "summit_harebell", "summit_scrub",
+]
 
 const LEVEL_PATHS := {
 	"level_1": "res://resources/levels/prototype_level.json",
@@ -15,8 +21,15 @@ const LEVEL_PATHS := {
 }
 
 
-func create_world(level_id: String):
+func create_world(level_id: String, seed_value: Variant = null):
+	if level_id.begins_with(PRACTICE_SCENES.PREFIX):
+		var definition := PRACTICE_SCENES.definition(level_id)
+		if not definition.is_empty():
+			return _create_world_from_definition(definition)
+		return _unavailable_practice_state("Could not load the Practice scene.")
 	match level_id:
+		MEADOW_ROOMS.LEVEL_ID:
+			return _create_meadow_rooms(randi() if seed_value == null else int(seed_value))
 		"random":
 			return _create_procedural_world(false)
 		"random_backward":
@@ -27,6 +40,34 @@ func create_world(level_id: String):
 			if not LEVEL_PATHS.has(level_id):
 				state.last_event = "Unknown level id '%s'. Prototype level loaded." % level_id
 			return state
+
+
+func _create_meadow_rooms(seed_value: int):
+	var generator := MEADOW_ROOMS.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	for candidate_seed in [seed_value, rng.randi(), rng.randi(), 42]:
+		var plan := generator.plan(candidate_seed)
+		var baked := generator.bake(plan, candidate_seed)
+		if baked.is_empty():
+			push_warning("Meadow rooms seed %d: invalid entity placement." % candidate_seed)
+			continue
+		var world = _create_world_from_definition(baked.definition)
+		var error := generator.validate_world(world, baked, plan)
+		if error.is_empty():
+			return world
+		push_warning("Meadow rooms seed %d rejected: %s" % [candidate_seed, error])
+	push_error("No valid Meadow room map for seed %d." % seed_value)
+	return _unavailable_practice_state("Could not generate Meadow Rooms.")
+
+
+func _unavailable_practice_state(message: String):
+	var failed = _create_fallback_state(message)
+	failed.game_over = true
+	failed.cat_present = false
+	failed.shell_charge_enabled = false
+	failed.pounce_enabled = false
+	return failed
 
 
 func _create_world_from_file(path: String):
@@ -207,7 +248,7 @@ func _create_world_from_definition(source_definition: Dictionary):
 		var decoration: Dictionary = decoration_variant
 		var asset_key := str(decoration.get("assetKey", ""))
 		var position := _read_pos(decoration.get("position", {}))
-		if asset_key not in ["meadow_flowers", "forest_litter", "woodland_ferns", "mountain_flowers", "scree", "dry_bush"]:
+		if asset_key not in DECORATION_ASSETS:
 			push_error("Unknown decoration asset key: %s" % asset_key)
 			return _create_fallback_state("Invalid decoration asset.")
 		if not decoration.has("position") or not _is_within_bounds(position, width, height) or state.decorations_by_pos.has(position):
@@ -221,7 +262,7 @@ func _create_world_from_definition(source_definition: Dictionary):
 ## Expands a compact `map` block into the canonical grid fields.
 ## `map.rows` is an array of equal-length strings; `map.legend` maps each
 ## character to `{tile, logic?, blocker?}` where `tile` is a tileDefinitions id.
-func expand_ascii_map(source: Dictionary) -> Dictionary:
+static func expand_ascii_map(source: Dictionary) -> Dictionary:
 	var map_block: Dictionary = source.get("map", {})
 	var rows: Array = map_block.get("rows", [])
 	var legend: Dictionary = map_block.get("legend", {})

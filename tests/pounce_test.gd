@@ -49,11 +49,11 @@ func _run() -> void:
 	var state = _state()
 	var origin: Vector2i = state.cat.position
 	_check(state.cat_pounces_remaining == 3 and state.duplicate_state().cat_pounces_remaining == 3, "Pounce uses start at three and copy")
-	for direction in [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]:
+	for direction in ENGINE.NAV.NEIGHBORS:
 		for distance in [1, 2]:
-			_check(engine.can_pounce(state, origin + direction * distance), "Cardinal pounce target must be valid")
+			var aim: Vector2i = origin + direction * distance
+			_check(engine.can_pounce(state, aim) == (aim != state.player.position), "Pounce targets are valid in all eight directions unless occupied")
 		_check(not engine.can_pounce(state, origin + direction * 3), "Three tiles must be out of range")
-	_check(not engine.can_pounce(state, origin + Vector2i(1, 1)), "Diagonal pounce must be invalid")
 	_check(not engine.can_pounce(state, origin), "Current tile must be invalid")
 	state.player.position = origin + Vector2i.LEFT
 	_check(not engine.can_pounce(state, state.player.position), "Cannot land on tortoise")
@@ -65,7 +65,7 @@ func _run() -> void:
 	var after_move = engine.move(jumped, ENGINE.Direction.DOWN, GS.CharacterId.CAT)
 	_check(after_move.cat_pounces_remaining == 2, "Normal moves must preserve remaining uses")
 	_check(state.cat.position == origin and state.cat_pounces_remaining == 3, "Pounce must not mutate original state")
-	var invalid = engine.pounce(state, origin + Vector2i(1, 1))
+	var invalid = engine.pounce(state, origin + Vector2i(3, 3))
 	_check(invalid.cat_pounces_remaining == 3 and invalid.last_event.contains("Cannot"), "Invalid pounce must not consume use")
 	state.cat_pounces_remaining = 0
 	_check(not engine.can_pounce(state, origin + Vector2i.UP), "Zero uses prevents pouncing")
@@ -149,8 +149,10 @@ func _run() -> void:
 		_check(cat.sprite_frames.has_animation("pounce_%s" % direction), "Pounce must have directional animation")
 	_check(screen._pounce_button.visible and screen._pounce_button.text == "Pounce 3/3", "Cat must have visible use count")
 	screen._toggle_pounce_mode()
-	_check(screen._pounce_targets.size() == 8 and screen._pounce_button.text == "Cancel pounce", "Pounce mode must highlight all eight cardinal destinations")
-	screen._handle_board_click(_screen_position(screen, origin + Vector2i(1, 1)))
+	_check(screen._pounce_targets.size() == 15 and not screen._pounce_targets.has(Vector2i(1, 1))
+		and screen._pounce_targets.has(origin + Vector2i(2, -2))
+		and screen._pounce_button.text == "Cancel pounce", "Pounce mode must highlight diagonal destinations but omit occupied tiles")
+	screen._handle_board_click(_screen_position(screen, origin + Vector2i(1, 2)))
 	_check(screen._state.cat_pounces_remaining == 3 and screen._pounce_mode, "Invalid target must not spend a use")
 	screen._handle_board_click(_screen_position(screen, target))
 	_check(screen._preview_target == target and screen._state.cat_pounces_remaining == 3, "First tap previews without spending")
@@ -188,7 +190,7 @@ func _run() -> void:
 	_touch(screen._pounce_button.get_global_rect().get_center())
 	await process_frame
 	_check(screen._pounce_mode, "Touching the pounce button must enter targeting")
-	var touch_target := landing + Vector2i.DOWN
+	var touch_target := landing + Vector2i(-2, 2)
 	_touch(_screen_position(screen, touch_target))
 	await process_frame
 	_check(screen._preview_target == touch_target and screen._state.cat_pounces_remaining == 1, "Touch must preview the pounce")

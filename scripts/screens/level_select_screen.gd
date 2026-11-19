@@ -9,6 +9,8 @@ const CAMPAIGN := preload("res://scripts/domain/campaign.gd")
 const LS := preload("res://scripts/domain/level_script.gd")
 const UI := preload("res://scripts/ui/woodland_ui.gd")
 const STORY_MAP := preload("res://scripts/ui/story_map.gd")
+const MEADOW_ROOMS := preload("res://scripts/domain/meadow_room_generator.gd")
+const PRACTICE_SCENES := preload("res://scripts/domain/practice_scene_catalog.gd")
 
 var _story_map: Control
 var _header: VBoxContainer
@@ -65,12 +67,12 @@ func _ready() -> void:
 	var levels := [
 		["random", {"en": "Random level", "de": "Zufallslevel"}],
 		["random_backward", {"en": "Random level · backward", "de": "Zufallslevel · rückwärts"}],
+		[MEADOW_ROOMS.LEVEL_ID, {"en": "Meadow Rooms", "de": "Wiesenpfade"}],
 	]
 	for entry in levels:
-		var button := _button(LS.localize(entry[1]))
-		button.pressed.connect(func() -> void: level_selected.emit(entry[0]))
-		column.add_child(button)
-		_practice_buttons.append(button)
+		_add_practice_button(column, entry[0], LS.localize(entry[1]))
+	for entry in PRACTICE_SCENES.entries():
+		_add_practice_button(column, entry.id, entry.name)
 	_footer = PanelContainer.new()
 	_footer.add_theme_stylebox_override("panel", UI.panel())
 	add_child(_footer)
@@ -116,6 +118,13 @@ func _label(text: String, font_size: int) -> Label:
 	label.add_theme_color_override("font_color", UI.CREAM)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
+
+
+func _add_practice_button(column: VBoxContainer, id: String, title: String) -> void:
+	var button := _button(title)
+	button.pressed.connect(func() -> void: level_selected.emit(id))
+	column.add_child(button)
+	_practice_buttons.append(button)
 
 
 func _button(text: String) -> Button:

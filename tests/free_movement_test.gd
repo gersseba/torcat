@@ -132,7 +132,15 @@ func _test_elevation() -> void:
 	state.cat.position = Vector2i(1, 2)
 	_check(engine.find_free_path(state, target, GS.CharacterId.CAT).is_empty(), "Cats need their climbing ability to cross cliffs")
 	state.cat_can_climb = true
-	_check(not engine.find_free_path(state, target, GS.CharacterId.CAT).is_empty(), "Climbing cats can move freely across one height change")
+	_check(engine.find_free_path(state, target, GS.CharacterId.CAT).is_empty(), "Bare uphill ledges cannot be walked")
+	var uphill = engine.pounce(state, Vector2i(3, 2))
+	_check(uphill.cat.position == Vector2i(3, 2) and uphill.cat_pounces_remaining == state.cat_pounces_remaining - 1,
+		"Reaching the upper ledge requires one Pounce")
+	var downhill = engine.move_free(uphill, Vector2(2.5, 2.5), GS.CharacterId.CAT)
+	_check(downhill.cat.position == Vector2i(2, 2) and downhill.cat_pounces_remaining == uphill.cat_pounces_remaining,
+		"Free movement may descend a bare ledge without using Pounce")
+	state.traversable_edges.append(GS.TraversableEdge.of(Vector2i(2, 3), Vector2i(3, 3), GS.TraversalKind.RAMP))
+	_check(not engine.find_free_path(state, target, GS.CharacterId.CAT).is_empty(), "Ramps remain walkable uphill")
 
 
 func _test_attacks() -> void:
@@ -204,6 +212,14 @@ func _tap(screen: GameplayScreen, point: Vector2) -> void:
 	screen._handle_screen_touch(event)
 
 
+func _check_ledge_span(screen: GameplayScreen, start: Vector2, end: Vector2, takeoff: Vector2, landing: Vector2) -> void:
+	var jumps := screen._ledge_jumps_along(start, end, GS.CharacterId.CAT)
+	_check(jumps.size() == 1, "A single crossed ledge must produce one jump")
+	if jumps.size() == 1:
+		_check(jumps[0]["start"].is_equal_approx(takeoff) and jumps[0]["end"].is_equal_approx(landing),
+			"Expected ledge jump %s to %s, got %s" % [takeoff, landing, jumps[0]])
+
+
 func _test_screen() -> void:
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
@@ -264,17 +280,33 @@ func _test_screen() -> void:
 		for x in range(3, ledge_state.width):
 			ledge_state.tile_cells[Vector2i(x, y)].height_level = 1
 	ledge_state.cat_can_climb = true
+	ledge_state.traversable_edges.append(GS.TraversableEdge.of(Vector2i(2, 1), Vector2i(3, 1), GS.TraversalKind.STAIRS))
 	ledge_state.cat.position = Vector2i(2, 1)
 	ledge_state.selected_character_id = GS.CharacterId.CAT
 	screen._state = ledge_state
 	screen._render_state()
 	var cat_sprite: AnimatedSprite2D = screen._character_sprites[GS.CharacterId.CAT]
 	var ledge_path := PackedVector2Array([Vector2(2.5, 1.5), Vector2(3.5, 1.5)])
-	_check(
-		screen._ledge_jumps_along(ledge_path[0], ledge_path[1], GS.CharacterId.CAT).size() == 1,
-		"A free-walk path crossing a ledge must include one cat jump"
-	)
+	_check_ledge_span(screen, ledge_path[0], ledge_path[1], ledge_path[0], ledge_path[1])
+	_check_ledge_span(screen, Vector2(4.2, 1.7), Vector2(1.9, 1.7), Vector2(3.5, 1.7), Vector2(2.5, 1.7))
+	_check_ledge_span(screen, Vector2(2.8, 1.5), Vector2(3.2, 1.5), Vector2(2.8, 1.5), Vector2(3.2, 1.5))
+	var diagonal := Vector2(2, 1).normalized() * 0.5
+	var seam := Vector2(3, 1.55)
+	_check_ledge_span(screen, Vector2(2.1, 1.1), Vector2(4.1, 2.1), seam - diagonal, seam + diagonal)
+	ledge_state.tile_cells[Vector2i(3, 2)].height_level = 2
+	ledge_state.traversable_edges.append(GS.TraversableEdge.of(Vector2i(3, 1), Vector2i(3, 2), GS.TraversalKind.STAIRS))
+	var close_jumps := screen._ledge_jumps_along(Vector2(2.5, 1.3), Vector2(3.8, 2.6), GS.CharacterId.CAT)
+	_check(close_jumps.size() == 2, "Two nearby ledges must animate as separate jumps")
+	if close_jumps.size() == 2:
+		var between_edges := Vector2(3.1, 1.9)
+		_check(close_jumps[0]["end"].is_equal_approx(between_edges)
+			and close_jumps[1]["start"].is_equal_approx(between_edges),
+			"Nearby ledge jumps must meet without sending the cat backward")
+	ledge_state.tile_cells[Vector2i(3, 2)].height_level = 1
 	screen._walk_freely(GS.CharacterId.CAT, ledge_path)
+	_check(cat_sprite.position.is_equal_approx(ledge_path[0] * screen.TILE_SIZE)
+		and cat_sprite.animation == "pounce_east" and screen._pounce_shadow.visible,
+		"A center-to-center ledge crossing must take off immediately from the first tile center")
 	await create_timer(0.3).timeout
 	_check(
 		cat_sprite.animation == "pounce_east" and screen._pounce_shadow.visible,
@@ -342,8 +374,7 @@ func _test_screen() -> void:
 	screen._state.enemies_by_pos[Vector2i(2, 1)] = GS.Enemy.new("strong", Vector2i(2, 1), 10)
 	screen._render_state()
 	screen._toggle_shell_mode()
-	screen._handle_shell_target(Vector2i(2, 1))
-	await screen._handle_shell_target(Vector2i(2, 1))
+	await screen._try_step(ENGINE.Direction.RIGHT)
 	_check(screen._state.player.world_position == Vector2(1.5, 1.5) and screen._state.player.power == 15, "Shell Charge must align an off-center tortoise and preserve boosted combat")
 
 	var before = _flat_state()

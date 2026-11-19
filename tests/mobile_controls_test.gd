@@ -82,6 +82,10 @@ func _run() -> void:
 	screen._set_joystick_vector(Vector2.ZERO)
 	screen._process_continuous_movement(0.0)
 	_check(screen._moving_character_id == -1, "Releasing the joystick must stop continuous movement")
+	var diagonal_target: Vector2i = state.cat.position + Vector2i(2, -2)
+	await screen._mobile_special_pressed()
+	_check(screen._state.cat.position == diagonal_target and screen._state.cat_pounces_remaining == 2,
+		"Mobile Pounce must jump two tiles along the last joystick diagonal")
 
 	var wasd_vector := screen._movement_vector_from_axes(true, false, false, true)
 	var arrow_vector := screen._movement_vector_from_axes(true, false, false, true)

@@ -95,9 +95,8 @@ func _run() -> void:
 	screen._state.shell_power = 3
 	screen._select_character(GS.CharacterId.TORTOISE)
 	screen._toggle_shell_mode()
-	screen._handle_shell_target(charge_target)
-	screen._handle_shell_target(charge_target)
-	await create_timer(1.0).timeout
+	screen._try_step(screen.GAME_ENGINE_SCRIPT.Direction.RIGHT)
+	await create_timer(0.55).timeout
 	_check(screen._enemy_sprites[charge_target].animation == "flinch_west", "Shell Charge triggers reaction on impact")
 	await create_timer(1.0).timeout
 	_check(not screen._state.enemies_by_pos.has(charge_target), "Defeated charge target is removed after reaction")

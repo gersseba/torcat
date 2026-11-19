@@ -47,5 +47,66 @@ func _run() -> void:
 	if gameplay != null:
 		_check(gameplay._level_id == "chapter_5_summit", "The requested level should be the one rendered")
 	_check(root.find_child("LoadingScreen", true, false) == null, "The loading screen should be removed when ready")
+	await _check_meadow_practice()
 	print("gameplay_loading_test: %d failure(s)" % failures)
 	quit(1 if failures else 0)
+
+
+func _check_meadow_practice() -> void:
+	var router := root.get_node("AppRouter")
+	router.navigate("level_select")
+	await process_frame
+	var select := root.find_child("LevelSelectScreen", true, false)
+	if select == null or select._practice_buttons.size() < 4:
+		_check(false, "Level select must offer the third Practice mode")
+		return
+	select._practice_tab.pressed.emit()
+	select._practice_buttons[2].pressed.emit()
+	_check(root.find_child("LoadingScreen", true, false) != null, "Meadow Rooms must go through the gameplay loader")
+	var meadow := await _loaded_gameplay()
+	if meadow == null:
+		_check(false, "Meadow Rooms did not finish loading")
+		return
+	_check(meadow._level_id == "room_meadow" and not meadow._state.game_over and not meadow._state.cat_present,
+		"The Practice button must open a validated tortoise-only Meadow Rooms board")
+	_check(meadow._meadow_goal.is_visible_in_tree() and meadow._meadow_goal.text.contains(":"),
+		"The Meadow boss target should be readable in the HUD")
+	var first_state = meadow._state
+	meadow._retry_button.pressed.emit()
+	var retry := await _loaded_gameplay()
+	if retry == null:
+		_check(false, "Meadow Rooms retry did not finish loading")
+		return
+	var second_state = retry._state
+	_check(retry._level_id == "room_meadow" and not second_state.game_over
+		and first_state.player.position == second_state.player.position
+		and first_state.player.power == second_state.player.power
+		and first_state.enemies_by_pos.keys() == second_state.enemies_by_pos.keys()
+		and first_state.items_by_pos.keys() == second_state.items_by_pos.keys()
+		and first_state.lootables_by_pos.keys() == second_state.lootables_by_pos.keys(),
+		"Retry must preserve the generated board")
+	for cell in first_state.enemies_by_pos:
+		_check(second_state.enemies_by_pos.has(cell) and first_state.enemies_by_pos[cell].power == second_state.enemies_by_pos[cell].power,
+			"Retry must preserve enemy power")
+	router.navigate("level_select")
+	await process_frame
+	select = root.find_child("LevelSelectScreen", true, false)
+	select._practice_tab.pressed.emit()
+	for button in select._practice_buttons:
+		if button.text == "The Flower Meadow (editable)":
+			button.pressed.emit()
+			var edited := await _loaded_gameplay()
+			_check(edited != null and edited._level_id == "practice_scene:chapter_1_meadow_copy"
+				and not edited._state.game_over and edited._state.enemies_by_pos.size() > 0
+				and edited._level_events.is_empty(), "A scene-authored Practice level should load without Story scripts")
+			return
+	_check(false, "The editable Meadow button should be backed by its scene title")
+
+
+func _loaded_gameplay() -> GameplayScreen:
+	for _frame in 120:
+		await process_frame
+		var screen := root.find_child("GameplayScreen", true, false) as GameplayScreen
+		if screen != null and screen.visible and not screen.is_queued_for_deletion():
+			return screen
+	return null

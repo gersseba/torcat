@@ -71,7 +71,7 @@ func _run() -> void:
 	var player_label: Label = screen._character_power_labels[GS.CharacterId.TORTOISE]
 	_check(player_label.text == "123456" and player_label.size.x >= player_label.get_minimum_size().x + 8.0, "Player indicator must fit large values")
 	_check_player_label(screen, GS.CharacterId.TORTOISE)
-	var expected := {"12345": screen.ENEMY_POWER_TEXTURE, "-42": screen.ITEM_POWER_TEXTURE, "52": screen.ITEM_POWER_TEXTURE, "Shell +6": screen.ITEM_POWER_TEXTURE}
+	var expected := {"12345": screen.ENEMY_POWER_TEXTURE, "-42": screen.ITEM_POWER_TEXTURE, "Shell +6": screen.ITEM_POWER_TEXTURE}
 	var static_count := 0
 	for child in screen._marker_layer.get_children():
 		if not child is Label:
@@ -83,8 +83,8 @@ func _run() -> void:
 		_check(label.get_theme_color("font_color") == screen.POWER_TEXT_COLOR, "Static indicator text must be beige")
 		_check(label.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Static indicator must not intercept input")
 		_check(label.size.x >= label.get_minimum_size().x + 8.0, "Static indicator must fit its value")
-	_check(static_count == 4, "There must be one indicator for each enemy, item, shell charm and lootable")
+	_check(static_count == 3, "Only enemies, loose items and shell charms should reveal power; unopened loot must not")
 	screen._render_power_labels()
-	_check(screen._marker_layer.get_children().filter(func(child: Node) -> bool: return child is Label).size() == 4, "Rerender must not duplicate static indicators")
+	_check(screen._marker_layer.get_children().filter(func(child: Node) -> bool: return child is Label).size() == 3, "Rerender must not reveal loot power or duplicate indicators")
 	print("Power indicator tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)

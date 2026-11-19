@@ -1,0 +1,638 @@
+[gd_scene format=4 uid="uid://dm8bdt0j6p00k"]
+
+[ext_resource type="Script" uid="uid://by7juk3y5wh4s" path="res://scripts/domain/practice_level_scene.gd" id="1_e61wq"]
+[ext_resource type="Texture2D" uid="uid://d12a5tg8bpeqq" path="res://resources/assets/tiles/tile_0.png" id="2_3frwh"]
+[ext_resource type="Texture2D" uid="uid://dqbx5ecp4hgaf" path="res://resources/assets/tiles/tile_10.png" id="3_0iub6"]
+[ext_resource type="Texture2D" uid="uid://b3krsje2751ob" path="res://resources/assets/tiles/tile_13.png" id="4_wa5xp"]
+[ext_resource type="Texture2D" uid="uid://baip56gvbg2lt" path="res://resources/assets/tiles/rubble.png" id="6_5w8ip"]
+[ext_resource type="Texture2D" uid="uid://bgrgewkb7mvqe" path="res://resources/assets/tiles/forest_moss.png" id="7_qynr1"]
+[ext_resource type="Texture2D" uid="uid://bs56d3oma46q" path="res://resources/assets/tiles/light_woodland.png" id="8_juvad"]
+[ext_resource type="Texture2D" uid="uid://ch7a66dwvpd6n" path="res://resources/assets/tiles/mountain_meadow.png" id="9_6usfr"]
+[ext_resource type="Texture2D" uid="uid://bhwkwi2os1ijg" path="res://resources/assets/tiles/hilltop.png" id="10_jhp2f"]
+[ext_resource type="Texture2D" uid="uid://biwwfk2s801go" path="res://resources/assets/tiles/tile_4.png" id="11_0gdfv"]
+[ext_resource type="Texture2D" uid="uid://b4hk0j0a5nyv8" path="res://resources/assets/blockers/tree_oak_large.png" id="12_4g0n5"]
+[ext_resource type="Texture2D" uid="uid://clgwc5uh16oj1" path="res://resources/assets/blockers/log_fallen.png" id="13_baeq5"]
+[ext_resource type="Texture2D" uid="uid://b38i3spm20qxb" path="res://resources/assets/blockers/bush_dense.png" id="14_yw7gp"]
+[ext_resource type="Texture2D" uid="uid://c7vh2r1y0y2a5" path="res://resources/assets/blockers/boulder.png" id="15_isudy"]
+[ext_resource type="Texture2D" uid="uid://crhlw2x6nfdbt" path="res://resources/assets/blockers/pine.png" id="16_6aga4"]
+[ext_resource type="Texture2D" uid="uid://dealbsno0mr5h" path="res://resources/assets/blockers/stone_wall.png" id="17_x6rb3"]
+[ext_resource type="Texture2D" uid="uid://dwwslqveitx4x" path="res://resources/assets/blockers/thick_bush.png" id="18_e5tce"]
+[ext_resource type="Texture2D" uid="uid://b6wwraryy6uak" path="res://resources/assets/blockers/wooden_fence.png" id="19_mi4g0"]
+[ext_resource type="Texture2D" uid="uid://ddmobbbbny3cj" path="res://resources/assets/decorations/meadow_flowers.png" id="20_swd5n"]
+[ext_resource type="Texture2D" uid="uid://ccf1yg4kej7y7" path="res://resources/assets/decorations/forest_litter.png" id="21_wy782"]
+[ext_resource type="Texture2D" uid="uid://bj2uud7kd6ob4" path="res://resources/assets/decorations/woodland_ferns.png" id="22_288s0"]
+[ext_resource type="Texture2D" uid="uid://bsalao22bh8ox" path="res://resources/assets/decorations/mountain_flowers.png" id="23_c1015"]
+[ext_resource type="Texture2D" uid="uid://catjbl3mfgi0h" path="res://resources/assets/decorations/scree.png" id="24_c51yr"]
+[ext_resource type="Texture2D" uid="uid://d3bm0drm8080k" path="res://resources/assets/decorations/dry_bush.png" id="25_pu75s"]
+[ext_resource type="Texture2D" uid="uid://bncqb0al0ler3" path="res://resources/assets/characters/tortoise/idle/rotations/south.png" id="26_juvad"]
+[ext_resource type="Script" uid="uid://dw2rtoy6avnd1" path="res://scripts/domain/practice_level_marker.gd" id="26_o7jkc"]
+[ext_resource type="Texture2D" uid="uid://d2wfpolg2j4ni" path="res://resources/assets/enemies/goose/rotations/south.png" id="28_6usfr"]
+[ext_resource type="Texture2D" uid="uid://docbrsextsumr" path="res://resources/assets/enemies/hedgehog/rotations/south.png" id="29_jhp2f"]
+[ext_resource type="Texture2D" uid="uid://dkqapi7wt8pac" path="res://resources/assets/items/salad.png" id="30_0gdfv"]
+[ext_resource type="Texture2D" uid="uid://dj536yq4mj63h" path="res://resources/assets/items/barrel.png" id="31_4g0n5"]
+[ext_resource type="Texture2D" uid="uid://baohguo8dhkv0" path="res://resources/assets/enemies/mouse/rotations/south.png" id="32_baeq5"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5iqxq"]
+resource_name = "meadow (height 0)"
+texture = ExtResource("2_3frwh")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "meadow"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5dtd4"]
+resource_name = "meadow (height 1)"
+texture = ExtResource("2_3frwh")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_jmgfh"]
+resource_name = "path (height 2)"
+texture = ExtResource("3_0iub6")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "path"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vj5mt"]
+resource_name = "path (height 3)"
+texture = ExtResource("3_0iub6")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "path"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_anr41"]
+resource_name = "trail (height 0)"
+texture = ExtResource("4_wa5xp")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "trail"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dojfl"]
+resource_name = "trail (height 1)"
+texture = ExtResource("4_wa5xp")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "trail"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6qdxv"]
+resource_name = "trail (height 2)"
+texture = ExtResource("4_wa5xp")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "trail"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_edixn"]
+resource_name = "trail (height 3)"
+texture = ExtResource("4_wa5xp")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "trail"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dk318"]
+resource_name = "meadow (height 2)"
+texture = ExtResource("2_3frwh")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_anjsb"]
+resource_name = "rubble (height 0)"
+texture = ExtResource("6_5w8ip")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "rubble"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_psjl5"]
+resource_name = "rubble (height 1)"
+texture = ExtResource("6_5w8ip")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "rubble"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_li1dr"]
+resource_name = "rubble (height 2)"
+texture = ExtResource("6_5w8ip")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "rubble"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_n4occ"]
+resource_name = "rubble (height 3)"
+texture = ExtResource("6_5w8ip")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "rubble"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ulrxx"]
+resource_name = "forest_moss (height 0)"
+texture = ExtResource("7_qynr1")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "forest_moss"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1efll"]
+resource_name = "forest_moss (height 1)"
+texture = ExtResource("7_qynr1")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "forest_moss"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mb36x"]
+resource_name = "forest_moss (height 2)"
+texture = ExtResource("7_qynr1")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "forest_moss"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_76fha"]
+resource_name = "forest_moss (height 3)"
+texture = ExtResource("7_qynr1")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "forest_moss"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tdu43"]
+resource_name = "light_woodland (height 0)"
+texture = ExtResource("8_juvad")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "light_woodland"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1ba6l"]
+resource_name = "light_woodland (height 1)"
+texture = ExtResource("8_juvad")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "light_woodland"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_jclim"]
+resource_name = "meadow (height 3)"
+texture = ExtResource("2_3frwh")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6trd1"]
+resource_name = "light_woodland (height 2)"
+texture = ExtResource("8_juvad")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "light_woodland"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fbixi"]
+resource_name = "light_woodland (height 3)"
+texture = ExtResource("8_juvad")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "light_woodland"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_syejf"]
+resource_name = "mountain_meadow (height 0)"
+texture = ExtResource("9_6usfr")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "mountain_meadow"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ibv7m"]
+resource_name = "mountain_meadow (height 1)"
+texture = ExtResource("9_6usfr")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "mountain_meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_e0rv7"]
+resource_name = "mountain_meadow (height 2)"
+texture = ExtResource("9_6usfr")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "mountain_meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5meid"]
+resource_name = "mountain_meadow (height 3)"
+texture = ExtResource("9_6usfr")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "mountain_meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_xbbwx"]
+resource_name = "hilltop (height 0)"
+texture = ExtResource("10_jhp2f")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "hilltop"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vopmh"]
+resource_name = "hilltop (height 1)"
+texture = ExtResource("10_jhp2f")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "hilltop"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nstg2"]
+resource_name = "hilltop (height 2)"
+texture = ExtResource("10_jhp2f")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "hilltop"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mchhi"]
+resource_name = "hilltop (height 3)"
+texture = ExtResource("10_jhp2f")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "hilltop"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4iidc"]
+resource_name = "flower_meadow (height 0)"
+texture = ExtResource("11_0gdfv")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "flower_meadow"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_uf2g3"]
+resource_name = "tree_oak_large"
+texture = ExtResource("12_4g0n5")
+texture_region_size = Vector2i(128, 128)
+0:0/0 = 0
+0:0/0/custom_data_0 = "tree_oak_large"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pwag3"]
+resource_name = "log_fallen"
+texture = ExtResource("13_baeq5")
+texture_region_size = Vector2i(96, 96)
+0:0/0 = 0
+0:0/0/custom_data_0 = "log_fallen"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_r1664"]
+resource_name = "bush_dense"
+texture = ExtResource("14_yw7gp")
+texture_region_size = Vector2i(96, 96)
+0:0/0 = 0
+0:0/0/custom_data_0 = "bush_dense"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2mdaa"]
+resource_name = "boulder"
+texture = ExtResource("15_isudy")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "boulder"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_d0sfr"]
+resource_name = "pine"
+texture = ExtResource("16_6aga4")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "pine"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vo0mu"]
+resource_name = "stone_wall"
+texture = ExtResource("17_x6rb3")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "stone_wall"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2wkvk"]
+resource_name = "thick_bush"
+texture = ExtResource("18_e5tce")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "thick_bush"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1hrqv"]
+resource_name = "wooden_fence"
+texture = ExtResource("19_mi4g0")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "wooden_fence"
+0:0/0/custom_data_1 = "blocker"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0p2li"]
+resource_name = "meadow_flowers"
+texture = ExtResource("20_swd5n")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "meadow_flowers"
+0:0/0/custom_data_1 = "decoration"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_m5rha"]
+resource_name = "forest_litter"
+texture = ExtResource("21_wy782")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "forest_litter"
+0:0/0/custom_data_1 = "decoration"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_l8i4w"]
+resource_name = "flower_meadow (height 1)"
+texture = ExtResource("11_0gdfv")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "flower_meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gwxcp"]
+resource_name = "woodland_ferns"
+texture = ExtResource("22_288s0")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "woodland_ferns"
+0:0/0/custom_data_1 = "decoration"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bpkic"]
+resource_name = "mountain_flowers"
+texture = ExtResource("23_c1015")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "mountain_flowers"
+0:0/0/custom_data_1 = "decoration"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cwjh5"]
+resource_name = "scree"
+texture = ExtResource("24_c51yr")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "scree"
+0:0/0/custom_data_1 = "decoration"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_d5ydx"]
+resource_name = "dry_bush"
+texture = ExtResource("25_pu75s")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "dry_bush"
+0:0/0/custom_data_1 = "decoration"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rug8u"]
+resource_name = "flower_meadow (height 2)"
+texture = ExtResource("11_0gdfv")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9592157, 0.86337256, 1)
+0:0/0/custom_data_0 = "flower_meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 2
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qgl2j"]
+resource_name = "flower_meadow (height 3)"
+texture = ExtResource("11_0gdfv")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9388235, 0.79505885, 1)
+0:0/0/custom_data_0 = "flower_meadow"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 3
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8ac0p"]
+resource_name = "path (height 0)"
+texture = ExtResource("3_0iub6")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/custom_data_0 = "path"
+0:0/0/custom_data_1 = "ground"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_3mi6q"]
+resource_name = "path (height 1)"
+texture = ExtResource("3_0iub6")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+0:0/0/modulate = Color(1, 0.9796078, 0.9316863, 1)
+0:0/0/custom_data_0 = "path"
+0:0/0/custom_data_1 = "ground"
+0:0/0/custom_data_2 = 1
+
+[sub_resource type="TileSet" id="TileSet_nf4dg"]
+tile_size = Vector2i(64, 64)
+custom_data_layer_0/name = "asset_key"
+custom_data_layer_0/type = 4
+custom_data_layer_1/name = "role"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "height"
+custom_data_layer_2/type = 2
+sources/0 = SubResource("TileSetAtlasSource_5iqxq")
+sources/1 = SubResource("TileSetAtlasSource_5dtd4")
+sources/2 = SubResource("TileSetAtlasSource_dk318")
+sources/3 = SubResource("TileSetAtlasSource_jclim")
+sources/4 = SubResource("TileSetAtlasSource_4iidc")
+sources/5 = SubResource("TileSetAtlasSource_l8i4w")
+sources/6 = SubResource("TileSetAtlasSource_rug8u")
+sources/7 = SubResource("TileSetAtlasSource_qgl2j")
+sources/8 = SubResource("TileSetAtlasSource_8ac0p")
+sources/9 = SubResource("TileSetAtlasSource_3mi6q")
+sources/10 = SubResource("TileSetAtlasSource_jmgfh")
+sources/11 = SubResource("TileSetAtlasSource_vj5mt")
+sources/12 = SubResource("TileSetAtlasSource_anr41")
+sources/13 = SubResource("TileSetAtlasSource_dojfl")
+sources/14 = SubResource("TileSetAtlasSource_6qdxv")
+sources/15 = SubResource("TileSetAtlasSource_edixn")
+sources/20 = SubResource("TileSetAtlasSource_anjsb")
+sources/21 = SubResource("TileSetAtlasSource_psjl5")
+sources/22 = SubResource("TileSetAtlasSource_li1dr")
+sources/23 = SubResource("TileSetAtlasSource_n4occ")
+sources/24 = SubResource("TileSetAtlasSource_ulrxx")
+sources/25 = SubResource("TileSetAtlasSource_1efll")
+sources/26 = SubResource("TileSetAtlasSource_mb36x")
+sources/27 = SubResource("TileSetAtlasSource_76fha")
+sources/28 = SubResource("TileSetAtlasSource_tdu43")
+sources/29 = SubResource("TileSetAtlasSource_1ba6l")
+sources/30 = SubResource("TileSetAtlasSource_6trd1")
+sources/31 = SubResource("TileSetAtlasSource_fbixi")
+sources/32 = SubResource("TileSetAtlasSource_syejf")
+sources/33 = SubResource("TileSetAtlasSource_ibv7m")
+sources/34 = SubResource("TileSetAtlasSource_e0rv7")
+sources/35 = SubResource("TileSetAtlasSource_5meid")
+sources/36 = SubResource("TileSetAtlasSource_xbbwx")
+sources/37 = SubResource("TileSetAtlasSource_vopmh")
+sources/38 = SubResource("TileSetAtlasSource_nstg2")
+sources/39 = SubResource("TileSetAtlasSource_mchhi")
+sources/40 = SubResource("TileSetAtlasSource_uf2g3")
+sources/41 = SubResource("TileSetAtlasSource_pwag3")
+sources/42 = SubResource("TileSetAtlasSource_r1664")
+sources/43 = SubResource("TileSetAtlasSource_2mdaa")
+sources/44 = SubResource("TileSetAtlasSource_d0sfr")
+sources/45 = SubResource("TileSetAtlasSource_vo0mu")
+sources/46 = SubResource("TileSetAtlasSource_2wkvk")
+sources/47 = SubResource("TileSetAtlasSource_1hrqv")
+sources/48 = SubResource("TileSetAtlasSource_0p2li")
+sources/49 = SubResource("TileSetAtlasSource_m5rha")
+sources/50 = SubResource("TileSetAtlasSource_gwxcp")
+sources/51 = SubResource("TileSetAtlasSource_bpkic")
+sources/52 = SubResource("TileSetAtlasSource_cwjh5")
+sources/53 = SubResource("TileSetAtlasSource_d5ydx")
+
+[node name="PracticeLevel" type="Node2D" unique_id=213613421]
+texture_filter = 1
+script = ExtResource("1_e61wq")
+practice_title = "The Flower Meadow (editable)"
+
+[node name="Ground" type="TileMapLayer" parent="." unique_id=2044877880]
+tile_map_data = PackedByteArray("AAAAAAAABAAAAAAAAAABAAAABAAAAAAAAAACAAAABAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAABAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAABAAAAAAAAAAIAAAABAAAAAAAAAAJAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAALAAAABAAAAAAAAAAMAAAABAAAAAAAAAANAAAABAAAAAAAAAAOAAAAAAAAAAAAAAAPAAAABQAAAAAAAAAQAAAABQAAAAAAAAARAAAABQAAAAAAAAAAAAEABAAAAAAAAAABAAEAAAAAAAAAAAACAAEAAAAAAAAAAAADAAEAAAAAAAAAAAAEAAEABAAAAAAAAAAFAAEABAAAAAAAAAAGAAEAAAAAAAAAAAAHAAEAAAAAAAAAAAAIAAEAAAAAAAAAAAAJAAEABAAAAAAAAAAKAAEABAAAAAAAAAALAAEAAAAAAAAAAAAMAAEAAAAAAAAAAAANAAEABAAAAAAAAAAOAAEABAAAAAAAAAAPAAEABQAAAAAAAAAQAAEABQAAAAAAAAARAAEABQAAAAAAAAAAAAIAAAAAAAAAAAABAAIAAAAAAAAAAAACAAIAAAAAAAAAAAADAAIAAAAAAAAAAAAEAAIAAAAAAAAAAAAFAAIABAAAAAAAAAAGAAIAAAAAAAAAAAAHAAIABAAAAAAAAAAIAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIABAAAAAAAAAALAAIABAAAAAAAAAAMAAIAAAAAAAAAAAANAAIAAAAAAAAAAAAOAAIABAAAAAAAAAAPAAIABQAAAAAAAAAQAAIABQAAAAAAAAARAAIABQAAAAAAAAAAAAMAAAAAAAAAAAABAAMAAAAAAAAAAAACAAMAAAAAAAAAAAADAAMABAAAAAAAAAAEAAMAAAAAAAAAAAAFAAMABAAAAAAAAAAGAAMAAAAAAAAAAAAHAAMAAAAAAAAAAAAIAAMABAAAAAAAAAAJAAMABAAAAAAAAAAKAAMAAAAAAAAAAAALAAMAAAAAAAAAAAAMAAMABAAAAAAAAAANAAMABAAAAAAAAAAOAAMAAAAAAAAAAAAPAAMABQAAAAAAAAAQAAMABQAAAAAAAAARAAMABQAAAAAAAAAAAAQACAAAAAAAAAABAAQACAAAAAAAAAACAAQACAAAAAAAAAADAAQACAAAAAAAAAAEAAQACAAAAAAAAAAFAAQAAAAAAAAAAAAGAAQACAAAAAAAAAAHAAQACAAAAAAAAAAIAAQACAAAAAAAAAAJAAQACAAAAAAAAAAKAAQACAAAAAAAAAALAAQACAAAAAAAAAAMAAQACAAAAAAAAAANAAQACAAAAAAAAAAOAAQACAAAAAAAAAAPAAQABQAAAAAAAAAQAAQABQAAAAAAAAARAAQABQAAAAAAAAAAAAUAAAAAAAAAAAABAAUABAAAAAAAAAACAAUABAAAAAAAAAADAAUAAAAAAAAAAAAEAAUAAAAAAAAAAAAFAAUABAAAAAAAAAAGAAUAAAAAAAAAAAAHAAUAAAAAAAAAAAAIAAUAAAAAAAAAAAAJAAUAAAAAAAAAAAAKAAUAAAAAAAAAAAALAAUAAAAAAAAAAAAMAAUABAAAAAAAAAANAAUABAAAAAAAAAAOAAUAAAAAAAAAAAAPAAUABQAAAAAAAAAQAAUABQAAAAAAAAARAAUABQAAAAAAAAAAAAYABAAAAAAAAAABAAYAAAAAAAAAAAACAAYAAAAAAAAAAAADAAYABAAAAAAAAAAEAAYABAAAAAAAAAAFAAYAAAAAAAAAAAAGAAYAAAAAAAAAAAAHAAYABAAAAAAAAAAIAAYABAAAAAAAAAAJAAYAAAAAAAAAAAAKAAYAAAAAAAAAAAALAAYABAAAAAAAAAAMAAYAAAAAAAAAAAANAAYAAAAAAAAAAAAOAAYABAAAAAAAAAAPAAYABQAAAAAAAAAQAAYABQAAAAAAAAARAAYABQAAAAAAAAAAAAcABAAAAAAAAAABAAcABAAAAAAAAAACAAcAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAcABAAAAAAAAAAFAAcABAAAAAAAAAAGAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAIAAcABAAAAAAAAAAJAAcABAAAAAAAAAAKAAcAAAAAAAAAAAALAAcAAAAAAAAAAAAMAAcABAAAAAAAAAANAAcABAAAAAAAAAAOAAcAAAAAAAAAAAAPAAcABQAAAAAAAAAQAAcABQAAAAAAAAARAAcABQAAAAAAAAAAAAgABAAAAAAAAAABAAgABAAAAAAAAAACAAgABAAAAAAAAAADAAgABAAAAAAAAAAEAAgAAAAAAAAAAAAFAAgABAAAAAAAAAAGAAgAAAAAAAAAAAAHAAgABAAAAAAAAAAIAAgABAAAAAAAAAAJAAgAAAAAAAAAAAAKAAgAAAAAAAAAAAALAAgABAAAAAAAAAAMAAgABAAAAAAAAAANAAgABAAAAAAAAAAOAAgABAAAAAAAAAAPAAgABQAAAAAAAAAQAAgABQAAAAAAAAARAAgABQAAAAAAAAA=")
+tile_set = SubResource("TileSet_nf4dg")
+
+[node name="Decorations" type="TileMapLayer" parent="." unique_id=898139261]
+tile_map_data = PackedByteArray("AAABAAAAMAAAAAAAAAAEAAAAMAAAAAAAAAAIAAAAMAAAAAAAAAAKAAAAMAAAAAAAAAAEAAEAMAAAAAAAAAAIAAEAMAAAAAAAAAANAAEAMAAAAAAAAAABAAMAMAAAAAAAAAAEAAMAMAAAAAAAAAALAAMAMAAAAAAAAAAOAAMAMAAAAAAAAAACAAUAMAAAAAAAAAAFAAUAMAAAAAAAAAAMAAUAMAAAAAAAAAABAAYAMAAAAAAAAAAHAAYAMAAAAAAAAAADAAgAMAAAAAAAAAAIAAgAMAAAAAAAAAAKAAgAMAAAAAAAAAAQAAIAMAAAAAAAAAARAAYAMAAAAAAAAAA=")
+tile_set = SubResource("TileSet_nf4dg")
+
+[node name="Blockers" type="TileMapLayer" parent="." unique_id=1444976002]
+tile_map_data = PackedByteArray("AAAAAAAALQAAAAAAAAAGAAAALQAAAAAAAAANAAAALQAAAAAAAAAQAAAALQAAAAAAAAARAAAALQAAAAAAAAAGAAEALQAAAAAAAAAGAAIALQAAAAAAAAANAAIALQAAAAAAAAAGAAMALQAAAAAAAAAGAAUALQAAAAAAAAAGAAYALQAAAAAAAAAMAAYALQAAAAAAAAAGAAcALQAAAAAAAAAAAAgALQAAAAAAAAABAAgALQAAAAAAAAAGAAgALQAAAAAAAAAMAAgALQAAAAAAAAANAAgALQAAAAAAAAAQAAgALQAAAAAAAAARAAgALQAAAAAAAAA=")
+tile_set = SubResource("TileSet_nf4dg")
+
+[node name="Markers" type="Node2D" parent="." unique_id=1071836019]
+
+[node name="Tortoise" type="Sprite2D" parent="Markers" unique_id=170995383]
+position = Vector2(96, 288)
+texture = ExtResource("26_juvad")
+script = ExtResource("26_o7jkc")
+kind = "TORTOISE"
+power = 2
+
+[node name="meadow_goose2" type="Sprite2D" parent="Markers" unique_id=245291581]
+position = Vector2(224, 288)
+texture = ExtResource("28_6usfr")
+script = ExtResource("26_o7jkc")
+power = 3
+species = "goose"
+
+[node name="meadow_goose" type="Sprite2D" parent="Markers" unique_id=804198163]
+position = Vector2(224, 160)
+texture = ExtResource("28_6usfr")
+script = ExtResource("26_o7jkc")
+species = "goose"
+
+[node name="meadow_hedgehog" type="Sprite2D" parent="Markers" unique_id=687449568]
+position = Vector2(288, 416)
+texture = ExtResource("29_jhp2f")
+script = ExtResource("26_o7jkc")
+power = 2
+species = "hedgehog"
+
+[node name="salad_small" type="Sprite2D" parent="Markers" unique_id=1833758475]
+position = Vector2(160, 480)
+texture = ExtResource("30_0gdfv")
+script = ExtResource("26_o7jkc")
+kind = "ITEM"
+
+[node name="oak_goose" type="Sprite2D" parent="Markers" unique_id=1571493300]
+position = Vector2(416, 288)
+texture = ExtResource("28_6usfr")
+script = ExtResource("26_o7jkc")
+power = 6
+species = "goose"
+
+[node name="clover_hedgehog" type="Sprite2D" parent="Markers" unique_id=1477547680]
+position = Vector2(608, 160)
+texture = ExtResource("29_jhp2f")
+script = ExtResource("26_o7jkc")
+power = 4
+species = "hedgehog"
+
+[node name="pond_goose" type="Sprite2D" parent="Markers" unique_id=570511048]
+position = Vector2(672, 416)
+texture = ExtResource("28_6usfr")
+script = ExtResource("26_o7jkc")
+power = 3
+species = "goose"
+
+[node name="salad_big" type="Sprite2D" parent="Markers" unique_id=120245878]
+position = Vector2(800, 96)
+texture = ExtResource("31_4g0n5")
+script = ExtResource("26_o7jkc")
+kind = "LOOT"
+power = 2
+loot_asset = "barrel"
+
+[node name="hill_mouse" type="Sprite2D" parent="Markers" unique_id=1133738271]
+position = Vector2(1056, 288)
+texture = ExtResource("32_baeq5")
+script = ExtResource("26_o7jkc")
+power = 20
+
+[node name="Stairs" type="Sprite2D" parent="Markers" unique_id=1489850933]
+position = Vector2(960, 288)
+script = ExtResource("26_o7jkc")
+kind = "STAIRS"

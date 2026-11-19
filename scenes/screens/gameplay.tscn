@@ -36,7 +36,10 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_3dpka")
 
-[node name="BackConfirmation" type="Control" parent="."]
+[node name="ModalLayer" type="CanvasLayer" parent="."]
+layer = 11
+
+[node name="BackConfirmation" type="Control" parent="ModalLayer"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -47,7 +50,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
 
-[node name="Dimmer" type="ColorRect" parent="BackConfirmation"]
+[node name="Dimmer" type="ColorRect" parent="ModalLayer/BackConfirmation"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -57,7 +60,7 @@ grow_vertical = 2
 mouse_filter = 1
 color = Color(0.055, 0.07, 0.045, 0.72)
 
-[node name="CenterContainer" type="CenterContainer" parent="BackConfirmation"]
+[node name="CenterContainer" type="CenterContainer" parent="ModalLayer/BackConfirmation"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -66,18 +69,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 
-[node name="Panel" type="PanelContainer" parent="BackConfirmation/CenterContainer"]
+[node name="Panel" type="PanelContainer" parent="ModalLayer/BackConfirmation/CenterContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(540, 360)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxTexture_dialog")
 mouse_filter = 1
 
-[node name="Contents" type="VBoxContainer" parent="BackConfirmation/CenterContainer/Panel"]
+[node name="Contents" type="VBoxContainer" parent="ModalLayer/BackConfirmation/CenterContainer/Panel"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="BackConfirmation/CenterContainer/Panel/Contents"]
+[node name="Title" type="Label" parent="ModalLayer/BackConfirmation/CenterContainer/Panel/Contents"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.97, 0.91, 0.76, 1)
@@ -85,7 +88,7 @@ theme_override_font_sizes/font_size = 30
 text = "Leave this trail?"
 horizontal_alignment = 1
 
-[node name="Message" type="Label" parent="BackConfirmation/CenterContainer/Panel/Contents"]
+[node name="Message" type="Label" parent="ModalLayer/BackConfirmation/CenterContainer/Panel/Contents"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
@@ -96,18 +99,18 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="Actions" type="HBoxContainer" parent="BackConfirmation/CenterContainer/Panel/Contents"]
+[node name="Actions" type="HBoxContainer" parent="ModalLayer/BackConfirmation/CenterContainer/Panel/Contents"]
 layout_mode = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="StayButton" type="Button" parent="BackConfirmation/CenterContainer/Panel/Contents/Actions"]
+[node name="StayButton" type="Button" parent="ModalLayer/BackConfirmation/CenterContainer/Panel/Contents/Actions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(190, 72)
 layout_mode = 2
 text = "Stay"
 
-[node name="LeaveButton" type="Button" parent="BackConfirmation/CenterContainer/Panel/Contents/Actions"]
+[node name="LeaveButton" type="Button" parent="ModalLayer/BackConfirmation/CenterContainer/Panel/Contents/Actions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(190, 72)
 layout_mode = 2
@@ -190,6 +193,22 @@ theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
 [node name="HudSpacer" type="Control" parent="UiLayer/HudContainer/HudRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="MeadowGoal" type="Label" parent="UiLayer/HudContainer/HudRow/HudSpacer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0.13, 0.1, 0.07, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="RecenterButton" type="Button" parent="UiLayer/HudContainer/HudRow"]
 unique_name_in_owner = true

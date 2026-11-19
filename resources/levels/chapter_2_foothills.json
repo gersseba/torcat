@@ -337,8 +337,8 @@
         {
           "type": "message",
           "text": {
-            "en": "Shell Charge strengthens one attack on a nearby enemy. Tough foes wear down the shell, so save your charms for them.",
-            "de": "Panzerangriff verstärkt einen Angriff auf einen nahen Gegner. Starke Gegner zehren den Panzer auf – spare deine Amulette für sie."
+            "en": "Toggle Shell on to strengthen your attacks. Golden sparks show it's ready. Toggle it off to save your reserve for tough foes.",
+            "de": "Schalte den Panzer ein, um deine Angriffe zu verstärken. Goldene Funken zeigen, dass er bereit ist. Schalte ihn aus, um deine Reserve für starke Gegner zu sparen."
           }
         }
       ]

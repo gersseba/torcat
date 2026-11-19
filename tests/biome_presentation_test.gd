@@ -10,8 +10,10 @@ const CHAPTERS := [
 	["chapter_2_foothills", "forest_moss", "pine", "forest_litter"],
 	["chapter_3_rocky_pass", "light_woodland", "thick_bush", "woodland_ferns"],
 	["chapter_4_cliffs", "mountain_meadow", "wooden_fence", "mountain_flowers"],
-	["chapter_5_summit", "hilltop", "boulder", "scree"],
+	["chapter_5_summit", "summit_dirt", "boulder", "summit_lupine"],
 ]
+const SUMMIT_GROUND := ["summit_dirt", "summit_sand", "summit_trail"]
+const SUMMIT_PLANTS := ["summit_succulent", "summit_lupine", "summit_buttercup", "summit_pinks", "summit_harebell", "summit_scrub"]
 
 var failures := 0
 
@@ -38,7 +40,6 @@ func _run() -> void:
 
 func _test_content() -> void:
 	var factory = FACTORY.new()
-	var engine = ENGINE.new()
 	for chapter in CHAPTERS:
 		var state = factory.create_world(chapter[0])
 		var ground_count := 0
@@ -49,7 +50,8 @@ func _test_content() -> void:
 		for blocker in state.blockers_by_pos.values():
 			if blocker.asset_key == chapter[2] and blocker.blocks_movement:
 				obstacle_count += 1
-		_check(ground_count >= state.width * state.height / 2, "%s needs its own dominant ground" % chapter[0])
+		if chapter[0] != "chapter_5_summit":
+			_check(ground_count >= state.width * state.height / 2, "%s needs its own dominant ground" % chapter[0])
 		_check(obstacle_count >= 8, "%s needs themed obstacles" % chapter[0])
 		_check(state.decorations_by_pos.values().has(chapter[3]), "%s needs its own decoration" % chapter[0])
 		_check(state.decorations_by_pos.size() >= 12, "%s needs authored ground scatter" % chapter[0])
@@ -64,22 +66,19 @@ func _test_content() -> void:
 		copied.decorations_by_pos.clear()
 		_check(not state.decorations_by_pos.is_empty(), "Decorations must survive independent state copies")
 
-	var meadow = factory.create_world(CHAPTERS[0][0])
-	meadow.enemies_by_pos.clear()
-	var water_count := 0
-	for pos in meadow.tile_cells:
-		if meadow.tile_cells[pos].asset_key == "shallow_water":
-			water_count += 1
-			_check(not meadow.is_blocked(pos), "Meadow water must be passable")
-			_check(not engine.find_path(meadow, meadow.player.position, pos).is_empty(), "Every meadow water tile must be reachable")
-	_check(water_count >= 8, "Meadow needs shallow ponds, not a single water tile")
 	var forest = factory.create_world(CHAPTERS[1][0])
 	var clearings = factory.create_world(CHAPTERS[2][0])
 	_check(forest.blockers_by_pos.size() >= 32, "Forest needs dense tree clusters")
 	_check(forest.blockers_by_pos.size() > clearings.blockers_by_pos.size(), "Light woodland must be less dense than the forest")
 	var summit = factory.create_world(CHAPTERS[4][0])
-	_check(summit.decorations_by_pos.values().count("mountain_flowers") == 2, "Summit flowers must be sparse")
-	_check(summit.decorations_by_pos.values().has("dry_bush"), "Summit needs dry scrub")
+	var summit_ground := {}
+	for cell in summit.tile_cells.values():
+		summit_ground[cell.asset_key] = true
+	_check(summit_ground.size() == SUMMIT_GROUND.size() and SUMMIT_GROUND.all(func(key): return summit_ground.has(key)),
+		"Summit must use only the new dirt, sand and trail surfaces")
+	var summit_plants: Array = summit.decorations_by_pos.values()
+	_check(summit_plants.all(func(key): return key in SUMMIT_PLANTS) and SUMMIT_PLANTS.all(func(key): return key in summit_plants),
+		"Summit must use all six new plants, with none of the old square-based scrub")
 
 
 func _test_loot() -> void:
@@ -137,13 +136,16 @@ func _check_organic_text(text: Variant, numeric_strength: RegEx) -> void:
 
 
 func _test_art() -> void:
+	var summit_tiles: Array = []
+	for key in SUMMIT_GROUND:
+		summit_tiles.append_array(RENDERER.BIOME_TOKENS[key])
 	for token in [
-		"forest_moss", "light_woodland", "mountain_meadow", "shallow_water", "hilltop",
+		"forest_moss", "light_woodland", "mountain_meadow", "hilltop",
 		"decor_meadow_flowers", "decor_forest_litter", "decor_woodland_ferns",
 		"decor_mountain_flowers", "decor_scree", "decor_dry_bush",
 		"blocker_stone_wall", "blocker_thick_bush", "blocker_fence",
 		"loot_tree_stump", "loot_barrel", "loot_cracked_stone",
-	]:
+	] + summit_tiles + SUMMIT_PLANTS.map(func(key): return "decor_" + key):
 		var texture := load(RENDERER.TOKEN_FILES[token]) as Texture2D
 		_check(texture != null, "New art must load: %s" % token)
 		if texture == null:
@@ -164,6 +166,20 @@ func _test_art() -> void:
 		_check(colors.size() > 4, "%s must contain pixel art rather than a flat fallback" % token)
 		var is_prop: bool = token.begins_with("decor_") or token.begins_with("blocker_") or token.begins_with("loot_")
 		_check(has_transparency == is_prop, "%s must have the correct background transparency" % token)
+		if token.begins_with("decor_summit_"):
+			var bounds := image.get_used_rect()
+			_check(Rect2i(12, 8, 40, 42).encloses(bounds), "%s must leave clear space around its footprint" % token)
+		elif token in summit_tiles:
+			var values: Array[float] = []
+			for y in range(64):
+				for x in range(64):
+					values.append(image.get_pixel(x, y).get_luminance())
+			values.sort()
+			_check(values[values.size() * 95 / 100] - values[values.size() * 5 / 100] < 0.17,
+				"%s must keep most ground quiet while allowing small contrasting pebbles and twigs" % token)
+			var detail_pixels := values.filter(func(value): return absf(value - values[2048]) > 0.09).size()
+			_check(detail_pixels >= 12 and detail_pixels < 300,
+				"%s must have visible but sparse ground details" % token)
 
 
 func _test_rendering() -> void:
@@ -183,15 +199,21 @@ func _test_rendering() -> void:
 		screen._state = state
 		screen._preview_path.clear()
 		screen._render_state()
+		if chapter[0] == "chapter_5_summit":
+			var variants_used := {}
+			for pos in state.tile_cells:
+				var key: String = state.tile_cells[pos].asset_key
+				var coords: Vector2i = screen._ground_layer.get_cell_atlas_coords(pos)
+				variants_used[coords] = true
+				_check(RENDERER.BIOME_TOKENS[key].any(func(token): return renderer._atlas_coords_by_role[token] == coords),
+					"Summit ground must render a variant of its own terrain")
+			_check(variants_used.size() > SUMMIT_GROUND.size(), "Summit must mix ground details instead of repeating one tile per surface")
 		for pos in state.decorations_by_pos:
 			var token := "decor_%s" % state.decorations_by_pos[pos]
 			_check(screen._decoration_layer.get_cell_atlas_coords(pos) == renderer._atlas_coords_by_role[token], "%s scatter must use its imported art" % chapter[0])
 		for pos in state.lootables_by_pos:
 			var token: String = RENDERER.LOOT_TOKENS[state.lootables_by_pos[pos].asset_key]
 			_check(screen._marker_layer.get_cell_atlas_coords(pos) == renderer._atlas_coords_by_role[token], "Loot must render its specific container")
-		for pos in state.tile_cells:
-			if state.tile_cells[pos].asset_key == "shallow_water":
-				_check(screen._ground_layer.get_cell_atlas_coords(pos) == renderer._atlas_coords_by_role["shallow_water"], "Water must use the water texture")
 	var atlas_source := renderer._tile_set.get_source(renderer._source_id) as TileSetAtlasSource
 	_check(atlas_source.texture.get_width() <= 4096 and atlas_source.texture.get_height() <= 4096, "Expanded atlas must stay within mobile/WebGL limits")
 	_check(screen._decoration_layer.z_index < screen._elevation_layers[0].z_index, "Ground scatter must not cover cliff edges")
