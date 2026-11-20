@@ -26,6 +26,8 @@ func _run() -> void:
 	_test_authored_content()
 	root.size = Vector2i(720, 1280)
 	await _test_cutscene_player()
+	await _test_cutscene_viewing_controls()
+	await _test_finale_framing()
 	await _test_level_flow()
 	if failures == 0:
 		print("level_script_test: all checks passed")
@@ -155,6 +157,98 @@ func _test_cutscene_player() -> void:
 	await create_timer(0.6).timeout
 	_check(finished[0], "Skip must finish the cutscene")
 	layer.queue_free()
+
+
+func _test_cutscene_viewing_controls() -> void:
+	var layer := CanvasLayer.new()
+	root.add_child(layer)
+	var player: CutscenePlayer = CUTSCENE_PLAYER.new()
+	layer.add_child(player)
+	await process_frame
+	var scene := LS.load_cutscene("meadow_intro")
+	scene["shots"][0]["auto"] = 0.25
+	player.play(scene)
+	await create_timer(0.1).timeout
+	player._pause_button.pressed.emit()
+	var frame := player.image_rect()
+	var typed := player._text_label.visible_ratio
+	player.advance()
+	await create_timer(0.3).timeout
+	_check(player.image_rect() == frame and player._text_label.visible_ratio == typed and player.is_typing(),
+		"Pausing must freeze the pan and caption and ignore the advance gesture")
+
+	player._image_button.pressed.emit()
+	var full := player.image_rect()
+	var texture_size := player._image_rect.texture.get_size()
+	_check(Rect2(Vector2.ZERO, player.size).encloses(full) and is_equal_approx(full.size.aspect(), texture_size.aspect())
+		and full.position.y >= player._controls.get_rect().end.y,
+		"Full image must fit the whole illustration at its original aspect ratio below the buttons")
+	_check(not player._caption_panel.visible and not player._fade_rect.visible and player._image_button.visible,
+		"Full image must hide overlays and leave the controls visible")
+	player._image_button.pressed.emit()
+	await create_timer(0.1).timeout
+	_check(player.image_rect() == frame and player._caption_panel.visible and player._pause_button.text == "Resume",
+		"Leaving full image must restore the cropped shot and preserve a manual pause")
+	player._pause_button.pressed.emit()
+	await create_timer(0.1).timeout
+	_check(player.image_rect() != frame and player._text_label.visible_ratio > typed,
+		"Resume must continue both the pan and the caption")
+
+	player.advance()
+	player._image_button.pressed.emit()
+	await create_timer(0.35).timeout
+	_check(player.current_shot_index() == 0, "Full image must hold timed advances")
+	player._image_button.pressed.emit()
+	await create_timer(0.4).timeout
+	_check(player.current_shot_index() == 1, "Leaving full image must resume an active timed advance")
+	var finished := [false]
+	player.finished.connect(func() -> void: finished[0] = true)
+	player._pause_button.pressed.emit()
+	player._skip_button.pressed.emit()
+	await create_timer(0.55).timeout
+	_check(finished[0], "Skip must still finish the cutscene while paused")
+	layer.queue_free()
+	await process_frame
+
+
+func _test_finale_framing() -> void:
+	var layer := CanvasLayer.new()
+	root.add_child(layer)
+	var player: CutscenePlayer = CUTSCENE_PLAYER.new()
+	layer.add_child(player)
+	await process_frame
+	player.play(LS.load_cutscene("story_6_finale"))
+	var beats := {
+		2: ["story_eggs_in_hole.png", Rect2(85, 121, 138, 80)],
+		4: ["story_covered_nest.png", Rect2(98, 121, 125, 78)],
+		5: ["story_hatchlings_on_soil.png", Rect2(80, 121, 143, 92)],
+		6: ["story_hatchlings_on_soil.png", Rect2(80, 121, 143, 92)],
+	}
+	for shot in range(7):
+		_check(player.current_shot_index() == shot, "Finale should play each shot in order")
+		if beats.has(shot):
+			var beat: Array = beats[shot]
+			var image: TextureRect = player.get("_image_rect")
+			_check(image.texture != null and image.texture.resource_path.get_file() == beat[0],
+				"Finale shot %d should display its own nest state" % shot)
+			var subject: Rect2 = beat[1]
+			var caption: Control = player.get("_caption_panel")
+			for progress in [0.0, 0.5, 1.0]:
+				player._apply_shot_progress(progress)
+				var rect := player.image_rect()
+				var scale := rect.size / Vector2(512, 288)
+				var subject_on_screen := Rect2(rect.position + subject.position * scale, subject.size * scale)
+				var unobscured := Rect2(Vector2.ZERO, Vector2(player.size.x, caption.position.y))
+				_check(unobscured.encloses(subject_on_screen),
+					"Finale shot %d must keep the nest and characters above the caption at progress %.1f" % [shot, progress])
+		if shot < 6:
+			if player.is_typing():
+				player.advance()
+			player.advance()
+			while player._transitioning:
+				await process_frame
+	layer.queue_free()
+	await process_frame
 
 
 func _test_level_flow() -> void:

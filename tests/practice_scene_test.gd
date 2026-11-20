@@ -14,6 +14,14 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var factory := FACTORY.new()
+	var foothills = factory.create_world("practice_scene:chapter_2_foothills_copy")
+	var story_foothills = factory.create_world("chapter_2_foothills")
+	_check(foothills.lootables_by_pos.size() == story_foothills.lootables_by_pos.size() + 3
+		and foothills.enemies_by_pos.size() == story_foothills.enemies_by_pos.size(),
+		"The cache variant adds three breakables without replacing encounters")
+	for cell in [Vector2i(2, 2), Vector2i(3, 8), Vector2i(11, 2)]:
+		_check(foothills.lootables_by_pos.has(cell) and not foothills.is_blocked(cell),
+			"Practice cache must sit on usable terrain: %s" % str(cell))
 	for id in FACTORY.LEVEL_PATHS:
 		if not id.begins_with("chapter_"):
 			continue

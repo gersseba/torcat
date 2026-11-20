@@ -51,24 +51,24 @@
     {
       "from": {
         "focus": [
-          0.5,
-          0.5
+          0.29,
+          0.62
         ],
         "zoom": 1.0
       },
       "to": {
         "focus": [
-          0.27,
+          0.30,
           0.62
         ],
-        "zoom": 1.3
+        "zoom": 1.12
       },
       "duration": 8.0,
       "text": {
-        "en": "At the very top, in the warm soil, the tortoise laid her eggs.",
-        "de": "Ganz oben, in der warmen Erde, legte die Schildkröte ihre Eier."
+        "en": "At the summit, the tortoise laid her eggs in a shallow hole, then covered them with loose soil.",
+        "de": "Auf dem Gipfel legte die Schildkröte ihre Eier in eine flache Mulde und deckte sie mit lockerer Erde zu."
       },
-      "image": "res://resources/assets/cutscenes/story_laying_eggs.png"
+      "image": "res://resources/assets/cutscenes/story_eggs_in_hole.png"
     },
     {
       "from": {
@@ -95,59 +95,59 @@
     {
       "from": {
         "focus": [
-          0.6,
-          0.35
+          0.3,
+          0.60
         ],
         "zoom": 1.0
       },
       "to": {
         "focus": [
-          0.82,
-          0.3
+          0.31,
+          0.64
         ],
-        "zoom": 1.4
+        "zoom": 1.12
       },
       "duration": 8.0,
       "text": {
         "en": "The cat stayed on the summit and guarded the nest, just as it had promised.",
         "de": "Die Katze blieb auf dem Gipfel und bewachte das Nest, genau wie sie es versprochen hatte."
       },
-      "image": "res://resources/assets/cutscenes/story_walk_down.png"
+      "image": "res://resources/assets/cutscenes/story_covered_nest.png"
     },
     {
       "from": {
         "focus": [
-          0.5,
-          0.45
+          0.29,
+          0.62
         ],
         "zoom": 1.0
       },
       "to": {
         "focus": [
-          0.2,
-          0.68
+          0.29,
+          0.66
         ],
-        "zoom": 1.4
+        "zoom": 1.08
       },
       "duration": 8.0,
       "text": {
-        "en": "And when spring returned... the eggs hatched.",
-        "de": "Und als der Frühling zurückkehrte ... schlüpften die Eier."
+        "en": "In spring, the tortoise returned just in time to see her hatchlings emerge.",
+        "de": "Im Frühling kehrte die Schildkröte gerade rechtzeitig zurück, um ihre Jungen schlüpfen zu sehen."
       },
-      "image": "res://resources/assets/cutscenes/story_hatching.png"
+      "image": "res://resources/assets/cutscenes/story_hatchlings_on_soil.png"
     },
     {
       "from": {
         "focus": [
-          0.25,
-          0.65
+          0.29,
+          0.66
         ],
-        "zoom": 1.4
+        "zoom": 1.08
       },
       "to": {
         "focus": [
-          0.5,
-          0.5
+          0.30,
+          0.62
         ],
         "zoom": 1.0
       },
@@ -156,7 +156,7 @@
         "en": "The End.",
         "de": "Ende."
       },
-      "image": "res://resources/assets/cutscenes/story_hatching.png"
+      "image": "res://resources/assets/cutscenes/story_hatchlings_on_soil.png"
     }
   ]
 }

@@ -180,9 +180,13 @@ func _run() -> void:
 	_check(is_equal_approx(screen._character_power_labels[GS.CharacterId.CAT].modulate.a, 1.0), "Power indicator must return after pounce")
 	screen._toggle_pounce_mode()
 	var landing: Vector2i = screen._state.cat.position + Vector2i.RIGHT * 2
+	var zoom_before_jump := screen._board_camera.zoom
 	screen._handle_board_click(_screen_position(screen, landing))
 	screen._handle_board_click(_screen_position(screen, landing))
-	await create_timer(0.9).timeout
+	await create_timer(0.2).timeout
+	_check(screen._pounce_shadow.visible and screen._board_camera.zoom == zoom_before_jump,
+		"Movement-only Pounce must jump without a cinematic zoom")
+	await create_timer(0.7).timeout
 	_check(screen._state.cat.position == landing and screen._state.cat_pounces_remaining == 1, "Empty pounce must land through UI")
 	screen._update_camera_target(true)
 	screen._board_camera.force_update_scroll()

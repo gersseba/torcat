@@ -14,6 +14,8 @@ Open this directory in Godot 4 and run the project to launch the main scene.
 - Tap the board during a walk to stop at the character's current position.
 - Tap an enemy or loot container twice to approach the nearest reachable
   cardinally adjacent tile center and attack from there.
+- On long, level stretches, tap-to-move speeds up between waypoints and slows
+  back down for turns and arrivals. Short walks and joystick speed are unchanged.
 - Drag with one finger to pan the board.
 - Pinch with two fingers to zoom.
 - Use **Center** to return the camera to the selected character.
@@ -25,7 +27,10 @@ Open this directory in Godot 4 and run the project to launch the main scene.
   [the gameplay scene](scenes/screens/gameplay.tscn) in Godot and toggle
   **Enemy Defeat Glow Enabled** and **Power Transfer Orbs Enabled** separately
   under **Combat Feedback** on `GameplayScreen`.
-- Menu and gameplay buttons use touch-sized hit areas.
+- Menu and gameplay buttons give localized labels room inside the wooden frame
+  and use touch-sized hit areas. The leave confirmation,
+  Pounce, and Shell Charge use wooden controls; unavailable abilities stay
+  visible with a muted wooden finish.
 - Enable **Touch controls** in Settings for a left virtual joystick and right-side
   attack and special-action buttons.
 
@@ -86,6 +91,16 @@ defeats the tortoise. The enemy's power is subtracted from the shell reserve
 (minimum zero), whether the attack wins or loses. On victory the tortoise
 gains the enemy's power normally, not the temporary shell bonus. Authored levels
 can place charms using entities of type `SHELL_ITEM` with positive `power`.
+
+Shell Charge and combat Pounce reframe the shot during windup, then hit with
+larger effects and a short directional camera shake. Normal hits briefly hold
+at impact, and broken loot shows the power gained. **Reduced motion** disables
+combat camera zoom and shake without removing the attack effects.
+
+Shell Charge, Pounce, breakable loot, and shell transfers have distinct action
+cues. Footsteps follow the walk animation in both control schemes, and quiet
+ambient loops play during levels. The **SFX** setting controls both.
+
 Power indicators follow their characters while moving. Green brush strokes
 identify characters, blue identifies loose items, and wine red identifies
 enemies. Unopened loot containers hide their reward; breaking one plays its
@@ -151,7 +166,8 @@ continues to the next action.
 Cutscenes play outside levels, on their own `cutscene` route. A level
 declares them at the top level of its JSON, for example
 `"cutscenes": {"intro": "meadow_intro", "outro": "meadow_victory"}`. The intro
-plays after the level is selected and before gameplay starts. The outro plays
+plays before the next chapter when continuing through the campaign. Starting
+a chapter directly from the Story map skips its intro. The outro plays
 when the player taps **Continue** after a victory. Practice levels then return
 to level select; campaign chapters continue as described in
 [Story campaign](#story-campaign). If a level has no cutscene of that kind, the
@@ -164,7 +180,11 @@ means the image just covers the screen. A shot also has a `duration`, a `text`,
 an optional `speaker` and an optional `auto` advance delay. The camera eases
 between the two views, staying within the image so no black edges show.
 Captions type out on a wooden plank panel. Tapping completes and then advances
-the caption, and **Skip** ends the cutscene. Any text field can be a plain
+the caption. **Pause** freezes the shot, including caption typing and timed
+advances; **Resume** picks up where it stopped. **Full image** pauses the
+scene and fits the entire illustration on screen without captions. **Back to
+scene** restores the previous playback state, and **Skip** ends the cutscene.
+Any text field can be a plain
 string or an object with `en` and `de` keys.
 
 Cutscene images are 512x288 pixel-art panoramas in `resources/assets/cutscenes/`.
@@ -217,14 +237,16 @@ in order in `resources/campaign/campaign.json`, with `en` and `de` titles:
 
 Chapter 5's outro is `story_6_finale`. Victory records completion and unlocks the
 next chapter immediately. **Continue** plays the current level's outro (if any) and the next chapter's
-intro, and then starts the next chapter. After the finale the game returns to
-level select.
+intro, and then starts the next chapter. The finale shows the eggs laid in a
+shallow hole, the cat guarding the covered nest, and the tortoise returning
+for the hatchlings. After the finale the game returns to level select.
 
 The **Story** tab shows an illustrated hill, changing from meadow through forest
 to the rocky summit. Stars represent cutscenes; outlined circles represent levels,
 and completed levels have filled circles. The tortoise begins at the bottom.
 Tap an unlocked destination to walk there, then choose **Start** for a level or
-**Watch** for a standalone cutscene replay. Start is unavailable during travel;
+**Watch** for a standalone cutscene replay. **Start** skips the chapter intro
+cutscene but keeps its in-level events. Start is unavailable during travel;
 locked destinations cannot be selected or started. Replays return to the map,
 and the final story star unlocks only after winning the summit. The **Practice**
 tab offers the forward and backward random-grid variants and **Meadow Rooms**.
@@ -262,6 +284,9 @@ The scene supplies the terrain and placements; Torcat still uses its usual
 movement, combat, and renderer. Chapter copies omit Story dialogue,
 cutscenes, and scripted events. A copied chapter with a stranded cat starts
 with the cat in the party since its recruitment event is not copied.
+
+**Foothills: Woodland Caches** is an editable Practice variant with three extra
+breakables on the north, south, and upper routes. The Story chapter is unchanged.
 
 **Meadow Rooms** generates a tortoise-only trail with two branching areas.
 Start on either side of the lower loop, then return to the stronger crossing
@@ -415,7 +440,7 @@ final state rather than treating normalization as validation.
 Unlocked chapters and explicit level completion, including the final chapter,
 are saved to `user://progress.cfg`. Older saves that recorded only unlocks infer
 completion for the preceding chapters, not the last unlocked chapter.
-Language, music, SFX and touch-control preferences are saved separately to
+Language, music, SFX, touch controls and reduced motion are saved separately to
 `user://settings.cfg`.
 After a defeat, **Retry** restarts the level without replaying its intro.
 
@@ -428,8 +453,11 @@ Level JSON options used by the campaign:
 - `abilities`: `shellCharge` and `pounce` (default `true`), and `catClimb` and
   `catCarry` (default `false`).
   - A climbing cat can hop down one height level without stairs or spending a Pounce.
-  - A carrying cat picks up shell charms and delivers them as soon as it ends a
-    move or pounce next to the tortoise.
+  - The cat cannot walk or pounce onto a shell charm. When carrying is enabled,
+    tap a charm twice to approach it and pick it up from a neighboring tile,
+    or face it and use **Pick up** with joystick controls. The charm hops into
+    the cat's backpack. When the cat and tortoise meet, one shell sprite hops
+    across to show the transfer of the full reserve.
 - `initialState.catStatus`: one of these values:
   - `party` (default).
   - `stranded`: the cat is visible but cannot be controlled until a `join_party`

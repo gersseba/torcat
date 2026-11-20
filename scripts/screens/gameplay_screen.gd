@@ -42,6 +42,7 @@ const FREE_CONFIRM_DISTANCE := 0.35
 const CONTINUOUS_MOVE_SPEED := 2.4
 const JOYSTICK_DEAD_ZONE := 0.18
 const ATTACK_FRAME_DURATION := 0.055
+const ATTACK_IMPACT_HOLD := 0.045
 const POWER_INDICATOR_FADE_DURATION := 0.1
 const POUNCE_FRAME_DURATION := 0.075
 const POUNCE_JUMP_DURATION := 0.6
@@ -136,6 +137,11 @@ var _camera_drag_active: bool = false
 var _camera_drag_last_pos: Vector2 = Vector2.ZERO
 var _camera_tween: Tween
 var _camera_shake_tween: Tween
+var _special_camera_active := false
+var _special_camera_zoom: Vector2
+var _special_camera_position: Vector2
+var _special_camera_offset: Vector2
+var _special_shake: Tween
 var _touch_positions: Dictionary = {}
 var _touch_started_at: Dictionary = {}
 var _touch_moved: Dictionary = {}
@@ -181,8 +187,7 @@ var _victory_reported := false
 var _overview_enabled := true
 var _practice_load_failed := false
 var _audio_pickups := -1
-var _audio_enemies := 0
-var _audio_heroes := 0
+var _audio_shell_pickups := -1
 var _result_sting_played := false
 var _camera_look_ahead := Vector2.ZERO
 
@@ -212,6 +217,9 @@ func _ready() -> void:
 	_combat_rewards.name = "CombatRewards"
 	_combat_rewards.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_board_root.add_child(_combat_rewards)
+	_combat_rewards.shell_landed.connect(func(is_pickup: bool) -> void:
+		_play_sfx("shell_pack" if is_pickup else "shell_handoff")
+	)
 	_free_path_line = Line2D.new()
 	_free_path_line.width = 3.0
 	_free_path_line.default_color = Color("f5e5a6")
@@ -233,6 +241,8 @@ func _ready() -> void:
 	_pounce_shadow.z_index = 2
 	_pounce_shadow.visible = false
 	_board_root.add_child(_pounce_shadow)
+	for button in [_back_stay_button, _back_leave_button, _pounce_button, _shell_button]:
+		WOODLAND_UI.button(button)
 	_pounce_button.pressed.connect(_toggle_pounce_mode)
 	_shell_button.pressed.connect(_toggle_shell_mode)
 	_setup_mobile_controls()
@@ -297,7 +307,8 @@ func _setup_mobile_controls() -> void:
 	_mobile_attack_button.name = "AttackButton"
 	_mobile_attack_button.text = LEVEL_SCRIPT.localize({"en": "Attack", "de": "Angriff"})
 	WOODLAND_UI.button(_mobile_attack_button)
-	_mobile_attack_button.custom_minimum_size = Vector2(104, 80)
+	_mobile_attack_button.custom_minimum_size.x = 128.0
+	_mobile_attack_button.minimum_size_changed.connect(_layout_mobile_controls)
 	_mobile_attack_button.pressed.connect(_mobile_attack_pressed)
 	_mobile_controls_root.add_child(_mobile_attack_button)
 
@@ -305,7 +316,8 @@ func _setup_mobile_controls() -> void:
 	_mobile_special_button.name = "SpecialButton"
 	_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Special", "de": "Spezial"})
 	WOODLAND_UI.button(_mobile_special_button)
-	_mobile_special_button.custom_minimum_size = Vector2(104, 80)
+	_mobile_special_button.custom_minimum_size.x = 128.0
+	_mobile_special_button.minimum_size_changed.connect(_layout_mobile_controls)
 	_mobile_special_button.pressed.connect(_mobile_special_pressed)
 	_mobile_controls_root.add_child(_mobile_special_button)
 	_layout_mobile_controls()
@@ -335,15 +347,16 @@ func _show_back_confirmation() -> void:
 
 
 func _layout_mobile_controls() -> void:
-	if _mobile_controls_root == null:
+	if _mobile_special_button == null:
 		return
 	var margins := WOODLAND_UI.safe_margins(size)
 	_joystick_base.position = Vector2(margins.x + 20.0, size.y - margins.w - _joystick_base.size.y - 20.0)
 	_joystick_knob.position = (_joystick_base.size - _joystick_knob.size) * 0.5
-	var buttons_left := size.x - margins.z - 228.0
-	var buttons_top := size.y - margins.w - 100.0
-	_mobile_attack_button.position = Vector2(buttons_left, buttons_top)
-	_mobile_special_button.position = Vector2(buttons_left + 116.0, buttons_top)
+	var right := size.x - margins.z
+	for button in [_mobile_special_button, _mobile_attack_button]:
+		button.size = button.get_combined_minimum_size()
+		button.position = Vector2(right - button.size.x, size.y - margins.w - button.size.y)
+		right = button.position.x - 12.0
 
 
 func _on_joystick_input(event: InputEvent) -> void:
@@ -464,10 +477,13 @@ func _process_continuous_movement(delta: float) -> void:
 	_continuous_move_blocked = false
 	var previous_cell: Vector2i = actor.position
 	actor.set_world_position(destination)
-	var next_state = _engine._apply_tile_rewards(_state, actor.position, character_id)
+	var previous_state = _state
+	var next_state = _engine._apply_tile_rewards(previous_state, actor.position, character_id)
 	next_state = _engine._deliver_carried_shell(next_state)
 	_state = next_state
 	sprite.position = destination * TILE_SIZE
+	if previous_state != next_state:
+		_play_shell_handoff(previous_state, next_state, character_id)
 	sprite.speed_scale = CONTINUOUS_MOVE_SPEED * WALK_FRAME_DURATION * WALK_FRAME_COUNT
 	_play_character_animation(character_id, "walk_%s" % _walking_direction_name(direction))
 	_camera_look_ahead = direction * 48.0
@@ -532,7 +548,7 @@ func _mobile_attack_pressed() -> void:
 		_finish_continuous_movement()
 	var direction := _facing_direction(_state.selected_character_id)
 	var front := _direction_target(_state.character_state(_state.selected_character_id).position, direction)
-	if _state.enemies_by_pos.has(front):
+	if _state.enemies_by_pos.has(front) or _can_pick_up_shell_in_front(_state.selected_character_id, front):
 		await _try_step(direction)
 
 
@@ -596,11 +612,13 @@ func _update_mobile_action_buttons() -> void:
 	var character_id: int = _state.selected_character_id
 	var actor = _state.character_state(character_id)
 	var front: Vector2i = actor.position + _direction_vector(_facing_direction(character_id))
+	var can_pick_up := _can_pick_up_shell_in_front(character_id, front)
 	var can_attack: bool = (
 		actor.alive and not _state.game_over and not _state.victory
-		and _state.enemies_by_pos.has(front)
+		and (_state.enemies_by_pos.has(front) or can_pick_up)
 		and (_moving_character_id == -1 or _continuous_move_blocked)
 	)
+	_mobile_attack_button.text = LEVEL_SCRIPT.localize({"en": "Pick up", "de": "Aufheben"}) if can_pick_up else LEVEL_SCRIPT.localize({"en": "Attack", "de": "Angriff"})
 	_mobile_attack_button.visible = can_attack
 	_mobile_attack_button.disabled = not can_attack
 	var can_special: bool = (
@@ -634,6 +652,7 @@ func prepare_level(payload: Dictionary) -> void:
 	_victory_reported = false
 	_result_sting_played = false
 	_audio_pickups = -1
+	_audio_shell_pickups = -1
 	var factory = GAME_WORLD_FACTORY_SCRIPT.new()
 	_state = factory.create_world(level_id, payload.get("seed"))
 	var is_meadow := level_id == GAME_WORLD_FACTORY_SCRIPT.MEADOW_ROOMS.LEVEL_ID
@@ -687,7 +706,7 @@ func _on_view_resized() -> void:
 	hud.offset_bottom = margins.y + 144.0
 	for control in [_pounce_button, _shell_button]:
 		control.offset_bottom = -margins.w
-		control.offset_top = -margins.w - 80.0
+		control.offset_top = -margins.w - control.custom_minimum_size.y
 	_layout_mobile_controls()
 	if _state != null:
 		if _overview_running:
@@ -829,7 +848,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var direction := _direction_for_key(key_event.keycode)
 		if direction != -1:
 			var target := _direction_target(_state.character_state(_state.selected_character_id).position, direction)
-			if _state.enemies_by_pos.has(target) or _state.lootables_by_pos.has(target):
+			if _state.enemies_by_pos.has(target) or _state.lootables_by_pos.has(target) or _can_pick_up_shell_in_front(_state.selected_character_id, target):
 				_try_step(direction)
 			get_viewport().set_input_as_handled()
 
@@ -941,9 +960,12 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		return
 
 	var attacking: bool = _state.enemies_by_pos.has(tile_pos) or _state.lootables_by_pos.has(tile_pos)
+	var picking_up := _is_cat_shell_target(tile_pos)
+	var interacting := attacking or picking_up
 	var path: PackedVector2Array = (
 		_engine.find_attack_path(_state, tile_pos, _state.selected_character_id)
-		if attacking else _engine.find_free_path(_state, point, _state.selected_character_id)
+		if attacking else _engine.find_shell_pickup_path(_state, tile_pos)
+		if picking_up else _engine.find_free_path(_state, point, _state.selected_character_id)
 	)
 	if path.is_empty():
 		_state.last_event = LEVEL_SCRIPT.localize({
@@ -955,9 +977,9 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		_render_state()
 		return
 
-	var preview_attacking: bool = _state.enemies_by_pos.has(_preview_target) or _state.lootables_by_pos.has(_preview_target)
-	var confirmed: bool = not _preview_path.is_empty() and attacking == preview_attacking and (
-		_preview_target == tile_pos if attacking else point.distance_to(_free_destination) <= FREE_CONFIRM_DISTANCE
+	var preview_interacting: bool = _state.enemies_by_pos.has(_preview_target) or _state.lootables_by_pos.has(_preview_target) or _is_cat_shell_target(_preview_target)
+	var confirmed: bool = not _preview_path.is_empty() and interacting == preview_interacting and (
+		_preview_target == tile_pos if interacting else point.distance_to(_free_destination) <= FREE_CONFIRM_DISTANCE
 	)
 	if confirmed:
 		if _camera_manual_offset.length() > 1.0:
@@ -968,7 +990,7 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 		_preview_path.clear()
 		_preview_target = Vector2i(-1, -1)
 		_render_state()
-		await _walk_freely(actor_id, movement_path, tile_pos if attacking else Vector2i(-1, -1))
+		await _walk_freely(actor_id, movement_path, tile_pos if interacting else Vector2i(-1, -1))
 		return
 	else:
 		_free_preview = path
@@ -978,6 +1000,9 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 			_preview_path.append(GAME_ENGINE_SCRIPT.NAV.cell_at(waypoint))
 		_preview_target = tile_pos
 		_state.last_event = LEVEL_SCRIPT.localize({
+			"en": "Tap again to pick up the shell charm.",
+			"de": "Tippe erneut, um den Muschelanhänger aufzuheben.",
+		}) if picking_up else LEVEL_SCRIPT.localize({
 			"en": "Tap again to attack.",
 			"de": "Tippe erneut, um anzugreifen.",
 		}) if attacking else LEVEL_SCRIPT.localize({
@@ -987,7 +1012,15 @@ func _handle_board_click(screen_pos: Vector2) -> void:
 	_render_state()
 
 
-func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := Vector2i(-1, -1)) -> void:
+func _is_cat_shell_target(tile: Vector2i) -> bool:
+	return _state.selected_character_id == GS.CharacterId.CAT and _state.cat_can_carry and _state.shell_items_by_pos.has(tile)
+
+
+func _can_pick_up_shell_in_front(character_id: int, tile: Vector2i) -> bool:
+	return character_id == GS.CharacterId.CAT and _engine.can_pick_up_shell_from(_state, _state.cat.position, tile)
+
+
+func _walk_freely(character_id: int, path: PackedVector2Array, interaction_target := Vector2i(-1, -1)) -> void:
 	var sprite: AnimatedSprite2D = _character_sprites[character_id]
 	var next_state = _state
 	var origin: Vector2i = _state.character_state(character_id).position
@@ -1004,7 +1037,6 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 		var destination := path[index]
 		if start.is_equal_approx(destination):
 			continue
-		_play_sfx("move_step")
 		var movement_segments: Array[Dictionary] = []
 		for jump in _ledge_jumps_along(start, destination, character_id):
 			movement_segments.append({"position": jump["start"], "jump": false})
@@ -1028,16 +1060,16 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 				)
 				_pounce_shadow.visible = false
 			else:
+				var distance := segment_delta.length()
+				var pace := _travel_pace(segment_start, segment_end, character_id)
 				_play_character_animation(
 					character_id,
 					"walk_%s" % _walking_direction_name(segment_delta)
 				)
 				_free_walk_tween = create_tween()
-				_free_walk_tween.tween_property(
-					sprite,
-					"position",
-					segment_end * TILE_SIZE,
-					segment_start.distance_to(segment_end) * WALK_FRAME_DURATION * WALK_FRAME_COUNT
+				_free_walk_tween.tween_method(
+					_apply_travel_progress.bind(sprite, segment_start * TILE_SIZE, segment_end * TILE_SIZE, pace),
+					0.0, 1.0, distance * WALK_FRAME_DURATION * WALK_FRAME_COUNT / pace
 				)
 				while _free_walk_tween.is_running():
 					await get_tree().process_frame
@@ -1050,6 +1082,7 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 						1.0 - exp(-8.0 * get_process_delta_time())
 					)
 				_free_walk_tween = null
+				sprite.speed_scale = 1.0
 			segment_start = segment_end
 			if _stop_walk_requested:
 				break
@@ -1060,19 +1093,47 @@ func _walk_freely(character_id: int, path: PackedVector2Array, attack_target := 
 	_free_walk_tween = null
 	_free_walking = false
 	_camera_look_ahead = Vector2.ZERO
-	if attack_target != Vector2i(-1, -1) and not _stop_walk_requested:
+	var picked_shell := Vector2i(-1, -1)
+	if interaction_target != Vector2i(-1, -1) and not _stop_walk_requested:
 		var stand: Vector2i = next_state.character_state(character_id).position
-		var direction := _direction_name_from_positions(stand, attack_target)
+		var direction := _direction_name_from_positions(stand, interaction_target)
 		_facing_by_character[character_id] = direction
-		var charged: bool = _shell_mode and character_id == GS.CharacterId.TORTOISE and _engine.can_shell_charge(next_state, attack_target)
-		await _animate_attack(character_id, sprite, direction, attack_target, charged)
-		if charged:
-			next_state = _engine.shell_charge(next_state, attack_target)
+		if character_id == GS.CharacterId.CAT and next_state.shell_items_by_pos.has(interaction_target):
+			if _engine.can_pick_up_shell_from(next_state, stand, interaction_target):
+				picked_shell = interaction_target
+				next_state = _engine.pick_up_shell(next_state, picked_shell)
+				_set_static_character_animation(sprite, character_id, "idle", direction)
 		else:
-			next_state = _engine.move(next_state, _engine._direction_between(stand, attack_target), character_id)
+			var charged: bool = _shell_mode and character_id == GS.CharacterId.TORTOISE and _engine.can_shell_charge(next_state, interaction_target)
+			await _animate_attack(character_id, sprite, direction, interaction_target, charged)
+			if charged:
+				next_state = _engine.shell_charge(next_state, interaction_target)
+			else:
+				next_state = _engine.move(next_state, _engine._direction_between(stand, interaction_target), character_id)
 	_moving_character_id = -1
 	_reset_character_animation_timer(character_id)
-	await _commit_state(next_state, character_id, [origin, next_state.character_state(character_id).position])
+	await _commit_state(next_state, character_id, [origin, next_state.character_state(character_id).position], true, picked_shell)
+
+
+func _travel_pace(start: Vector2, destination: Vector2, character_id: int) -> float:
+	var distance := start.distance_to(destination)
+	if distance <= 3.0:
+		return 1.0
+	var height := _height_at_cell(GAME_ENGINE_SCRIPT.NAV.cell_at(start))
+	var samples := ceili(distance * 4.0)
+	for step in range(1, samples + 1):
+		var point := start.lerp(destination, float(step) / samples)
+		if _height_at_cell(GAME_ENGINE_SCRIPT.NAV.cell_at(point)) != height:
+			return 1.0
+	var boost := 0.62 if character_id == GS.CharacterId.CAT else 0.48
+	return 1.0 + boost * smoothstep(3.0, 6.0, distance)
+
+
+func _apply_travel_progress(t: float, sprite: AnimatedSprite2D, start: Vector2, destination: Vector2, pace: float) -> void:
+	# The curve starts and ends at normal walking speed.
+	var ramp := 1.0 - 1.0 / pace
+	sprite.position = start.lerp(destination, t - ramp * sin(TAU * t) / TAU)
+	sprite.speed_scale = pace * (1.0 - ramp * cos(TAU * t))
 
 
 func _ledge_jumps_along(start: Vector2, destination: Vector2, character_id: int) -> Array[Dictionary]:
@@ -1276,10 +1337,13 @@ func _animate_pounce(origin: Vector2i, target: Vector2i, attacking: bool, next_s
 		launch_world = retreat_world
 		_facing_by_character[character_id] = direction
 		_play_character_animation(character_id, "pounce_%s" % direction)
+	if attacking:
+		await _special_windup(sprite, _tile_center_world(target), false)
 	await _animate_cat_jump(sprite, launch_world, landing_world, direction)
 	if attacking:
-		await _animate_attack(character_id, sprite, direction, target)
+		await _animate_attack(character_id, sprite, direction, target, false, true)
 		await _animate_cat_jump(sprite, landing_world, launch_world, direction)
+		await _restore_special_camera()
 	_moving_character_id = -1
 	_pounce_in_progress = false
 	_pounce_shadow.visible = false
@@ -1294,6 +1358,7 @@ func _animate_cat_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2
 	_pounce_shadow.visible = true
 	_play_character_animation(GS.CharacterId.CAT, "pounce_%s" % direction)
 	await get_tree().create_timer(POUNCE_FRAME_DURATION).timeout
+	_play_sfx("pounce_launch")
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(sprite, "position", target, POUNCE_JUMP_DURATION)
 	tween.tween_property(_pounce_shadow, "position", target + Vector2(0, 18), POUNCE_JUMP_DURATION)
@@ -1320,6 +1385,8 @@ func _animate_cat_jump(sprite: AnimatedSprite2D, start: Vector2, target: Vector2
 		await tween.finished
 	sprite.offset = Vector2.ZERO
 	label.position.y = base_y
+	if not _free_walking or not _stop_walk_requested:
+		_play_sfx("pounce_land")
 
 
 func _try_step(direction) -> void:
@@ -1340,8 +1407,10 @@ func _try_step(direction) -> void:
 		_render_state()
 		return
 	var attacking: bool = _state.enemies_by_pos.has(next_pos) or _state.lootables_by_pos.has(next_pos)
+	var picking_up := _can_pick_up_shell_in_front(actor_id, next_pos)
 	var path: PackedVector2Array = (
 		_engine.find_attack_path(_state, next_pos, actor_id) if attacking
+		else PackedVector2Array([actor.world_position]) if picking_up
 		else _engine.find_free_path(_state, actor.world_position + Vector2(next_pos - current_pos), actor_id)
 	)
 	_preview_path.clear()
@@ -1355,7 +1424,7 @@ func _try_step(direction) -> void:
 		_render_state()
 		return
 	_render_state()
-	await _walk_freely(actor_id, path, next_pos if attacking else Vector2i(-1, -1))
+	await _walk_freely(actor_id, path, next_pos if attacking or picking_up else Vector2i(-1, -1))
 
 
 func _direction_target(from: Vector2i, direction) -> Vector2i:
@@ -1396,7 +1465,7 @@ func _tile_center_world(pos: Vector2i) -> Vector2:
 
 
 func _update_camera_target(immediate: bool) -> void:
-	if _script_camera_active:
+	if _script_camera_active or _special_camera_active:
 		return
 	var base_target: Vector2 = _state.character_state(_state.selected_character_id).world_position * TILE_SIZE
 	if _free_walking:
@@ -1415,6 +1484,8 @@ func _update_camera_target(immediate: bool) -> void:
 
 
 func _pan_camera(delta: Vector2) -> void:
+	if _special_camera_active:
+		return
 	var framing_offset := (_camera_usable_rect().get_center() - get_viewport_rect().size * 0.5) / _board_camera.zoom.x
 	var focus := _board_camera.position - _camera_shake_offset + framing_offset + delta
 	var bounded_focus := _camera_position_for(focus, _board_camera.zoom.x) + framing_offset
@@ -1426,7 +1497,7 @@ func _pan_camera(delta: Vector2) -> void:
 
 
 func _set_camera_zoom(value: float) -> void:
-	if _overview_running or _script_camera_active:
+	if _overview_running or _script_camera_active or _special_camera_active:
 		return
 	var zoom := clampf(value, 1.0, 2.0)
 	_board_camera.zoom = Vector2(zoom, zoom)
@@ -1434,10 +1505,10 @@ func _set_camera_zoom(value: float) -> void:
 
 
 ## Autoload is looked up by path so the script compiles without the autoload registered.
-func _play_sfx(id: String) -> void:
+func _play_sfx(id: String, pitch := 1.0) -> void:
 	var audio := get_node_or_null("/root/AudioManager")
 	if audio != null:
-		audio.play_sfx(id)
+		audio.play_sfx(id, pitch)
 
 
 func _play_music(id: String) -> void:
@@ -1446,19 +1517,16 @@ func _play_music(id: String) -> void:
 		audio.play_music(id)
 
 
-## Plays pickup/hit SFX and the result sting by diffing against the last render.
+## Loose pickups and result music are not tied to animation frames.
 func _play_state_audio(script_pending: bool) -> void:
-	var pickups: int = _state.items_by_pos.size() + _state.shell_items_by_pos.size()
-	var enemies: int = _state.enemies_by_pos.size()
-	var heroes: int = int(_state.player.alive) + int(_state.cat.alive)
-	if _audio_pickups >= 0:
-		if pickups < _audio_pickups:
-			_play_sfx("pickup_resupply")
-		if enemies < _audio_enemies or heroes < _audio_heroes:
-			_play_sfx("enemy_hit")
+	var pickups: int = _state.items_by_pos.size()
+	var shells: int = _state.shell_items_by_pos.size()
+	if (_audio_pickups >= 0 and pickups < _audio_pickups) or (
+		_audio_shell_pickups >= 0 and shells < _audio_shell_pickups and _state.selected_character_id == GS.CharacterId.TORTOISE
+	):
+		_play_sfx("pickup_resupply")
 	_audio_pickups = pickups
-	_audio_enemies = enemies
-	_audio_heroes = heroes
+	_audio_shell_pickups = shells
 	if not script_pending and not _result_sting_played and (_state.victory or _state.game_over):
 		_result_sting_played = true
 		_play_music("defeat" if _state.game_over else "victory")
@@ -1466,6 +1534,8 @@ func _play_state_audio(script_pending: bool) -> void:
 
 func _shake_camera() -> void:
 	_play_sfx("blocked")
+	if _reduced_motion_enabled():
+		return
 	if _camera_shake_tween != null:
 		_camera_shake_tween.kill()
 	_camera_shake_tween = create_tween()
@@ -1478,6 +1548,63 @@ func _shake_camera() -> void:
 		_update_camera_target(true)
 	)
 	_update_camera_target(true)
+
+
+func _reduced_motion_enabled() -> bool:
+	var app_state := get_node_or_null("/root/AppState")
+	return app_state != null and bool(app_state.get("reduced_motion"))
+
+
+func _special_windup(sprite: AnimatedSprite2D, target: Vector2, charged: bool) -> void:
+	if charged:
+		_play_sfx("shell_windup")
+	_special_camera_active = true
+	if _camera_tween != null:
+		_camera_tween.kill()
+		_camera_tween = null
+	_special_camera_zoom = _board_camera.zoom
+	_special_camera_position = _board_camera.position
+	_special_camera_offset = _board_camera.offset
+	var zoom := minf(_special_camera_zoom.x * (1.22 if charged else 1.17), SCRIPT_CAMERA_MAX_ZOOM)
+	var enemy = _state.enemies_by_pos.get(GAME_ENGINE_SCRIPT.NAV.cell_at(target / TILE_SIZE))
+	if enemy != null and enemy.species == "badger":
+		zoom = _special_camera_zoom.x * 0.9
+	var focus := sprite.position.lerp(target, 0.55)
+	var original_offset := sprite.offset
+	var recoil := (sprite.position - target).normalized() * (10.0 if charged else 7.0) / sprite.scale
+	_shell_effect.windup_actor = sprite
+	var windup := create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if not _reduced_motion_enabled():
+		windup.tween_property(_board_camera, "zoom", Vector2.ONE * zoom, 0.18)
+		windup.tween_property(_board_camera, "position", _camera_position_for(focus, zoom), 0.18)
+	windup.tween_property(sprite, "offset", original_offset + recoil.round(), 0.18)
+	windup.tween_property(_shell_effect, "windup_strength", 1.0, 0.18)
+	windup.chain().tween_property(sprite, "offset", original_offset, 0.07).set_ease(Tween.EASE_IN)
+	windup.parallel().tween_property(_shell_effect, "windup_strength", 0.0, 0.07)
+	await windup.finished
+	_shell_effect.windup_actor = null
+
+
+func _kick_special_camera(direction: Vector2, charged: bool) -> void:
+	if _reduced_motion_enabled():
+		return
+	if _special_shake != null:
+		_special_shake.kill()
+	var kick := direction * (10.0 if charged else 7.0) / _board_camera.zoom.x
+	_board_camera.offset = _special_camera_offset + kick
+	_special_shake = create_tween()
+	_special_shake.tween_property(_board_camera, "offset", _special_camera_offset - kick * 0.55, 0.045)
+	_special_shake.tween_property(_board_camera, "offset", _special_camera_offset + kick * 0.23, 0.05)
+	_special_shake.tween_property(_board_camera, "offset", _special_camera_offset, 0.075)
+
+
+func _restore_special_camera() -> void:
+	var restore := create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	restore.tween_property(_board_camera, "zoom", _special_camera_zoom, 0.18)
+	restore.tween_property(_board_camera, "position", _special_camera_position, 0.18)
+	await restore.finished
+	_board_camera.offset = _special_camera_offset
+	_special_camera_active = false
 
 
 func _render_state() -> void:
@@ -1575,6 +1702,7 @@ func _create_character_sprite(character_id: int, character_name: String) -> void
 		)
 	sprite.animation = "idle_south"
 	sprite.frame = 0
+	sprite.frame_changed.connect(_play_footstep.bind(sprite, character_id))
 	_board_root.add_child(sprite)
 	_character_sprites[character_id] = sprite
 	var label := _create_power_label("player")
@@ -1582,6 +1710,17 @@ func _create_character_sprite(character_id: int, character_name: String) -> void
 	label.scale = Vector2.ONE / sprite.scale
 	sprite.add_child(label)
 	_character_power_labels[character_id] = label
+
+
+func _play_footstep(sprite: AnimatedSprite2D, character_id: int) -> void:
+	if _state == null or _moving_character_id != character_id or not sprite.animation.begins_with("walk_"):
+		return
+	if sprite.frame != 2 and sprite.frame != 6:
+		return
+	var tile = _state.tile_cells.get(GAME_ENGINE_SCRIPT.NAV.cell_at(sprite.position / TILE_SIZE))
+	var grit: bool = tile != null and (tile.asset_key == "rubble" or tile.asset_key == "hilltop" or tile.asset_key.begins_with("summit_"))
+	var pitch := (1.12 if character_id == GS.CharacterId.CAT else 0.9) * (0.97 if sprite.frame == 2 else 1.03)
+	_play_sfx("step_grit" if grit else "step_soft", pitch)
 
 
 func _build_character_frames(character_name: String) -> SpriteFrames:
@@ -1913,7 +2052,6 @@ func _animate_character_path(character_id: int, path: Array, attack_positions: D
 		if attack_positions.get(to_pos, false):
 			await _animate_attack(character_id, sprite, direction, to_pos)
 			break
-		_play_sfx("move_step")
 		var jumps_ledge: bool = (
 			character_id == GS.CharacterId.CAT
 			and _height_at_cell(from_pos) != _height_at_cell(to_pos)
@@ -1941,31 +2079,61 @@ func _animate_attack(
 	sprite: AnimatedSprite2D,
 	direction: String,
 	target_pos: Variant = null,
-	charged := false
+	charged := false,
+	combat_pounce := false
 ) -> void:
 	var animation_name := "attack_%s" % direction
 	if not sprite.sprite_frames.has_animation(animation_name):
 		push_error("Missing attack animation: %s" % animation_name)
 		return
+	if charged:
+		await _special_windup(sprite, _tile_center_world(target_pos), true)
 	var player_label: Label = _character_power_labels[character_id]
 	var enemy_label: Label = _enemy_power_labels.get(target_pos)
 	_fade_power_label(player_label, 0.0)
 	if enemy_label != null:
 		_fade_power_label(enemy_label, 0.0)
 	var effect_updater := _update_attack_effect.bind(character_id, sprite, direction)
-	if charged:
-		effect_updater = _update_shell_impact.bind(sprite, direction, _tile_center_world(target_pos))
+	if charged or combat_pounce:
+		effect_updater = _update_special_impact.bind(character_id, sprite, direction, _tile_center_world(target_pos), charged)
 	var reaction_updater := _update_enemy_reaction.bind(character_id, sprite, direction, target_pos)
+	var impact_audio := func() -> void:
+		if sprite.frame != ATTACK_IMPACT_FRAMES[character_id][direction]:
+			return
+		if charged or combat_pounce:
+			_play_sfx("shell_impact" if charged else "pounce_hit")
+		elif _state.lootables_by_pos.has(target_pos):
+			var asset: String = _state.lootables_by_pos[target_pos].asset_key
+			_play_sfx("loot_stone" if asset == "cracked_stone" else "loot_rustle" if asset == "berries" else "loot_wood")
+		elif _state.enemies_by_pos.has(target_pos):
+			_play_sfx("enemy_hit")
+	var ordinary_hit: bool = not charged and not combat_pounce and _state.enemies_by_pos.has(target_pos)
+	var hold_impact := func() -> void:
+		if sprite.frame == ATTACK_IMPACT_FRAMES[character_id][direction]:
+			sprite.speed_scale = 0.0
+			var hold := sprite.create_tween()
+			hold.tween_interval(ATTACK_IMPACT_HOLD)
+			hold.tween_callback(func() -> void: sprite.speed_scale = 1.0)
 	sprite.frame_changed.connect(effect_updater)
 	sprite.frame_changed.connect(reaction_updater)
+	sprite.frame_changed.connect(impact_audio)
+	if ordinary_hit:
+		sprite.frame_changed.connect(hold_impact)
 	_prepare_attack_effect(character_id, sprite, direction)
+	if combat_pounce:
+		_attack_effect.scale = Vector2.ONE * 1.6
 	_play_character_animation(character_id, animation_name)
 	var frame_count := sprite.sprite_frames.get_frame_count(animation_name)
-	await get_tree().create_timer(frame_count * ATTACK_FRAME_DURATION).timeout
+	await get_tree().create_timer(frame_count * ATTACK_FRAME_DURATION + (ATTACK_IMPACT_HOLD if ordinary_hit else 0.0)).timeout
+	if ordinary_hit:
+		if sprite.frame_changed.is_connected(hold_impact):
+			sprite.frame_changed.disconnect(hold_impact)
+		sprite.speed_scale = 1.0
 	sprite.frame_changed.disconnect(effect_updater)
 	sprite.frame_changed.disconnect(reaction_updater)
+	sprite.frame_changed.disconnect(impact_audio)
 	_attack_effect.visible = false
-	if charged:
+	if charged or combat_pounce:
 		_shell_effect.show_impact(Vector2.ZERO, -1)
 	var enemy_sprite: AnimatedSprite2D = _enemy_sprites.get(target_pos)
 	if is_instance_valid(enemy_sprite) and enemy_sprite.is_playing():
@@ -1973,6 +2141,8 @@ func _animate_attack(
 	_fade_power_label(player_label, 1.0)
 	if is_instance_valid(enemy_label):
 		_fade_power_label(enemy_label, 1.0)
+	if charged:
+		await _restore_special_camera()
 
 
 func _update_enemy_visuals() -> void:
@@ -2058,6 +2228,7 @@ func _create_attack_effect() -> void:
 
 func _prepare_attack_effect(character_id: int, sprite: AnimatedSprite2D, direction: String) -> void:
 	_attack_effect.visible = false
+	_attack_effect.scale = Vector2.ONE
 	_attack_effect.texture = CAT_SLASH_TEXTURE if character_id == GS.CharacterId.CAT else TORTOISE_BUMP_TEXTURE
 	_attack_effect.hframes = 3
 	_attack_effect.vframes = 2
@@ -2086,9 +2257,13 @@ func _update_attack_effect(character_id: int, sprite: AnimatedSprite2D, directio
 		_attack_effect.frame = effect_frame
 
 
-func _update_shell_impact(sprite: AnimatedSprite2D, direction: String, at: Vector2) -> void:
-	var frame := sprite.frame - int(ATTACK_IMPACT_FRAMES[GS.CharacterId.TORTOISE][direction])
-	_shell_effect.show_impact(at, frame if frame >= 0 and frame < 5 else -1)
+func _update_special_impact(character_id: int, sprite: AnimatedSprite2D, direction: String, at: Vector2, charged: bool) -> void:
+	var frame := sprite.frame - int(ATTACK_IMPACT_FRAMES[character_id][direction])
+	if frame >= 0 and frame < 5 and _shell_effect.impact_frame < 0:
+		_kick_special_camera(sprite.position.direction_to(at), charged)
+	_shell_effect.show_impact(at, frame if frame >= 0 and frame < 5 else -1, not charged)
+	if not charged:
+		_update_attack_effect(character_id, sprite, direction)
 
 
 func _render_power_labels() -> void:
@@ -2161,14 +2336,36 @@ func _start_level_script() -> void:
 	await _run_script_queue()
 
 
-func _commit_state(next_state, actor_id: int, path: Array, grants_enemy_power := true) -> void:
+func _commit_state(next_state, actor_id: int, path: Array, grants_enemy_power := true, picked_shell := Vector2i(-1, -1)) -> void:
 	var previous_state = _state
 	_play_combat_rewards(previous_state, next_state, actor_id, grants_enemy_power)
 	_state = next_state
 	var events_queued := _queue_triggered_events(previous_state, next_state, actor_id, path)
 	_render_state()
+	var handoff_delay := 0.0
+	if picked_shell != Vector2i(-1, -1):
+		handoff_delay = _combat_rewards.play_shell_pickup(
+			_tile_center_world(picked_shell), _character_sprites[GS.CharacterId.CAT],
+			_facing_by_character.get(GS.CharacterId.CAT, "south")
+		)
+	_play_shell_handoff(previous_state, next_state, actor_id, handoff_delay)
 	if events_queued:
 		await _run_script_queue()
+
+
+func _play_shell_handoff(previous_state, next_state, actor_id: int, delay := 0.0) -> void:
+	var amount: int
+	if actor_id == GS.CharacterId.CAT:
+		# Includes charms collected and handed over in the same move.
+		amount = next_state.shell_power - previous_state.shell_power
+	else:
+		# A tortoise pickup doesn't empty the cat's stash.
+		amount = previous_state.cat_carried_shell - next_state.cat_carried_shell
+	if amount > 0:
+		_combat_rewards.play_shell_handoff(
+			_character_sprites[GS.CharacterId.CAT], _character_sprites[GS.CharacterId.TORTOISE],
+			_facing_by_character.get(GS.CharacterId.CAT, "south"), delay
+		)
 
 
 func _play_combat_rewards(previous_state, next_state, actor_id: int, grants_enemy_power: bool) -> void:
@@ -2185,6 +2382,9 @@ func _play_combat_rewards(previous_state, next_state, actor_id: int, grants_enem
 		if not next_state.lootables_by_pos.has(position):
 			var asset_key: String = previous_state.lootables_by_pos[position].asset_key
 			_combat_rewards.play_loot_break(_tile_center_world(position), BOARD_RENDERER_SCRIPT.loot_texture(asset_key))
+			var reward: int = previous_state.lootables_by_pos[position].power_reward
+			if reward > 0:
+				_combat_rewards.show_loot_gain(_character_sprites[actor_id].position, reward)
 	if next_state.victory and not previous_state.victory and duration > 0.0:
 		_victory_reveal = create_tween()
 		_victory_reveal.tween_interval(duration)

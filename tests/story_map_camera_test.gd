@@ -155,6 +155,10 @@ func _test_menu(state: Node) -> void:
 		_check(menu._panel.size.y < menu.size.y * 0.6, "The menu panel must stay compact after localized text wraps")
 		_check(menu._panel.get_global_rect().end.y < menu.size.y - 20, "Main-menu actions must stay in the safe portrait area")
 		_check(menu._start_button.size.y >= 80 and menu._settings_button.size.y >= 80, "Main-menu buttons need generous touch targets")
+		for button: Button in [menu._start_button, menu._settings_button]:
+			var font_size := button.get_theme_font_size("font_size")
+			var line_height := button.get_theme_font("font").get_height(font_size)
+			_check(button.size.y - line_height >= 64.0, "Main-menu labels need vertical clearance from the wood trim")
 		var requests: Array[String] = []
 		menu.start_pressed.connect(func() -> void: requests.append("start"))
 		await _tap(menu._start_button.get_global_rect().get_center())

@@ -291,8 +291,8 @@
         {
           "type": "message",
           "text": {
-            "en": "Use Pounce to go up bare ledges. Stairs and ramps are free to cross. Bring shell charms back to the tortoise by standing next to it.",
-            "de": "Benutze den Sprung, um Felsvorsprünge ohne Aufstieg zu erklimmen. Treppen und Rampen kosten keinen Sprung. Bring Panzer-Amulette zur Schildkröte, indem du dich neben sie stellst."
+            "en": "Pounce up bare ledges, then pick up charms from beside them. Stairs and ramps are free to cross. Stand next to the tortoise to hand over the charms.",
+            "de": "Spring auf Felsvorsprünge und hebe Amulette vom Nachbarfeld aus auf. Treppen und Rampen kosten keinen Sprung. Stell dich zur Übergabe neben die Schildkröte."
           }
         },
         {

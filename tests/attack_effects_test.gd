@@ -74,6 +74,7 @@ func _run() -> void:
 	_check(not screen._attack_effect.visible, "Walking should not trigger an attack effect")
 	await create_timer(0.6).timeout
 	await _test_combat_rewards()
+	await _test_shell_handoff()
 	print("Attack effects tests: %d failure(s)" % failures)
 	quit(1 if failures else 0)
 
@@ -122,6 +123,23 @@ func _test_combat_rewards() -> void:
 	_check(screen._state.victory and screen._state.cat.power == 5, "Pounce still defeats enemies without awarding power")
 	_check(rewards.has_node("EnemyDefeat") and not rewards.has_node("PowerTransfer"), "A pounce knockout should glow but not show a power transfer")
 	await create_timer(0.50).timeout
+	var audio := root.get_node("AudioManager")
+	audio._last_sfx_msec.erase("pounce_hit")
+	screen._state = GS.new(6, 6, GS.PlayerState.new(Vector2i(1, 2), 5), GS.PlayerState.new(origin, 5))
+	screen._state.enemies_by_pos[pounce_target] = GS.Enemy.new("strong_enemy", pounce_target, 8)
+	screen._render_state()
+	var app_state := root.get_node("AppState")
+	var previous_motion: bool = app_state.reduced_motion
+	app_state.reduced_motion = true
+	var previous_zoom := screen._board_camera.zoom
+	screen._perform_pounce(pounce_target)
+	await create_timer(0.20).timeout
+	_check(screen._board_camera.zoom.is_equal_approx(previous_zoom) and not audio._last_sfx_msec.has("pounce_hit"),
+		"Reduced Motion must keep camera zoom steady, and the hit cue must wait for impact")
+	await create_timer(2.5).timeout
+	_check(screen._state.enemies_by_pos.has(pounce_target) and screen._state.enemies_by_pos[pounce_target].power == 3
+		and audio._last_sfx_msec.has("pounce_hit"), "A nonlethal Pounce must still play the impact cue")
+	app_state.reduced_motion = previous_motion
 
 	screen._state = GS.new(6, 6, GS.PlayerState.new(Vector2i(1, 2), 5), GS.PlayerState.new(origin, 5))
 	screen._state.enemies_by_pos[Vector2i(5, 5)] = GS.Enemy.new("remaining_enemy", Vector2i(5, 5), 10)
@@ -136,14 +154,100 @@ func _test_combat_rewards() -> void:
 		_check(screen._marker_layer.get_cell_source_id(tile) == -1, "Broken loot must replace the intact tile marker")
 		_check(not screen._engine.find_free_path(screen._state, Vector2(tile) + Vector2(0.5, 0.5), hero).is_empty(),
 			"Debris must not block movement")
-	_check(screen._state.cat.power == 13 and rewards.get_child_count() == 4, "All loot types must leave remnants and give their normal reward")
+	_check(screen._state.cat.power == 13 and rewards.get_children().filter(func(node): return node is Node2D).size() == 4,
+		"All loot types must leave remnants and give their normal reward")
+	_check(rewards.get_children().any(func(node): return node is Label and node.text == "+2"),
+		"Breaking loot must show the amount gained above the attacker")
 	_check(screen._character_power_labels[hero].text == "13", "Breaking loot must add the hidden rewards to the character's displayed total")
 	await create_timer(0.35).timeout
 	screen._render_state()
-	for debris in rewards.get_children():
+	for debris in rewards.get_children().filter(func(node): return node is Node2D):
 		var fragment := debris.get_child(0) as Sprite2D
 		_check(fragment.region_rect.has_area() and fragment.scale.y < 0.6 and absf(fragment.rotation) > 0.3,
 			"Loot must animate into visibly flattened, scattered pieces that survive a redraw")
 	screen.prepare_level({"level_id": "level_1", "scripts": false})
 	_check(rewards.get_child_count() == 0, "Loading a fresh level must clear debris")
+	screen.queue_free()
+
+
+func _test_shell_handoff() -> void:
+	var screen: GameplayScreen = load("res://scenes/screens/gameplay.tscn").instantiate()
+	root.add_child(screen)
+	var hero := GS.CharacterId.CAT
+	var origin := Vector2i(1, 1)
+	var target := Vector2i(3, 1)
+	var tortoise_tile := Vector2i(4, 1)
+	var rewards := screen._combat_rewards
+	screen._state = GS.new(6, 6, GS.PlayerState.new(tortoise_tile, 5), GS.PlayerState.new(origin, 5))
+	screen._state.cat_can_carry = true
+	screen._state.selected_character_id = hero
+	screen._state.shell_items_by_pos[target] = GS.Item.new("shell", target, 3)
+	screen._render_state()
+	_check(screen._engine.find_free_path(screen._state, screen._engine.NAV.center(target), hero).is_empty(),
+		"Walking cannot target the shell tile")
+	await screen._perform_pounce(target)
+	_check(screen._state.cat.position == origin and screen._state.shell_items_by_pos.has(target),
+		"Pouncing cannot land on the shell or collect it")
+	screen._board_camera.force_update_scroll()
+	var start := screen._tile_center_world(target)
+	var shell_click := screen._ground_layer.get_global_transform_with_canvas() * start
+	await screen._handle_board_click(shell_click)
+	_check(screen._state.shell_items_by_pos.has(target), "The first tap should only preview the pickup route")
+	await screen._handle_board_click(shell_click)
+	var cat := screen._character_sprites[hero] as AnimatedSprite2D
+	_check(screen._state.cat.position == Vector2i(2, 1) and screen._state.cat_carried_shell == 3
+		and not screen._state.shell_items_by_pos.has(target), "A confirmed pickup should stop beside the shell and collect it")
+	var pickup := rewards.get_node_or_null("ShellPickup") as Sprite2D
+	_check(pickup != null and pickup.position == start, "The pickup charm should start on its original tile")
+	if pickup != null:
+		await create_timer(0.16).timeout
+		_check(is_instance_valid(pickup) and pickup.position.x < start.x and pickup.position.y < start.y - 16.0
+			and pickup.scale.x < 1.0, "The charm should hop upward and shrink toward the cat")
+		await create_timer(0.19).timeout
+		_check(not is_instance_valid(pickup), "The charm should disappear into the backpack")
+	await screen._try_step(screen._engine.Direction.RIGHT)
+	var handoff := rewards.get_node_or_null("ShellHandoff") as Sprite2D
+	_check(screen._state.cat_carried_shell == 0 and screen._state.shell_power == 3
+		and rewards.get_child_count() == 1 and handoff != null, "Handoff should show just one shell and credit the full reserve")
+	if handoff != null:
+		await create_timer(0.16).timeout
+		_check(is_instance_valid(handoff) and handoff.position.x > cat.position.x
+			and handoff.position.y < cat.position.y - 16.0, "The handoff shell should arc toward the tortoise")
+	await create_timer(0.22).timeout
+	_check(rewards.get_child_count() == 0, "The handoff shell should disappear after landing")
+
+	var stand := Vector2i(2, 1)
+	screen._state = GS.new(6, 6, GS.PlayerState.new(Vector2i(2, 2), 5), GS.PlayerState.new(stand, 5))
+	screen._state.cat_can_carry = true
+	screen._state.selected_character_id = hero
+	screen._state.shell_items_by_pos[target] = GS.Item.new("shell", target, 4)
+	screen._mobile_controls_enabled = true
+	screen._facing_by_character[hero] = "east"
+	screen._render_state()
+	_check(screen._mobile_attack_button.visible and screen._mobile_attack_button.text == "Pick up",
+		"Facing an adjacent shell should offer a mobile Pick up action")
+	screen._mobile_attack_button.pressed.emit()
+	var delayed := rewards.get_node_or_null("ShellHandoff") as Sprite2D
+	_check(screen._state.cat.position == stand and screen._state.shell_power == 4 and delayed != null
+		and not delayed.visible and rewards.has_node("ShellPickup"),
+		"Picking up next to the tortoise should animate the pickup before the single handoff")
+	await create_timer(0.4).timeout
+	_check(is_instance_valid(delayed) and delayed.visible and rewards.get_child_count() == 1,
+		"The handoff should start after the pickup disappears")
+	await create_timer(0.3).timeout
+
+	screen._state = GS.new(6, 6, GS.PlayerState.new(tortoise_tile, 5), GS.PlayerState.new(origin, 5))
+	screen._state.cat_can_carry = true
+	screen._state.cat_carried_shell = 2
+	screen._state.shell_items_by_pos[target] = GS.Item.new("shell", target, 3)
+	screen._render_state()
+	screen._joystick_vector = Vector2.LEFT
+	screen._process_continuous_movement(0.55 / screen.CONTINUOUS_MOVE_SPEED)
+	_check(screen._state.shell_power == 3 and not rewards.has_node("ShellHandoff"),
+		"A tortoise collecting its own charm must not play the cat handoff")
+	screen._process_continuous_movement(1.0 / screen.CONTINUOUS_MOVE_SPEED)
+	_check(screen._state.shell_power == 5 and screen._state.cat_carried_shell == 0 and rewards.has_node("ShellHandoff"),
+		"Continuous movement into range must play a handoff, even when the tortoise approaches the cat")
+	screen._joystick_vector = Vector2.ZERO
+	screen._finish_continuous_movement()
 	screen.queue_free()

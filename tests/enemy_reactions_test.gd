@@ -76,6 +76,8 @@ func _run() -> void:
 	special.selected_character_id = GS.CharacterId.CAT
 	screen._state = special
 	screen._render_state()
+	var normal_zoom := screen._board_camera.zoom
+	var normal_offset := screen._board_camera.offset
 	screen._toggle_pounce_mode()
 	screen._handle_pounce_target(pounce_target)
 	screen._handle_pounce_target(pounce_target)
@@ -86,19 +88,28 @@ func _run() -> void:
 	):
 		await process_frame
 	_check(screen._enemy_sprites[pounce_target].animation == "flinch_west", "Pounce triggers reaction on impact")
+	_check(screen._board_camera.zoom.x > normal_zoom.x
+		and screen._board_camera.offset != normal_offset
+		and screen._attack_effect.scale.x > 1.0 and screen._shell_effect.cat_impact,
+		"Combat Pounce must hit with a tighter camera, directional shake and a larger slash")
 	var pounce_deadline := Time.get_ticks_msec() + 5000
 	while screen._moving_character_id != -1 and Time.get_ticks_msec() < pounce_deadline:
 		await process_frame
 	_check(screen._state.enemies_by_pos[pounce_target].power == 16, "Pounce still weakens surviving enemy")
+	_check(screen._board_camera.zoom.is_equal_approx(normal_zoom) and screen._board_camera.offset == normal_offset,
+		"Pounce must restore zoom and shake offset")
 	var charge_target := Vector2i(2, 2)
 	screen._state.enemies_by_pos[charge_target] = GS.Enemy.new("charge", charge_target, 10, "badger")
 	screen._state.shell_power = 3
 	screen._select_character(GS.CharacterId.TORTOISE)
 	screen._toggle_shell_mode()
 	screen._try_step(screen.GAME_ENGINE_SCRIPT.Direction.RIGHT)
-	await create_timer(0.55).timeout
+	var charge_deadline := Time.get_ticks_msec() + 3000
+	while screen._enemy_sprites[charge_target].animation != "flinch_west" and Time.get_ticks_msec() < charge_deadline:
+		await process_frame
 	_check(screen._enemy_sprites[charge_target].animation == "flinch_west", "Shell Charge triggers reaction on impact")
-	await create_timer(1.0).timeout
+	while screen._moving_character_id != -1 and Time.get_ticks_msec() < charge_deadline:
+		await process_frame
 	_check(not screen._state.enemies_by_pos.has(charge_target), "Defeated charge target is removed after reaction")
 	var factory := FACTORY.new()
 	_check(factory.create_world("level_1").enemies_by_pos[Vector2i(8, 8)].species == "badger", "Prototype boss is badger")

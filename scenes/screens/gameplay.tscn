@@ -23,8 +23,6 @@ content_margin_left = 48.0
 content_margin_top = 48.0
 content_margin_right = 48.0
 content_margin_bottom = 48.0
-axis_stretch_horizontal = 1
-axis_stretch_vertical = 1
 
 [node name="GameplayScreen" type="Control"]
 layout_mode = 3
@@ -231,9 +229,6 @@ offset_right = 220.0
 offset_bottom = -24.0
 grow_vertical = 0
 text = "Pounce 3/3"
-theme_override_styles/normal = SubResource("StyleBoxTexture_button")
-theme_override_styles/hover = SubResource("StyleBoxTexture_button")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
 
 [node name="ShellButton" type="Button" parent="UiLayer"]
 unique_name_in_owner = true
@@ -247,9 +242,6 @@ offset_right = 270.0
 offset_bottom = -24.0
 grow_vertical = 0
 text = "Shell Charge: 0"
-theme_override_styles/normal = SubResource("StyleBoxTexture_button")
-theme_override_styles/hover = SubResource("StyleBoxTexture_button")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_button")
 
 [node name="ResultPanel" type="PanelContainer" parent="UiLayer"]
 visible = false

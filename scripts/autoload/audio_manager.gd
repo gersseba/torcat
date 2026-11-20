@@ -29,6 +29,20 @@ const SFX := {
 	"pickup_resupply": "sfx_pickup_resupply.mp3",
 	"enemy_hit": "sfx_enemy_hit.mp3",
 	"level_complete": "sfx_level_complete.mp3",
+	"shell_windup": "sfx_shell_windup.wav",
+	"shell_impact": "sfx_shell_impact.wav",
+	"pounce_launch": "sfx_pounce_launch.wav",
+	"pounce_hit": "sfx_pounce_hit.wav",
+	"pounce_land": "sfx_pounce_land.wav",
+	"loot_wood": "sfx_loot_wood.wav",
+	"loot_stone": "sfx_loot_stone.wav",
+	"loot_rustle": "sfx_loot_rustle.wav",
+	"shell_pack": "sfx_shell_pack.wav",
+	"shell_handoff": "sfx_shell_handoff.wav",
+	"step_soft": "sfx_step_soft.wav",
+	"step_grit": "sfx_step_grit.wav",
+	"ambience_meadow": "sfx_ambience_meadow.wav",
+	"ambience_ridge": "sfx_ambience_ridge.wav",
 }
 const NO_TAP_META := &"no_tap_sfx"
 
@@ -40,6 +54,7 @@ var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_sfx := 0
 var _sfx_cache: Dictionary = {}
 var _last_sfx_msec: Dictionary = {}
+var _ambience: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -49,6 +64,8 @@ func _ready() -> void:
 		_music_players.append(_make_player(MUSIC_BUS))
 	for i in SFX_POOL_SIZE:
 		_sfx_players.append(_make_player(SFX_BUS))
+	_ambience = _make_player(SFX_BUS)
+	_ambience.volume_db = -16.0
 	get_tree().node_added.connect(_on_node_added)
 	refresh_settings()
 
@@ -93,7 +110,7 @@ func stop_music() -> void:
 		player.stop()
 
 
-func play_sfx(id: String) -> void:
+func play_sfx(id: String, pitch := 1.0) -> void:
 	var stream := _load_sfx(id)
 	if stream == null:
 		return
@@ -104,7 +121,22 @@ func play_sfx(id: String) -> void:
 	var player := _sfx_players[_next_sfx]
 	_next_sfx = (_next_sfx + 1) % _sfx_players.size()
 	player.stream = stream
+	player.pitch_scale = pitch
 	player.play()
+
+
+func set_ambience(id: String) -> void:
+	_ambience.stop()
+	if id.is_empty():
+		return
+	var source := _load_sfx(id) as AudioStreamWAV
+	if source == null:
+		return
+	var loop := source.duplicate() as AudioStreamWAV
+	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	loop.loop_end = roundi(loop.get_length() * loop.mix_rate)
+	_ambience.stream = loop
+	_ambience.play()
 
 
 ## Gameplay track for a level: chapters alternate a/b; other levels use a.
@@ -158,10 +190,9 @@ func _load_sfx(id: String) -> AudioStream:
 	if not SFX.has(id):
 		push_error("Unknown sfx id: %s" % id)
 		return null
-	var stream := load(SFX_DIR + str(SFX[id])) as AudioStreamMP3
+	var stream := load(SFX_DIR + str(SFX[id])) as AudioStream
 	if stream == null:
 		push_error("Cannot load sfx: %s" % id)
 		return null
-	stream.loop = false
 	_sfx_cache[id] = stream
 	return stream

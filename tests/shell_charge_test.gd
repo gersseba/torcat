@@ -146,17 +146,27 @@ func _run() -> void:
 	_touch(_screen_position(screen, distant))
 	await process_frame
 	_check(screen._preview_target == distant and screen._state.shell_power == 6, "Normal attack preview can approach a distant enemy without spending shell")
+	var normal_zoom := screen._board_camera.zoom
+	var normal_offset := screen._board_camera.offset
 	_touch(_screen_position(screen, distant))
 	var deadline := Time.get_ticks_msec() + 4000
+	while screen._shell_effect.windup_strength < 0.1 and Time.get_ticks_msec() < deadline:
+		await process_frame
+	var tortoise: AnimatedSprite2D = screen._character_sprites[GS.CharacterId.TORTOISE]
+	_check(screen._board_camera.zoom.x > normal_zoom.x and tortoise.offset.x < 0.0
+		and screen._shell_effect.impact_frame == -1, "Shell Charge must zoom and pull back before impact")
 	while screen._shell_effect.impact_frame < 0 and Time.get_ticks_msec() < deadline:
 		await process_frame
 	_check(screen._shell_effect.impact_frame >= 0 and not screen._attack_effect.visible
 		and screen._shell_effect.impact_position == screen._tile_center_world(distant),
 		"Charged impact replaces the normal bump with a burst at the enemy")
+	_check(screen._board_camera.offset != normal_offset, "Charged impact must kick the camera")
 	while screen._moving_character_id != -1 and Time.get_ticks_msec() < deadline:
 		await process_frame
 	_check(screen._state.player.power == 11 and screen._state.shell_power == 3 and screen._shell_mode
 		and screen._shell_effect.armed and screen._shell_effect.impact_frame == -1, "Charge stays enabled after an attack if reserve remains")
+	_check(screen._board_camera.zoom.is_equal_approx(normal_zoom) and screen._board_camera.offset == normal_offset,
+		"Shell Charge must restore the original zoom and clear its shake")
 
 	screen._mobile_controls_enabled = true
 	screen._facing_by_character[GS.CharacterId.TORTOISE] = "east"

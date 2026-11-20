@@ -229,6 +229,25 @@ func _test_screen() -> void:
 	_check(screen != null, "Gameplay must load")
 	if screen == null:
 		return
+	var travel_sprite := screen._character_sprites[GS.CharacterId.TORTOISE] as AnimatedSprite2D
+	var authored_state = screen._state
+	screen._state = GS.new(9, 3, GS.PlayerState.new(Vector2i(1, 1), 5), GS.PlayerState.new(Vector2i(1, 2), 5))
+	var from := Vector2(1.5, 1.5)
+	var to := Vector2(7.5, 1.5)
+	_check(is_equal_approx(screen._travel_pace(from, from + Vector2(3, 0), GS.CharacterId.TORTOISE), 1.0),
+		"Short tap routes must keep the original walking speed")
+	var fast := screen._travel_pace(from, to, GS.CharacterId.CAT)
+	_check(fast > 1.4 and fast > screen._travel_pace(from, to, GS.CharacterId.TORTOISE),
+		"An open six-tile stretch must be faster, especially for the cat")
+	var previous_position := travel_sprite.position
+	screen._apply_travel_progress(0.5, travel_sprite, from, to, fast)
+	_check(travel_sprite.speed_scale > fast and travel_sprite.position.is_equal_approx(from.lerp(to, 0.5)),
+		"The character animation must speed up during the burst")
+	screen._apply_travel_progress(1.0, travel_sprite, from, to, fast)
+	_check(travel_sprite.position.is_equal_approx(to) and is_equal_approx(travel_sprite.speed_scale, 1.0),
+		"The pace must settle back to normal at the exact destination")
+	travel_sprite.position = previous_position
+	screen._state = authored_state
 	var vectors := [
 		Vector2.RIGHT, Vector2(1, 1), Vector2.DOWN, Vector2(-1, 1),
 		Vector2.LEFT, Vector2(-1, -1), Vector2.UP, Vector2(1, -1),

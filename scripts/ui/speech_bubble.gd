@@ -1,5 +1,5 @@
 class_name SpeechBubble
-extends PanelContainer
+extends Panel
 
 ## Screen-space speech bubble that points at a board actor. It never takes input;
 ## the gameplay screen's script input catcher handles taps.
@@ -14,6 +14,10 @@ const SCREEN_MARGIN := 16.0
 const TOP_SAFE := 176.0
 const TAIL_HEIGHT := 18.0
 const CHARACTERS_PER_SECOND := 45.0
+const PADDING_LEFT := 18.0
+const PADDING_TOP := 10.0
+const PADDING_BOTTOM := 14.0
+const SPEAKER_GAP := 2.0
 
 var _speaker_label: Label
 var _text_label: Label
@@ -37,21 +41,14 @@ func _init() -> void:
 	style.set_corner_radius_all(6)
 	style.corner_detail = 2
 	style.anti_aliasing = false
-	style.content_margin_left = 18.0
-	style.content_margin_right = 18.0
-	style.content_margin_top = 10.0
-	style.content_margin_bottom = 14.0
 	add_theme_stylebox_override("panel", style)
-	var column := VBoxContainer.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 2)
-	add_child(column)
 	_speaker_label = _make_label(18, SPEAKER_COLOR)
-	column.add_child(_speaker_label)
+	_speaker_label.position = Vector2(PADDING_LEFT, PADDING_TOP)
+	add_child(_speaker_label)
 	_text_label = _make_label(24, TEXT_COLOR)
 	_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text_label.visible_characters_behavior = TextServer.VC_CHARS_AFTER_SHAPING
-	column.add_child(_text_label)
+	add_child(_text_label)
 	_tail_outline = Polygon2D.new()
 	_tail_outline.color = BORDER_COLOR
 	add_child(_tail_outline)
@@ -68,22 +65,27 @@ func _init() -> void:
 func show_line(speaker: String, text: String) -> void:
 	_speaker_label.text = speaker
 	_speaker_label.visible = not speaker.is_empty()
-	_text_label.text = text
 	var font := _text_label.get_theme_font("font")
-	var text_width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
+	var font_size := _text_label.get_theme_font_size("font_size")
+	var text_width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var width := clampf(text_width + 44.0, MIN_WIDTH, MAX_WIDTH)
-	var text_area_width := width - 36.0
-	# Reserve the full wrapped height up front so the bubble never grows while typing.
+	var text_area_width := width - PADDING_LEFT * 2.0
+	# Don't let a wrapping Label's deferred minimum size resize the panel.
 	var wrapped_height := font.get_multiline_string_size(
-		text, HORIZONTAL_ALIGNMENT_LEFT, text_area_width, 24, -1, TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+		text, HORIZONTAL_ALIGNMENT_LEFT, text_area_width, font_size, -1, TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
 	).y
-	var line_height := font.get_height(24)
+	var line_height := font.get_height(font_size)
 	var line_count := maxi(1, roundi(wrapped_height / line_height))
 	var line_spacing := float(_text_label.get_theme_constant("line_spacing"))
-	_text_label.custom_minimum_size = Vector2(text_area_width, ceilf(line_count * (line_height + line_spacing)))
-	size = Vector2(width, 0.0)
-	reset_size()
-	visible = true
+	var text_height := ceilf(maxf(line_height, wrapped_height) + (line_count - 1) * line_spacing)
+	var text_top := PADDING_TOP
+	if _speaker_label.visible:
+		text_top += _speaker_label.get_combined_minimum_size().y + SPEAKER_GAP
+	_text_label.position = Vector2(PADDING_LEFT, text_top)
+	_text_label.text = ""
+	_text_label.size = Vector2(text_area_width, text_height)
+	_text_label.text = text
+	size = Vector2(width, text_top + text_height + PADDING_BOTTOM)
 	_set_pip_visible(false)
 	if _text_tween != null:
 		_text_tween.kill()
@@ -92,6 +94,7 @@ func show_line(speaker: String, text: String) -> void:
 	_text_tween = create_tween()
 	_text_tween.tween_property(_text_label, "visible_ratio", 1.0, maxf(0.05, text.length() / CHARACTERS_PER_SECOND))
 	_text_tween.finished.connect(complete_typing)
+	visible = true
 
 
 func is_typing() -> bool:
@@ -117,8 +120,7 @@ func hide_bubble() -> void:
 ## anchor is the screen point the tail points at; has_anchor false centres the
 ## bubble near the bottom of the screen as narration.
 func place(anchor: Vector2, has_anchor: bool, viewport_size: Vector2) -> void:
-	var bubble_size := get_combined_minimum_size()
-	size = bubble_size
+	var bubble_size := size
 	var tail_up := false
 	var target := Vector2(
 		anchor.x - bubble_size.x * 0.5,

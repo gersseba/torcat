@@ -172,12 +172,16 @@ func _test_engine_features() -> void:
 	cliff.cat_can_climb = true
 	_check(_engine.find_path(cliff, Vector2i(1, 0), Vector2i(2, 0), GS.CharacterId.CAT).is_empty(), "Climbing cats must Pounce up a bare ledge")
 	_check(_engine.find_path(cliff, Vector2i(1, 0), Vector2i(2, 0)).is_empty(), "The tortoise still needs stairs")
-	var ledge = _engine.pounce(cliff, Vector2i(3, 0))
-	_check(ledge.cat.position == Vector2i(3, 0) and ledge.shell_items_by_pos.has(Vector2i(3, 0)), "Cats without carrying leave shells alone")
+	var shell := Vector2i(3, 0)
+	var stand_tile := Vector2i(2, 0)
+	_check(not _engine.can_pounce(cliff, shell), "Cats cannot land on a shell")
+	var ledge = _engine.pounce(cliff, stand_tile)
+	_check(not _engine.can_pick_up_shell_from(ledge, stand_tile, shell), "Cats without carrying leave shells alone")
 	cliff.cat_can_carry = true
-	var carrying = _engine.pounce(cliff, Vector2i(3, 0))
-	_check(carrying.cat_carried_shell == 5 and carrying.shell_power == 0, "Carrying cats pick up shells")
-	var back = _engine.move_along_path(carrying, [Vector2i(3, 0), Vector2i(2, 0), Vector2i(1, 0)], GS.CharacterId.CAT)
+	ledge = _engine.pounce(cliff, stand_tile)
+	var carrying = _engine.pick_up_shell(ledge, shell)
+	_check(carrying.cat.position == stand_tile and carrying.cat_carried_shell == 5 and carrying.shell_power == 0, "Carrying cats pick up shells without stepping onto them")
+	var back = _engine.move_along_path(carrying, [stand_tile, Vector2i(1, 0)], GS.CharacterId.CAT)
 	_check(back.cat_carried_shell == 0 and back.shell_power == 5, "Shells are delivered when the cat is next to the tortoise")
 
 	var trigger_events := LS.parse_events([
@@ -230,17 +234,17 @@ func _test_terrace_routes() -> void:
 	# Explicit witnesses avoid a search over equivalent empty landings and return routes.
 	var routes := {
 		"chapter_4_cliffs": [
-			[Vector2i(8, 4), Vector2i(8, 2)], [Vector2i(3, 2), Vector2i(3, 0)],
+			[Vector2i(7, 4), Vector2i(7, 2), Vector2i(8, 2)], [Vector2i(3, 2), Vector2i(3, 1), Vector2i(3, 0)],
 			"deliver", "stair_snake",
-			[Vector2i(18, 4), Vector2i(18, 2)], [Vector2i(15, 3), Vector2i(13, 3)],
-			["attack", "crag_hedgehog"], [Vector2i(15, 2), Vector2i(15, 0)],
+			[Vector2i(17, 4), Vector2i(17, 2), Vector2i(18, 2)], [Vector2i(15, 3), Vector2i(13, 3)],
+			["attack", "crag_hedgehog"], [Vector2i(15, 2), Vector2i(15, 1), Vector2i(15, 0)],
 			"deliver", [Vector2i(16, 6), Vector2i(18, 6)], "mouse_champion",
 		],
 		"chapter_5_summit": [
-			[Vector2i(1, 2), Vector2i(1, 0)], "deliver", "gate_snake",
-			[Vector2i(10, 2), Vector2i(10, 0)], "deliver",
+			[Vector2i(1, 2), Vector2i(1, 1), Vector2i(1, 0)], "deliver", "gate_snake",
+			[Vector2i(9, 2), Vector2i(9, 0), Vector2i(10, 0)], "deliver",
 			[Vector2i(12, 5), Vector2i(14, 5)],
-			[Vector2i(16, 2), Vector2i(16, 0)], "deliver",
+			[Vector2i(16, 2), Vector2i(16, 1), Vector2i(16, 0)], "deliver",
 			[Vector2i(18, 4), Vector2i(20, 4)], Vector2i(17, 4), "badger",
 		],
 	}
@@ -274,6 +278,10 @@ func _test_terrace_routes() -> void:
 				var next = _engine.pounce(walked[0], action[1])
 				_check(next.cat_pounces_remaining == state.cat_pounces_remaining - 1, "%s must execute Pounce %s" % [level_id, str(action)])
 				run = _transition(walked[0], next, walked[1], {cat: next.cat.position})
+				if action.size() == 3:
+					next = _engine.pick_up_shell(run[0], action[2])
+					_check(not next.shell_items_by_pos.has(action[2]), "%s must reach shell %s from beside it" % [level_id, str(action[2])])
+					run = _transition(run[0], next, run[1], {})
 			elif action == "deliver":
 				var parents := _reach(state, cat)
 				var carried: int = state.cat_carried_shell
@@ -324,7 +332,7 @@ func _test_level_select(app_state: Node) -> void:
 func _test_campaign_flow(app_state: Node) -> void:
 	var app_root_script: GDScript = load(APP_ROOT_PATH)
 	var first: Dictionary = app_root_script.cutscene_destination("chapter_1_meadow", "intro", "gameplay", {"level_id": "chapter_1_meadow"})
-	_check(first["route"] == "cutscene" and first["payload"]["cutscene_id"] == "story_1_meadow", "Chapter 1 starts with the meadow story")
+	_check(first["route"] == "cutscene" and first["payload"]["cutscene_id"] == "story_1_meadow", "The meadow story is still configured as the chapter 1 intro")
 
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
@@ -384,6 +392,17 @@ func _test_campaign_flow(app_state: Node) -> void:
 		cutscene.player().skip()
 	await create_timer(0.8).timeout
 	_check(router.current_route == "level_select", "A replayed story star returns to the map instead of starting a level")
+	selection = _current_screen(app)
+	selection.chapter_buttons()[0].pressed.emit()
+	await create_timer(1.0).timeout
+	_check(not selection._start_button.disabled, "The Story map enables Start after reaching chapter 1")
+	selection._start_button.pressed.emit()
+	await process_frame
+	_check(router.current_route == "gameplay", "Starting a chapter from the Story map must bypass its intro cutscene")
+	if router.current_route == "gameplay":
+		var map_start: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(app)
+		_check(map_start != null and map_start._level_id == "chapter_1_meadow" and map_start._scripts_enabled,
+			"Map Start must load the selected chapter with its in-level scripts still enabled")
 	app.queue_free()
 	await process_frame
 
@@ -533,9 +552,16 @@ func _branch_options(state, fired: Dictionary) -> Array:
 			if cat_parents.has(neighbor):
 				options.append(_walk(state, fired, GS.CharacterId.CAT, cat_parents, neighbor))
 				break
-	for target in _pickups(state, state.cat_can_carry):
+	for target in _pickups(state, false):
 		if _pickup_reachable(state, cat_parents, target, GS.CharacterId.CAT) and target != state.cat.position:
 			options.append(_walk(state, fired, GS.CharacterId.CAT, cat_parents, target))
+	if state.cat_can_carry:
+		for target in state.shell_items_by_pos:
+			for stand in _engine._cardinal_neighbors(target):
+				if cat_parents.has(stand) and _engine.can_pick_up_shell_from(state, stand, target):
+					var walked := _walk(state, fired, GS.CharacterId.CAT, cat_parents, stand)
+					options.append(_transition(walked[0], _engine.pick_up_shell(walked[0], target), walked[1], {}))
+					break
 	for enemy_pos in state.enemies_by_pos:
 		var enemy = state.enemies_by_pos[enemy_pos]
 		if enemy.power <= state.cat.power:
@@ -548,7 +574,7 @@ func _branch_options(state, fired: Dictionary) -> Array:
 	for enemy_pos in state.enemies_by_pos:
 		if state.enemies_by_pos[enemy_pos].power > state.cat.power:
 			pounce_targets.append(enemy_pos)
-	for target in _pickups(state, state.cat_can_carry):
+	for target in _pickups(state, false):
 		if not cat_parents.has(target):
 			pounce_targets.append(target)
 	for target in pounce_targets:

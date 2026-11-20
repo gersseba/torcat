@@ -27,6 +27,7 @@ static func _tile_free(state, cell: Vector2i, character_id: int) -> bool:
 		cell.x >= 0 and cell.y >= 0 and cell.x < state.width and cell.y < state.height
 		and not state.is_blocked(cell)
 		and not state.enemies_by_pos.has(cell) and not state.lootables_by_pos.has(cell)
+		and (character_id != GameState.CharacterId.CAT or not state.shell_items_by_pos.has(cell))
 		and not state.is_occupied_by_other_character(cell, character_id)
 	)
 
@@ -134,13 +135,17 @@ static func find_path(engine, state, start: Vector2, target: Vector2, character_
 	return smoothed
 
 
-static func attack_path(engine, state, target: Vector2i, character_id: int) -> PackedVector2Array:
+static func attack_path(engine, state, target: Vector2i, character_id: int, shell_pickup := false) -> PackedVector2Array:
 	var best := PackedVector2Array()
 	var best_length := INF
 	var start: Vector2 = state.character_state(character_id).world_position
 	for offset in CARDINAL_NEIGHBORS:
 		var stand: Vector2i = target + offset
-		if not _tile_free(state, stand, character_id) or not engine._can_traverse(state, stand, target, character_id):
+		if not _tile_free(state, stand, character_id):
+			continue
+		if shell_pickup and not engine.can_pick_up_shell_from(state, stand, target):
+			continue
+		if not shell_pickup and not engine._can_traverse(state, stand, target, character_id):
 			continue
 		var path := find_path(engine, state, start, center(stand), character_id)
 		if path.is_empty():

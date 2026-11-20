@@ -47,9 +47,29 @@ func _run() -> void:
 	if gameplay != null:
 		_check(gameplay._level_id == "chapter_5_summit", "The requested level should be the one rendered")
 	_check(root.find_child("LoadingScreen", true, false) == null, "The loading screen should be removed when ready")
+	await _check_opening_dialogue()
 	await _check_meadow_practice()
 	print("gameplay_loading_test: %d failure(s)" % failures)
 	quit(1 if failures else 0)
+
+
+func _check_opening_dialogue() -> void:
+	root.get_node("AppRouter").navigate("gameplay", {"level_id": "chapter_1_meadow"})
+	var bubble: SpeechBubble
+	for _frame in 240:
+		await process_frame
+		bubble = root.find_child("SpeechBubble", true, false) as SpeechBubble
+		if bubble != null and bubble.visible:
+			break
+	if bubble == null or not bubble.visible:
+		_check(false, "The Meadow opening dialogue should appear after loading")
+		return
+	var largest := Vector2.ZERO
+	for _frame in 8:
+		largest = largest.max(bubble.size)
+		await process_frame
+	_check(largest.x <= 520.0 and largest.y < 240.0,
+		"The first dialogue must stay bubble-sized on every frame, got %s" % str(largest))
 
 
 func _check_meadow_practice() -> void:

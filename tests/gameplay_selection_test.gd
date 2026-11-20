@@ -187,6 +187,15 @@ func _run() -> void:
 		and screen._back_confirmation_message.text.contains("progress"),
 		"The themed confirmation must explain the consequence"
 	)
+	for button: Button in [screen._back_stay_button, screen._back_leave_button]:
+		_check(button.get_theme_stylebox("normal") is StyleBoxTexture and button.size.y >= 72.0,
+			"Both confirmation actions must use the wooden button art and remain touch-sized")
+	for button: Button in [screen._shell_button, screen._pounce_button]:
+		var normal := button.get_theme_stylebox("normal") as StyleBoxTexture
+		var disabled := button.get_theme_stylebox("disabled") as StyleBoxTexture
+		_check(normal != null and disabled != null and disabled.texture == normal.texture
+			and disabled.modulate_color != normal.modulate_color,
+			"Unavailable abilities must retain the wooden artwork with a distinct disabled state")
 	_mouse_click(_control_center(screen._back_stay_button))
 	await process_frame
 	_check(not back_pressed[0] and not screen._back_confirmation.visible, "Cancelling should stay in the level")
@@ -205,6 +214,13 @@ func _run() -> void:
 		and screen._back_leave_button.text == "Level verlassen",
 		"Themed confirmation controls must be localized"
 	)
+	await process_frame
+	var leave: Button = screen._back_leave_button
+	var leave_font := leave.get_theme_font("font")
+	var leave_font_size := leave.get_theme_font_size("font_size")
+	var label_size := leave_font.get_string_size(leave.text, HORIZONTAL_ALIGNMENT_LEFT, -1, leave_font_size)
+	_check(leave.size.x >= label_size.x + 2.0 * 36.0 and leave.size.y >= label_size.y + 2.0 * 32.0,
+		"The longer German leave label must have clearance from the wooden frame")
 	screen._back_stay_button.pressed.emit()
 	app_state.language = 0
 	_mouse_click(_control_center(screen._back_button))

@@ -68,6 +68,12 @@ func _run() -> void:
 	)
 	screen._set_joystick_vector(Vector2.ZERO)
 	screen._process_continuous_movement(0.0)
+	await process_frame
+	var attack_rect := screen._mobile_attack_button.get_rect()
+	var special_rect := screen._mobile_special_button.get_rect()
+	_check(attack_rect.position.x > screen._joystick_base.get_rect().end.x
+		and attack_rect.end.x < special_rect.position.x and special_rect.end.x < screen.size.x,
+		"Text-sized mobile buttons must fit next to the joystick without overlapping: %s, %s" % [attack_rect, special_rect])
 
 	state.enemies_by_pos.clear()
 	var origin: Vector2 = state.cat.world_position

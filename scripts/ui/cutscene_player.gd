@@ -11,6 +11,7 @@ extends Control
 signal finished
 
 const LS = preload("res://scripts/domain/level_script.gd")
+const WOODLAND_UI := preload("res://scripts/ui/woodland_ui.gd")
 const PANEL_TEXTURE := preload("res://resources/assets/ui/chrome/secondary_button.png")
 const TEXT_COLOR := Color("f7e8c1")
 const SPEAKER_COLOR := Color("e8b64c")
@@ -27,16 +28,23 @@ var _shot_progress := 0.0
 var _typing := false
 var _transitioning := false
 var _done := false
+var _paused := false
+var _full_image := false
 var _image_rect: TextureRect
 var _fade_rect: ColorRect
 var _caption_panel: PanelContainer
 var _speaker_label: Label
 var _text_label: Label
 var _continue_label: Label
+var _controls: HBoxContainer
+var _pause_button: Button
+var _image_button: Button
 var _skip_button: Button
 var _pan_tween: Tween
 var _text_tween: Tween
 var _continue_tween: Tween
+var _auto_tween: Tween
+var _fade_tween: Tween
 
 
 func _ready() -> void:
@@ -105,21 +113,85 @@ func _ready() -> void:
 	_continue_label.modulate.a = 0.0
 	column.add_child(_continue_label)
 
-	_skip_button = Button.new()
-	_skip_button.name = "SkipButton"
+	_controls = HBoxContainer.new()
+	_controls.name = "CutsceneControls"
+	_controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_controls.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_controls.add_theme_constant_override("separation", 8)
+	add_child(_controls)
+	_pause_button = _make_button("PauseButton", panel_style)
+	_pause_button.pressed.connect(_toggle_pause)
+	_image_button = _make_button("FullImageButton", panel_style)
+	_image_button.pressed.connect(_toggle_full_image)
+	_skip_button = _make_button("SkipButton", panel_style)
 	_skip_button.text = LS.localize({"en": "Skip", "de": "Überspringen"})
-	_skip_button.custom_minimum_size = Vector2(176, 72)
-	for state_name in ["normal", "hover", "pressed", "focus"]:
-		_skip_button.add_theme_stylebox_override(state_name, panel_style)
-	_skip_button.add_theme_color_override("font_color", TEXT_COLOR)
-	_skip_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	_skip_button.offset_left = -196.0
-	_skip_button.offset_right = -20.0
-	_skip_button.offset_top = 40.0
-	_skip_button.offset_bottom = 112.0
 	_skip_button.pressed.connect(skip)
-	add_child(_skip_button)
-	resized.connect(func() -> void: _apply_shot_progress(_shot_progress))
+	_update_controls()
+	resized.connect(_layout_controls)
+	_layout_controls()
+
+
+func _make_button(button_name: String, panel_style: StyleBoxTexture) -> Button:
+	var button := Button.new()
+	button.name = button_name
+	button.custom_minimum_size.y = 72.0
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := panel_style.duplicate() as StyleBoxTexture
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	for state_name in ["normal", "hover", "pressed", "focus"]:
+		button.add_theme_stylebox_override(state_name, style)
+	button.add_theme_color_override("font_color", TEXT_COLOR)
+	button.add_theme_font_size_override("font_size", 22)
+	_controls.add_child(button)
+	return button
+
+
+func _layout_controls() -> void:
+	var margins := WOODLAND_UI.safe_margins(size)
+	_controls.offset_left = margins.x
+	_controls.offset_right = -margins.z
+	_controls.offset_top = maxf(40.0, margins.y)
+	_controls.offset_bottom = _controls.offset_top + 72.0
+	_apply_shot_progress(_shot_progress)
+
+
+func _toggle_pause() -> void:
+	if _done or _full_image:
+		return
+	_paused = not _paused
+	_update_playback()
+
+
+func _toggle_full_image() -> void:
+	if _done or _image_rect.texture == null:
+		return
+	_full_image = not _full_image
+	_caption_panel.visible = not _full_image and not _text_label.text.is_empty()
+	_fade_rect.visible = not _full_image
+	_apply_shot_progress(_shot_progress)
+	_update_playback()
+
+
+func _update_controls() -> void:
+	_pause_button.text = LS.localize({"en": "Resume", "de": "Fortsetzen"}) if _paused else LS.localize({"en": "Pause", "de": "Pause"})
+	_image_button.text = LS.localize({"en": "Back to scene", "de": "Zurück zur Szene"}) if _full_image else LS.localize({"en": "Full image", "de": "Ganzes Bild"})
+	_pause_button.disabled = _done or _full_image
+	_image_button.disabled = _done
+	_skip_button.disabled = _done
+
+
+func _update_playback() -> void:
+	_update_controls()
+	for tween in [_pan_tween, _text_tween, _continue_tween, _auto_tween, _fade_tween]:
+		if tween == null or not tween.is_valid():
+			continue
+		if _paused or _full_image:
+			tween.pause()
+		else:
+			tween.play()
 
 
 func play(definition: Dictionary) -> void:
@@ -129,16 +201,15 @@ func play(definition: Dictionary) -> void:
 		push_error("Cutscene has no shots")
 		call_deferred("_finish")
 		return
-	modulate.a = 0.0
+	_fade_rect.color.a = 1.0
 	if size == Vector2.ZERO:
 		await get_tree().process_frame
 	_show_shot(0)
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
+	_update_playback()
 
 
 func advance() -> void:
-	if _done or _transitioning:
+	if _done or _transitioning or _paused or _full_image or _index < 0:
 		return
 	if _typing:
 		_complete_typing()
@@ -217,6 +288,13 @@ func _apply_shot_progress(progress: float) -> void:
 	if texture == null or size.x <= 0.0 or size.y <= 0.0:
 		return
 	var texture_size := texture.get_size()
+	if _full_image:
+		var margins := WOODLAND_UI.safe_margins(size)
+		var top := _controls.offset_bottom + 12.0
+		var area := Vector2(maxf(0.0, size.x - margins.x - margins.z), maxf(0.0, size.y - top - margins.w))
+		_image_rect.size = texture_size * minf(area.x / texture_size.x, area.y / texture_size.y)
+		_image_rect.position = Vector2(margins.x, top) + (area - _image_rect.size) * 0.5
+		return
 	var cover := maxf(size.x / texture_size.x, size.y / texture_size.y)
 	var zoom := maxf(MIN_ZOOM, lerpf(float(_shot_from.get("zoom", 1.0)), float(_shot_to.get("zoom", 1.0)), progress))
 	var focus := _focus(_shot_from).lerp(_focus(_shot_to), progress)
@@ -238,6 +316,8 @@ func _focus(view: Dictionary) -> Vector2:
 func _start_typing(shot: Dictionary) -> void:
 	if _text_tween != null:
 		_text_tween.kill()
+	if _auto_tween != null:
+		_auto_tween.kill()
 	_set_continue_visible(false)
 	_text_label.visible_ratio = 0.0
 	_typing = not _text_label.text.is_empty()
@@ -262,10 +342,9 @@ func _complete_typing() -> void:
 func _after_typing(shot: Dictionary) -> void:
 	_set_continue_visible(true)
 	if shot.has("auto"):
-		var index := _index
-		await get_tree().create_timer(float(shot["auto"])).timeout
-		if not _done and _index == index and not _typing:
-			advance()
+		_auto_tween = create_tween()
+		_auto_tween.tween_interval(float(shot["auto"]))
+		_auto_tween.tween_callback(advance)
 
 
 func _set_continue_visible(visible_now: bool) -> void:
@@ -280,16 +359,19 @@ func _set_continue_visible(visible_now: bool) -> void:
 
 
 func _fade_to(alpha: float) -> void:
-	var tween := create_tween()
-	tween.tween_property(_fade_rect, "color:a", alpha, FADE_DURATION)
-	await tween.finished
+	if _fade_tween != null:
+		_fade_tween.kill()
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(_fade_rect, "color:a", alpha, FADE_DURATION)
+	await _fade_tween.finished
 
 
 func _finish() -> void:
 	if _done:
 		return
 	_done = true
-	for tween in [_pan_tween, _text_tween, _continue_tween]:
+	_update_controls()
+	for tween in [_pan_tween, _text_tween, _continue_tween, _auto_tween, _fade_tween]:
 		if tween != null:
 			tween.kill()
 	var tween := create_tween()

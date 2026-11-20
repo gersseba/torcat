@@ -13,6 +13,7 @@ var language: Language = Language.EN
 var music_enabled: bool = true
 var sfx_enabled: bool = true
 var mobile_controls: bool = false
+var reduced_motion: bool = false
 ## Number of campaign chapters the player may start (chapter 1 is always open).
 var unlocked_chapters: int = 1
 var completed_levels: Array[String] = []
@@ -76,6 +77,11 @@ func load_settings() -> void:
 		mobile_controls = saved_mobile_controls
 	else:
 		push_error("Invalid touch control setting in %s" % settings_path)
+	var saved_motion: Variant = config.get_value("settings", "reduced_motion", reduced_motion)
+	if saved_motion is bool:
+		reduced_motion = saved_motion
+	else:
+		push_error("Invalid reduced motion setting in %s" % settings_path)
 
 
 func save_settings() -> void:
@@ -84,6 +90,7 @@ func save_settings() -> void:
 	config.set_value("settings", "music_enabled", music_enabled)
 	config.set_value("settings", "sfx_enabled", sfx_enabled)
 	config.set_value("settings", "mobile_controls", mobile_controls)
+	config.set_value("settings", "reduced_motion", reduced_motion)
 	var error := config.save(settings_path)
 	if error != OK:
 		push_error("Failed to save settings to %s (error %d)" % [settings_path, error])

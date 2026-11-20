@@ -48,7 +48,7 @@ func can_pounce(state, target: Vector2i) -> bool:
 		and (delta.x == 0 or delta.y == 0 or absi(delta.x) == absi(delta.y))
 		and distance >= 1 and distance <= POUNCE_RANGE
 		and target != state.player.position and not state.is_blocked(target)
-		and not state.lootables_by_pos.has(target)
+		and not state.lootables_by_pos.has(target) and not state.shell_items_by_pos.has(target)
 	):
 		return false
 	if not state.enemies_by_pos.has(target):
@@ -61,6 +61,7 @@ func can_pounce(state, target: Vector2i) -> bool:
 			_is_within_bounds(landing, state.width, state.height)
 			and landing != state.player.position and not state.is_blocked(landing)
 			and not state.enemies_by_pos.has(landing) and not state.lootables_by_pos.has(landing)
+			and not state.shell_items_by_pos.has(landing)
 		)
 
 	var retreat: Vector2i = state.cat.position - direction
@@ -239,16 +240,39 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 		next.shell_power += item.power_bonus
 		next.shell_items_by_pos.erase(position)
 		event_parts.append("Picked shell charm (+%d shell)." % item.power_bonus)
-	elif character_id == GS.CharacterId.CAT and next.cat_can_carry and next.shell_items_by_pos.has(position):
-		var carried = next.shell_items_by_pos[position]
-		next = next.duplicate_state()
-		next.cat_carried_shell += carried.power_bonus
-		next.shell_items_by_pos.erase(position)
-		event_parts.append("Cat carries a shell charm (+%d)." % carried.power_bonus)
 
 	if not event_parts.is_empty():
 		next.last_event = "%s %s" % [next.last_event, " ".join(event_parts)]
 	return next
+
+
+func can_pick_up_shell_from(state, from: Vector2i, target: Vector2i) -> bool:
+	var delta := target - from
+	return (
+		not state.game_over and not state.victory and state.cat.alive
+		and state.cat_can_carry and state.is_character_controllable(GS.CharacterId.CAT)
+		and absi(delta.x) + absi(delta.y) == 1
+		and state.shell_items_by_pos.has(target)
+		and _can_traverse(state, from, target, GS.CharacterId.CAT, true)
+	)
+
+
+func pick_up_shell(state, target: Vector2i):
+	var next = state.duplicate_state()
+	if not can_pick_up_shell_from(state, state.cat.position, target):
+		next.last_event = "The cat cannot reach that shell charm."
+		return next
+	var amount: int = next.shell_items_by_pos[target].power_bonus
+	next.shell_items_by_pos.erase(target)
+	next.cat_carried_shell += amount
+	next.last_event = "Cat carries a shell charm (+%d)." % amount
+	return _deliver_carried_shell(next)
+
+
+func find_shell_pickup_path(state, target: Vector2i) -> PackedVector2Array:
+	if can_pick_up_shell_from(state, state.cat.position, target):
+		return PackedVector2Array([state.cat.world_position])
+	return NAV.attack_path(self, state, target, GS.CharacterId.CAT, true)
 
 
 func attack_loot(state, target: Vector2i, character_id = GS.CharacterId.TORTOISE):
@@ -356,8 +380,10 @@ func _is_within_bounds(pos: Vector2i, width: int, height: int) -> bool:
 	return pos.x >= 0 and pos.x < width and pos.y >= 0 and pos.y < height
 
 
-func _can_traverse(state, from: Vector2i, to: Vector2i, character_id = GS.CharacterId.TORTOISE) -> bool:
+func _can_traverse(state, from: Vector2i, to: Vector2i, character_id = GS.CharacterId.TORTOISE, reaching_for_shell := false) -> bool:
 	if state.is_blocked(to) or state.is_occupied_by_other_character(to, character_id):
+		return false
+	if character_id == GS.CharacterId.CAT and not reaching_for_shell and state.shell_items_by_pos.has(to):
 		return false
 	var from_cell = state.tile_cells.get(from)
 	var to_cell = state.tile_cells.get(to)

@@ -15,28 +15,42 @@ static func panel() -> StyleBoxFlat:
 
 
 static func button(control: Button) -> void:
+	# Trim transparent padding so the visible frame fills the button bounds.
+	var wood_face := AtlasTexture.new()
+	wood_face.atlas = WOOD
+	wood_face.region = Rect2(14, 14, 228, 166)
 	var style := StyleBoxTexture.new()
-	style.texture = WOOD
-	style.texture_margin_left = 48
-	style.texture_margin_right = 48
-	style.texture_margin_top = 32
-	style.texture_margin_bottom = 24
-	style.content_margin_top = 20
-	style.content_margin_bottom = 18
-	style.content_margin_left = 28
-	style.content_margin_right = 28
+	style.texture = wood_face
+	style.texture_margin_left = 34
+	style.texture_margin_right = 34
+	style.texture_margin_top = 34
+	style.texture_margin_bottom = 26
+	style.content_margin_top = 38
+	style.content_margin_bottom = 30
+	style.content_margin_left = 40
+	style.content_margin_right = 40
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var variant := style.duplicate() as StyleBoxTexture
 		if state == "pressed":
 			variant.modulate_color = Color("c6ae7d")
+		elif state == "hover":
+			variant.modulate_color = Color(1.13, 1.09, 1.03)
 		elif state == "disabled":
-			variant.modulate_color = Color("727968")
+			variant.modulate_color = Color("aeaa99")
 		control.add_theme_stylebox_override(state, variant)
+	var focus := StyleBoxFlat.new()
+	focus.draw_center = false
+	focus.border_color = Color("e2be78")
+	focus.set_border_width_all(2)
+	focus.set_corner_radius_all(4)
+	control.add_theme_stylebox_override("focus", focus)
 	control.add_theme_color_override("font_color", CREAM)
 	control.add_theme_color_override("font_hover_color", Color("fff3cd"))
 	control.add_theme_color_override("font_pressed_color", CREAM)
+	control.add_theme_color_override("font_focus_color", CREAM)
+	control.add_theme_color_override("font_disabled_color", Color("c8c0aa"))
 	control.add_theme_font_size_override("font_size", 24)
-	control.custom_minimum_size = Vector2(0, 80)
+	control.custom_minimum_size.y = maxf(control.custom_minimum_size.y, 104.0)
 
 
 static func safe_margins(viewport_size: Vector2) -> Vector4:

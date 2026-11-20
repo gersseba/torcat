@@ -9,6 +9,7 @@ const APP_STATE_SCRIPT := preload("res://scripts/autoload/app_state.gd")
 @onready var _music_toggle: CheckButton = %MusicToggleButton
 @onready var _sfx_toggle: CheckButton = %SfxToggleButton
 @onready var _mobile_controls_toggle: CheckButton = %MobileControlsToggle
+@onready var _reduced_motion_toggle: CheckButton = %ReducedMotionToggle
 @onready var _back_button: Button = %BackButton
 
 
@@ -27,6 +28,11 @@ func _ready() -> void:
 		var app_state := _app_state()
 		app_state.call("apply_settings", app_state.get("language"), app_state.get("music_enabled"), app_state.get("sfx_enabled"), value)
 	)
+	_reduced_motion_toggle.toggled.connect(func(value: bool) -> void:
+		var app_state := _app_state()
+		app_state.set("reduced_motion", value)
+		app_state.call("save_settings")
+	)
 	_back_button.pressed.connect(func() -> void:
 		back_pressed.emit()
 	)
@@ -39,6 +45,8 @@ func _sync_from_state() -> void:
 	_sfx_toggle.button_pressed = app_state.get("sfx_enabled")
 	_mobile_controls_toggle.button_pressed = app_state.get("mobile_controls")
 	_mobile_controls_toggle.text = "Touch controls" if language == APP_STATE_SCRIPT.Language.EN else "Touch-Steuerung"
+	_reduced_motion_toggle.set_pressed_no_signal(app_state.get("reduced_motion"))
+	_reduced_motion_toggle.text = "Reduced motion" if language == APP_STATE_SCRIPT.Language.EN else "Weniger Bewegung"
 	_language_button.text = "Language: EN" if language == APP_STATE_SCRIPT.Language.EN else "Sprache: DE"
 
 

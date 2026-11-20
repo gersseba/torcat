@@ -1,9 +1,13 @@
 extends Node2D
 
+signal shell_landed(is_pickup: bool)
+
 const DEFEAT_DURATION := 0.42
 const ORB_DURATION := 0.43
 const ORB_STAGGER := 0.065
 const ORB_COUNT := 4
+const SHELL_HOP_DURATION := 0.32
+const SHELL_CHARM_TEXTURE := preload("res://resources/assets/items/shell_charm.png")
 const WHITE_GLOW := preload("res://scripts/rendering/defeat_glow.gdshader")
 
 var _orb_texture: ImageTexture
@@ -72,6 +76,61 @@ func _fly_orb(t: float, orb: Sprite2D, start: Vector2, recipient: AnimatedSprite
 	orb.scale = Vector2.ONE * (1.0 - 0.45 * smoothstep(0.78, 1.0, t))
 
 
+func play_shell_pickup(origin: Vector2, cat: AnimatedSprite2D, facing: String) -> float:
+	var charm := _make_shell_hop("ShellPickup", origin)
+	_animate_shell_hop(charm, cat, _backpack_offset(facing), true)
+	return SHELL_HOP_DURATION
+
+
+func play_shell_handoff(cat: AnimatedSprite2D, tortoise: AnimatedSprite2D, facing: String, delay: float) -> void:
+	var backpack := _backpack_offset(facing)
+	var charm := _make_shell_hop("ShellHandoff", cat.position + cat.offset * cat.scale + backpack)
+	if delay <= 0.0:
+		_animate_shell_hop(charm, tortoise, Vector2(0, -8))
+		return
+	charm.hide()
+	var wait := charm.create_tween()
+	wait.tween_interval(delay)
+	wait.tween_callback(func() -> void:
+		charm.position = cat.position + cat.offset * cat.scale + backpack
+		charm.show()
+		_animate_shell_hop(charm, tortoise, Vector2(0, -8))
+	)
+
+
+func _backpack_offset(facing: String) -> Vector2:
+	match facing:
+		"east": return Vector2(-9, -6)
+		"west": return Vector2(9, -6)
+		"north": return Vector2(0, 3)
+	return Vector2(0, -10)
+
+
+func _make_shell_hop(effect_name: String, start: Vector2) -> Sprite2D:
+	var charm := Sprite2D.new()
+	charm.name = effect_name
+	charm.texture = SHELL_CHARM_TEXTURE
+	charm.position = start
+	charm.z_index = 5
+	add_child(charm, true)
+	return charm
+
+
+func _animate_shell_hop(charm: Sprite2D, recipient: AnimatedSprite2D, landing_offset: Vector2, is_pickup := false) -> void:
+	var hop := charm.create_tween()
+	hop.tween_method(_hop_shell.bind(charm, charm.position, recipient, landing_offset), 0.0, 1.0, SHELL_HOP_DURATION)
+	hop.tween_callback(func() -> void: shell_landed.emit(is_pickup))
+	hop.tween_callback(charm.queue_free)
+
+
+func _hop_shell(t: float, charm: Sprite2D, start: Vector2, recipient: AnimatedSprite2D, landing_offset: Vector2) -> void:
+	var destination := recipient.position + recipient.offset * recipient.scale + landing_offset
+	var hop := 4.0 * t * (1.0 - t)
+	charm.position = (start.lerp(destination, t) - Vector2(0, hop * 23.0)).round()
+	charm.rotation = hop * 0.22 * signf(destination.x - start.x)
+	charm.scale = Vector2.ONE * lerpf(1.0, 0.22, smoothstep(0.12, 1.0, t))
+
+
 func _make_orb_texture() -> ImageTexture:
 	var image := Image.create_empty(9, 9, false, Image.FORMAT_RGBA8)
 	image.fill_rect(Rect2i(0, 3, 9, 3), Color("bf8945"))
@@ -80,6 +139,23 @@ func _make_orb_texture() -> ImageTexture:
 	image.fill_rect(Rect2i(3, 3, 3, 3), Color("fff5cb"))
 	image.set_pixel(3, 2, Color.WHITE)
 	return ImageTexture.create_from_image(image)
+
+
+func show_loot_gain(at: Vector2, reward: int) -> void:
+	var label := Label.new()
+	label.text = "+%d" % reward
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", Color("ffe198"))
+	label.add_theme_color_override("font_outline_color", Color("472819"))
+	label.add_theme_constant_override("outline_size", 4)
+	label.position = at - Vector2(label.get_minimum_size().x * 0.5, 65)
+	label.z_index = 6
+	add_child(label)
+	var rise := label.create_tween().set_parallel(true)
+	rise.tween_property(label, "position:y", label.position.y - 12, 0.55)
+	rise.tween_property(label, "modulate:a", 0.0, 0.25).set_delay(0.30)
+	rise.chain().tween_callback(label.queue_free)
 
 
 func play_loot_break(center: Vector2, texture: Texture2D) -> void:

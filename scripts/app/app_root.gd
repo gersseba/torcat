@@ -115,14 +115,18 @@ func _show_route(route: String, payload: Variant) -> void:
 
 ## Cutscenes keep whatever music is already playing.
 func _update_music(route: String, payload: Variant) -> void:
+	var ambience := ""
 	match route:
 		ROUTE_GAMEPLAY:
 			var level_id := str(payload.get("level_id", "")) if payload is Dictionary else ""
+			var chapter := CAMPAIGN.chapter_index(level_id.trim_prefix("practice_scene:").trim_suffix("_copy"))
+			ambience = "ambience_ridge" if chapter >= 3 else "ambience_meadow"
 			AudioManager.play_music(AudioManager.gameplay_music_id(CAMPAIGN.chapter_index(level_id)))
 		ROUTE_CUTSCENE:
 			pass
 		_:
 			AudioManager.play_music("menu")
+	AudioManager.set_ambience(ambience)
 
 
 ## Plays a level's intro or outro cutscene (when it has one) before moving on.
@@ -182,7 +186,7 @@ func _build_screen(route: String, payload: Variant) -> Node:
 				if index != -1 and not AppState.is_chapter_unlocked(index):
 					push_error("Cannot start locked chapter: %s" % level_id)
 					return
-				navigate_with_cutscene(level_id, "intro", ROUTE_GAMEPLAY, {"level_id": level_id})
+				AppRouter.navigate(ROUTE_GAMEPLAY, {"level_id": level_id})
 			)
 			screen.cutscene_selected.connect(func(cutscene_id: String) -> void:
 				AppRouter.navigate(ROUTE_CUTSCENE, {
