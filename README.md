@@ -17,7 +17,7 @@ Open this directory in Godot 4 and run the project to launch the main scene.
 - On long, level stretches, tap-to-move speeds up between waypoints and slows
   back down for turns and arrivals. Short walks and joystick speed are unchanged.
 - Drag with one finger to pan the board.
-- Pinch with two fingers to zoom.
+- Pinch with two fingers or use the mouse wheel to zoom the level.
 - Use **Center** to return the camera to the selected character.
 - **Back** opens a confirmation above the board. Choose **Stay** to resume or
   **Leave level** to return to the main menu.
@@ -111,10 +111,12 @@ and return afterward if their owners remain on the board.
 Cliffside Descent uses rocky borders to mark height changes. Ramps and stairs
 mark crossings where characters can move between heights; other cliff edges
 cannot be crossed. Elevation stays on the flat board, so taps and movement use
-the same grid as other levels. On a tap-to-move route, the cat hops from half a
-tile before a traversable height edge to half a tile after it. Short routes or
+the same grid as other levels. The cat walks normally on stairs and ramps,
+including scripted paths. On a tap-to-move route across a bare downhill ledge,
+the cat hops from half a tile before the edge to half a tile after it. Short routes or
 closely spaced ledges shorten the hop rather than overshooting the destination.
-The larger ledge marks make ramps and stairs easier to read on mobile.
+Stone stairs and earthen ramps span 60 pixels along the edge and 28 pixels
+across it on the 64-pixel grid, making them broad, short, and readable on mobile.
 
 ## Cutscenes and level scripts
 
@@ -252,6 +254,46 @@ and the final story star unlocks only after winning the summit. The **Practice**
 tab offers the forward and backward random-grid variants and **Meadow Rooms**.
 Older standalone and experimental JSON levels are not listed. Editable Godot
 scenes appear below the generated modes.
+
+The Story selection map stays fitted to the screen; zoom gestures are reserved
+for playable levels.
+
+During gameplay, a rocky rim marks the edge of the playable tiles. The muted
+plants, rocks, and distant ridges beyond it are scenery only: they don't add
+tiles, block movement, or change the camera limits. The exterior palette uses
+the chapter backdrop color and the dominant terrain on the board, including
+in editable Practice scenes.
+
+### Editing the live Story pilot in Godot
+
+Open [The Woodland Clearings](scenes/story/chapter_3_rocky_pass.tscn) in the
+**2D** editor. **Story > 3. The Woodland Clearings** uses this scene directly.
+Paint the Ground, Blockers, and Decorations layers, or move the actor, loot,
+and crossing markers as described below for Practice. Keep the board origin
+at `(0, 0)` so script coordinates stay aligned.
+
+The [chapter JSON](resources/levels/chapter_3_rocky_pass.json) still owns
+dialogue, scripted events, cutscenes, the cat's stranded state, and the chapter's
+abilities and starting Pounce charges. Its original layout is retained as a
+parity reference; edits to that layout do not change the live board. Keep
+existing **Entity Id** values when moving scripted enemies, give duplicates
+unique IDs, and review tile triggers and coordinate-based camera targets in
+the JSON when reshaping a route. The other four Story chapters still load
+their original layouts.
+
+The Woodland Clearings uses four transparent, standalone bushes: hazel,
+berry, sage, and holly. Their mixed clusters are painted into the scene's
+Blockers layer, not selected randomly. They retain the original blocked cells.
+
+To capture the opening board overview at 720 × 1280 for all five Story
+chapters, use graphical Godot:
+
+```sh
+godot --path . --fixed-fps 60 --script res://tools/capture_story_openings.gd -- /absolute/output/directory
+```
+
+Add a chapter ID after the directory to capture only that chapter. Use
+different directories for the before and after runs.
 
 ### Editing your own Practice copy in Godot
 
@@ -473,7 +515,7 @@ Level JSON options used by the campaign:
 - `decorations`: an optional array of `{assetKey, position: {x, y}}`.
   Decorations are always passable, remain after pickups, and draw beneath
   actors and loot. Keys: `meadow_flowers`, `forest_litter`, `woodland_ferns`,
-  `mountain_flowers`, `scree`, `dry_bush`, and the six Summit plants
+  `mountain_flowers`, `scree`, and the six Summit plants
   (`summit_succulent`, `summit_lupine`, `summit_buttercup`, `summit_pinks`,
   `summit_harebell`, `summit_scrub`). Positions must be unique and within the
   board.

@@ -220,6 +220,55 @@ func _check_ledge_span(screen: GameplayScreen, start: Vector2, end: Vector2, tak
 			"Expected ledge jump %s to %s, got %s" % [takeoff, landing, jumps[0]])
 
 
+func _check_crossing_walks(screen: GameplayScreen, terrain) -> void:
+	for kind in [GS.TraversalKind.STAIRS, GS.TraversalKind.RAMP]:
+		for uphill in [true, false]:
+			var state = terrain.duplicate_state()
+			var from := Vector2i(3, 1) if uphill else Vector2i(2, 1)
+			var to := Vector2i(2, 1) if uphill else Vector2i(3, 1)
+			state.cat.position = from
+			state.selected_character_id = GS.CharacterId.CAT
+			state.traversable_edges = [GS.TraversableEdge.of(from, to, kind)]
+			screen._state = state
+			screen._render_state()
+			var start := Vector2(from) + Vector2.ONE * 0.5
+			var end := Vector2(to) + Vector2.ONE * 0.5
+			_check(screen._ledge_jumps_along(start, end, GS.CharacterId.CAT).is_empty(),
+				"Stairs and ramps must not schedule cat jumps in either direction")
+			var sprite: AnimatedSprite2D = screen._character_sprites[GS.CharacterId.CAT]
+			var animation := "walk_west" if uphill else "walk_east"
+			screen._walk_freely(GS.CharacterId.CAT, PackedVector2Array([start, end]))
+			await create_timer(0.1).timeout
+			_check(sprite.animation == animation and not screen._pounce_shadow.visible,
+				"The cat must walk, not pounce, across stairs and ramps")
+			var deadline := Time.get_ticks_msec() + 3000
+			while screen._moving_character_id != -1 and Time.get_ticks_msec() < deadline:
+				await process_frame
+			_check(screen._moving_character_id == -1 and sprite.position.is_equal_approx(end * screen.TILE_SIZE),
+				"Stair and ramp walks must reach the requested endpoint")
+			screen._animate_character_path(GS.CharacterId.CAT, [from, to])
+			await create_timer(0.1).timeout
+			_check(sprite.animation == animation and not screen._pounce_shadow.visible,
+				"Scripted cat paths must also walk across stair and ramp crossings")
+			deadline = Time.get_ticks_msec() + 3000
+			while screen._moving_character_id != -1 and Time.get_ticks_msec() < deadline:
+				await process_frame
+			_check(screen._moving_character_id == -1, "Scripted stair walk must finish")
+	var diagonal_state = terrain.duplicate_state()
+	diagonal_state.traversable_edges = [
+		GS.TraversableEdge.of(Vector2i(2, 1), Vector2i(3, 1), GS.TraversalKind.STAIRS),
+		GS.TraversableEdge.of(Vector2i(2, 2), Vector2i(3, 2), GS.TraversalKind.RAMP),
+	]
+	screen._state = diagonal_state
+	var start := Vector2(2.5, 1.5)
+	var end := Vector2(3.5, 2.5)
+	_check(screen._ledge_jumps_along(start, end, GS.CharacterId.CAT).is_empty(),
+		"A diagonal route supported by crossings must not jump at the shared corner")
+	diagonal_state.traversable_edges.pop_back()
+	_check(screen._ledge_jumps_along(start, end, GS.CharacterId.CAT).size() == 1,
+		"A diagonal route that still crosses a bare downhill edge must keep its hop")
+
+
 func _test_screen() -> void:
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
@@ -296,10 +345,9 @@ func _test_screen() -> void:
 			_check(screen._state.character_state(character_id).world_position.is_equal_approx(endpoint), "All walk directions must preserve exact endpoints at the same speed")
 	var ledge_state = _flat_state()
 	for y in ledge_state.height:
-		for x in range(3, ledge_state.width):
-			ledge_state.tile_cells[Vector2i(x, y)].height_level = 1
+		for x in ledge_state.width:
+			ledge_state.tile_cells[Vector2i(x, y)].height_level = 2 if x < 3 else 1
 	ledge_state.cat_can_climb = true
-	ledge_state.traversable_edges.append(GS.TraversableEdge.of(Vector2i(2, 1), Vector2i(3, 1), GS.TraversalKind.STAIRS))
 	ledge_state.cat.position = Vector2i(2, 1)
 	ledge_state.selected_character_id = GS.CharacterId.CAT
 	screen._state = ledge_state
@@ -307,13 +355,12 @@ func _test_screen() -> void:
 	var cat_sprite: AnimatedSprite2D = screen._character_sprites[GS.CharacterId.CAT]
 	var ledge_path := PackedVector2Array([Vector2(2.5, 1.5), Vector2(3.5, 1.5)])
 	_check_ledge_span(screen, ledge_path[0], ledge_path[1], ledge_path[0], ledge_path[1])
-	_check_ledge_span(screen, Vector2(4.2, 1.7), Vector2(1.9, 1.7), Vector2(3.5, 1.7), Vector2(2.5, 1.7))
+	_check_ledge_span(screen, Vector2(1.9, 1.7), Vector2(4.2, 1.7), Vector2(2.5, 1.7), Vector2(3.5, 1.7))
 	_check_ledge_span(screen, Vector2(2.8, 1.5), Vector2(3.2, 1.5), Vector2(2.8, 1.5), Vector2(3.2, 1.5))
 	var diagonal := Vector2(2, 1).normalized() * 0.5
 	var seam := Vector2(3, 1.55)
 	_check_ledge_span(screen, Vector2(2.1, 1.1), Vector2(4.1, 2.1), seam - diagonal, seam + diagonal)
-	ledge_state.tile_cells[Vector2i(3, 2)].height_level = 2
-	ledge_state.traversable_edges.append(GS.TraversableEdge.of(Vector2i(3, 1), Vector2i(3, 2), GS.TraversalKind.STAIRS))
+	ledge_state.tile_cells[Vector2i(3, 2)].height_level = 0
 	var close_jumps := screen._ledge_jumps_along(Vector2(2.5, 1.3), Vector2(3.8, 2.6), GS.CharacterId.CAT)
 	_check(close_jumps.size() == 2, "Two nearby ledges must animate as separate jumps")
 	if close_jumps.size() == 2:
@@ -339,6 +386,7 @@ func _test_screen() -> void:
 		and cat_sprite.position.is_equal_approx(Vector2(3.5, 1.5) * screen.TILE_SIZE),
 		"The cat should land at the exact requested position after jumping"
 	)
+	await _check_crossing_walks(screen, ledge_state)
 	screen._state = _flat_state()
 	screen._render_state()
 	var nearby := Vector2(1.6, 1.7)

@@ -46,6 +46,13 @@ func _run() -> void:
 	_check(gameplay != null and gameplay.visible, "Gameplay should appear after setup completes")
 	if gameplay != null:
 		_check(gameplay._level_id == "chapter_5_summit", "The requested level should be the one rendered")
+		_check(gameplay._board_exterior != null and gameplay._board_exterior.is_visible_in_tree()
+			and gameplay._backdrop_rect.is_visible_in_tree(), "The summit should render its rim, scenery, and valley")
+		var start: Vector2i = gameplay._state.player.position
+		var outside := gameplay._ground_layer.get_global_transform_with_canvas() * Vector2(32.0, -16.0)
+		gameplay._handle_board_click(outside)
+		_check(gameplay._state.player.position == start and gameplay._preview_path.is_empty(),
+			"Clicking the exterior must not target a playable tile")
 	_check(root.find_child("LoadingScreen", true, false) == null, "The loading screen should be removed when ready")
 	await _check_opening_dialogue()
 	await _check_meadow_practice()

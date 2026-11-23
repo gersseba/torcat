@@ -6,7 +6,7 @@ const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
 const MEADOW_ROOMS := preload("res://scripts/domain/meadow_room_generator.gd")
 const PRACTICE_SCENES := preload("res://scripts/domain/practice_scene_catalog.gd")
 const DECORATION_ASSETS := [
-	"meadow_flowers", "forest_litter", "woodland_ferns", "mountain_flowers", "scree", "dry_bush",
+	"meadow_flowers", "forest_litter", "woodland_ferns", "mountain_flowers", "scree",
 	"summit_succulent", "summit_lupine", "summit_buttercup", "summit_pinks", "summit_harebell", "summit_scrub",
 ]
 
@@ -18,6 +18,9 @@ const LEVEL_PATHS := {
 	"chapter_3_rocky_pass": "res://resources/levels/chapter_3_rocky_pass.json",
 	"chapter_4_cliffs": "res://resources/levels/chapter_4_cliffs.json",
 	"chapter_5_summit": "res://resources/levels/chapter_5_summit.json",
+}
+const STORY_BOARD_PATHS := {
+	"chapter_3_rocky_pass": "res://scenes/story/chapter_3_rocky_pass.tscn",
 }
 
 
@@ -36,7 +39,7 @@ func create_world(level_id: String, seed_value: Variant = null):
 			return _create_procedural_world(true)
 		_:
 			var path: String = LEVEL_PATHS.get(level_id, LEVEL_PATHS["level_1"])
-			var state = _create_world_from_file(path)
+			var state = _create_world_from_file(path, level_id)
 			if not LEVEL_PATHS.has(level_id):
 				state.last_event = "Unknown level id '%s'. Prototype level loaded." % level_id
 			return state
@@ -70,7 +73,7 @@ func _unavailable_practice_state(message: String):
 	return failed
 
 
-func _create_world_from_file(path: String):
+func _create_world_from_file(path: String, level_id := ""):
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		push_error("Failed to open level file: %s" % path)
@@ -82,7 +85,33 @@ func _create_world_from_file(path: String):
 		push_error("Invalid level JSON in: %s" % path)
 		return _create_fallback_state("Invalid level JSON.")
 
-	return _create_world_from_definition(parsed)
+	var definition := apply_story_board(level_id, parsed)
+	if definition.is_empty() and STORY_BOARD_PATHS.has(level_id):
+		return _unavailable_practice_state("Could not load the Story board.")
+	return _create_world_from_definition(definition)
+
+
+static func apply_story_board(level_id: String, source: Dictionary) -> Dictionary:
+	if not STORY_BOARD_PATHS.has(level_id):
+		return source
+	var board := PRACTICE_SCENES.story_board(level_id, STORY_BOARD_PATHS[level_id])
+	if board.is_empty():
+		return {}
+	var initial: Dictionary = source.get("initialState", {}).duplicate()
+	if board.initialState.has("cat") != (initial.get("catStatus", "party") != "absent"):
+		push_error("%s: Cat spawn must match the chapter's starting cat status." % level_id)
+		return {}
+	initial.merge(board.initialState, true)
+	var definition := source.duplicate()
+	definition.erase("map")
+	for key in ["tileDefinitions", "assignedTiles", "logicTiles", "blockers", "decorations", "entities", "traversableEdges"]:
+		definition[key] = board[key]
+	var meta: Dictionary = source.get("meta", {}).duplicate()
+	meta["width"] = board.width
+	meta["height"] = board.height
+	definition["meta"] = meta
+	definition["initialState"] = initial
+	return definition
 
 
 func _create_world_from_definition(source_definition: Dictionary):

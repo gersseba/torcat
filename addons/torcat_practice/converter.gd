@@ -15,10 +15,12 @@ const BLOCKERS := {
 	"tree_oak_large": "blocker_tree", "log_fallen": "blocker_log", "bush_dense": "blocker_bush",
 	"boulder": "blocker_boulder", "pine": "blocker_pine", "stone_wall": "blocker_stone_wall",
 	"thick_bush": "blocker_thick_bush", "wooden_fence": "blocker_fence",
+	"bush_hazel": "blocker_bush_hazel", "bush_berry": "blocker_bush_berry",
+	"bush_sage": "blocker_bush_sage", "bush_holly": "blocker_bush_holly",
 }
 
 
-static func make_copy(chapter_id: String) -> String:
+static func make_copy(chapter_id: String, story := false) -> String:
 	var source_path: String = FACTORY.LEVEL_PATHS.get(chapter_id, "")
 	if not chapter_id.begins_with("chapter_") or source_path.is_empty():
 		push_error("Not a Story chapter: %s" % chapter_id)
@@ -27,16 +29,22 @@ static func make_copy(chapter_id: String) -> String:
 	if not source is Dictionary:
 		push_error("Could not read Story layout: %s" % source_path)
 		return ""
-	var scene := build_scene(FACTORY.expand_ascii_map(source) if source.has("map") else source)
+	if not story:
+		source = FACTORY.apply_story_board(chapter_id, source)
+	var scene := build_scene(FACTORY.expand_ascii_map(source) if source.has("map") else source, story)
 	if scene == null:
 		return ""
-	var base := CATALOG.DIRECTORY + chapter_id + "_copy"
+	var directory := "res://scenes/story/" if story else CATALOG.DIRECTORY
+	var base := directory + chapter_id + ("" if story else "_copy")
 	var path := base + ".tscn"
+	if story and FileAccess.file_exists(path):
+		push_error("Refusing to overwrite Story board: %s" % path)
+		return ""
 	var suffix := 2
 	while FileAccess.file_exists(path):
 		path = "%s_%d.tscn" % [base, suffix]
 		suffix += 1
-	var error := DirAccess.make_dir_recursive_absolute(CATALOG.DIRECTORY)
+	var error := DirAccess.make_dir_recursive_absolute(directory)
 	if error == OK:
 		error = ResourceSaver.save(scene, path)
 	if error != OK:
@@ -45,21 +53,22 @@ static func make_copy(chapter_id: String) -> String:
 	return path
 
 
-static func build_scene(source: Dictionary) -> PackedScene:
+static func build_scene(source: Dictionary, story := false) -> PackedScene:
 	if source.is_empty():
 		return null
-	var root := CATALOG.ROOT.new()
-	root.name = "PracticeLevel"
+	var root: CATALOG.BOARD = CATALOG.BOARD.new() if story else CATALOG.ROOT.new()
+	root.name = "StoryBoard" if story else "PracticeLevel"
 	root.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	root.practice_title = str(source.meta.get("name", "Practice level")) + " (editable)"
-	root.backdrop = Color.from_string(str(source.meta.get("backdrop", "")), Color("#2f4a22"))
-	var abilities: Dictionary = source.get("abilities", {})
-	root.shell_charge = abilities.get("shellCharge", true)
-	root.pounce = abilities.get("pounce", true)
-	root.cat_climb = abilities.get("catClimb", false)
-	root.cat_carry = abilities.get("catCarry", false)
 	var initial: Dictionary = source.initialState
-	root.cat_pounces = initial.get("catPounces", 3)
+	if root is CATALOG.ROOT:
+		root.practice_title = str(source.meta.get("name", "Practice level")) + " (editable)"
+		root.backdrop = Color.from_string(str(source.meta.get("backdrop", "")), Color("#2f4a22"))
+		var abilities: Dictionary = source.get("abilities", {})
+		root.shell_charge = abilities.get("shellCharge", true)
+		root.pounce = abilities.get("pounce", true)
+		root.cat_climb = abilities.get("catClimb", false)
+		root.cat_carry = abilities.get("catCarry", false)
+		root.cat_pounces = initial.get("catPounces", 3)
 
 	var palette := TileSet.new()
 	palette.tile_size = Vector2i.ONE * CATALOG.CELL_SIZE
@@ -68,6 +77,10 @@ static func build_scene(source: Dictionary) -> PackedScene:
 		var index := palette.get_custom_data_layers_count() - 1
 		palette.set_custom_data_layer_name(index, field)
 		palette.set_custom_data_layer_type(index, TYPE_INT if field == "height" else TYPE_STRING)
+	if story:
+		palette.add_custom_data_layer()
+		palette.set_custom_data_layer_name(3, "tile_id")
+		palette.set_custom_data_layer_type(3, TYPE_STRING)
 	var ground := _layer(root, "Ground", palette)
 	var decorations := _layer(root, "Decorations", palette)
 	var blockers := _layer(root, "Blockers", palette)
@@ -92,6 +105,14 @@ static func build_scene(source: Dictionary) -> PackedScene:
 			push_error("No Practice terrain brush for %s." % key)
 			return null
 		tile_ids[tile.id] = brush_ids[key]
+		if story:
+			var atlas := palette.get_source(brush_ids[key]) as TileSetAtlasSource
+			var tile_data := atlas.get_tile_data(Vector2i.ZERO, 0)
+			if not str(tile_data.get_custom_data("tile_id")).is_empty():
+				root.free()
+				push_error("Story terrain brush %s has multiple tile IDs." % key)
+				return null
+			tile_data.set_custom_data("tile_id", tile.id)
 	for y in source.assignedTiles.size():
 		for x in source.assignedTiles[y].size():
 			if source.logicTiles[y][x] != "IMPASSABLE":
@@ -112,6 +133,8 @@ static func build_scene(source: Dictionary) -> PackedScene:
 		_marker(root, markers, "Cat", "CAT", _cell(initial.cat), initial.get("catPower", initial.get("tortoisePower", 3)))
 	for entry in source.get("entities", []):
 		var marker := _marker(root, markers, entry.get("id", entry.type), entry.type, _cell(entry.position), entry.get("powerReward", entry.get("power", 1)))
+		if story:
+			marker.entity_id = entry.get("id", "")
 		marker.species = entry.get("species", "mouse")
 		if entry.type == "LOOT":
 			marker.loot_asset = entry.get("assetKey", "berries")

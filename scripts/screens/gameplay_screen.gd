@@ -8,6 +8,7 @@ signal retry_requested(level_id: String)
 
 const GAME_WORLD_FACTORY_SCRIPT := preload("res://scripts/domain/game_world_factory.gd")
 const BOARD_RENDERER_SCRIPT := preload("res://scripts/rendering/board_renderer.gd")
+const BOARD_EXTERIOR := preload("res://scripts/rendering/board_exterior.gd")
 const COMBAT_REWARDS := preload("res://scripts/rendering/combat_rewards.gd")
 const SHELL_CHARGE_EFFECT := preload("res://scripts/rendering/shell_charge_effect.gd")
 const GAME_ENGINE_SCRIPT := preload("res://scripts/domain/game_engine.gd")
@@ -181,11 +182,12 @@ var _speech_speaker := ""
 var _script_input_catcher: Control
 var _level_id := ""
 var _backdrop_layer: CanvasLayer
-var _backdrop_rect: ColorRect
+var _backdrop_rect: BOARD_EXTERIOR.Valley
+var _board_exterior: BOARD_EXTERIOR
 var _overview_running := false
 var _victory_reported := false
 var _overview_enabled := true
-var _practice_load_failed := false
+var _board_load_failed := false
 var _audio_pickups := -1
 var _audio_shell_pickups := -1
 var _result_sting_played := false
@@ -656,7 +658,9 @@ func prepare_level(payload: Dictionary) -> void:
 	var factory = GAME_WORLD_FACTORY_SCRIPT.new()
 	_state = factory.create_world(level_id, payload.get("seed"))
 	var is_meadow := level_id == GAME_WORLD_FACTORY_SCRIPT.MEADOW_ROOMS.LEVEL_ID
-	_practice_load_failed = _state.game_over and (is_meadow or level_id.begins_with(GAME_WORLD_FACTORY_SCRIPT.PRACTICE_SCENES.PREFIX))
+	_board_load_failed = _state.game_over and (is_meadow
+		or level_id.begins_with(GAME_WORLD_FACTORY_SCRIPT.PRACTICE_SCENES.PREFIX)
+		or GAME_WORLD_FACTORY_SCRIPT.STORY_BOARD_PATHS.has(level_id))
 	_preview_path.clear()
 	_preview_target = Vector2i(-1, -1)
 	_pounce_mode = false
@@ -680,8 +684,8 @@ func prepare_level(payload: Dictionary) -> void:
 	_set_character_mode(GS.CharacterId.CAT, "passive")
 	_result_panel.visible = false
 	_camera_manual_offset = Vector2.ZERO
-	_scripts_enabled = bool(payload.get("scripts", true))
-	_overview_enabled = bool(payload.get("overview", true)) and not _practice_load_failed
+	_scripts_enabled = bool(payload.get("scripts", true)) and not _board_load_failed
+	_overview_enabled = bool(payload.get("overview", true)) and not _board_load_failed
 	_level_events = LEVEL_SCRIPT.load_events(level_id) if _scripts_enabled else []
 	var backdrop := GAME_WORLD_FACTORY_SCRIPT.MEADOW_ROOMS.BACKDROP if is_meadow else str(LEVEL_SCRIPT.level_meta(level_id).get("backdrop", ""))
 	_apply_backdrop(backdrop)
@@ -755,27 +759,29 @@ func _show_chapter_overview() -> void:
 	await _start_level_script()
 
 
-## Levels may set meta.backdrop; it fills the space around the board and
-## lives on its own CanvasLayer so the board camera does not move it.
 func _apply_backdrop(color_hex: String) -> void:
-	if color_hex.is_empty():
-		if _backdrop_layer != null:
-			_backdrop_layer.visible = false
-		return
-	if not Color.html_is_valid(color_hex):
+	if not color_hex.is_empty() and not Color.html_is_valid(color_hex):
 		push_error("Invalid level backdrop colour: %s" % color_hex)
-		return
+	var base := Color.from_string(color_hex, Color("#2f4a22"))
+	var biome := BOARD_EXTERIOR.biome_for(_state)
 	if _backdrop_layer == null:
 		_backdrop_layer = CanvasLayer.new()
 		_backdrop_layer.name = "BackdropLayer"
 		_backdrop_layer.layer = -1
-		_backdrop_rect = ColorRect.new()
+		_backdrop_rect = BOARD_EXTERIOR.Valley.new()
 		_backdrop_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_backdrop_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_backdrop_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_backdrop_layer.add_child(_backdrop_rect)
 		add_child(_backdrop_layer)
-	_backdrop_layer.visible = true
-	_backdrop_rect.color = Color.html(color_hex)
+		_board_exterior = BOARD_EXTERIOR.new()
+		_board_exterior.name = "BoardExterior"
+		_board_exterior.z_index = -1
+		_board_exterior.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_board_root.add_child(_board_exterior)
+	_backdrop_rect.color = base
+	_backdrop_rect.set_biome(biome)
+	_board_exterior.configure(Vector2(_state.width, _state.height) * TILE_SIZE, TILE_SIZE, base, biome, _level_id.hash())
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1157,10 +1163,7 @@ func _ledge_jumps_along(start: Vector2, destination: Vector2, character_id: int)
 			next_cell.x += step.x
 		if ty <= tx + 0.0000001:
 			next_cell.y += step.y
-		if (
-			_height_at_cell(cell) != _height_at_cell(next_cell)
-			and GAME_ENGINE_SCRIPT.NAV._crossing_allowed(_engine, _state, cell, next_cell, character_id)
-		):
+		if _cat_jumps_ledge(cell, next_cell):
 			crossings.append(clampf(minf(tx, ty), 0.0, 1.0))
 		cell = next_cell
 
@@ -1175,6 +1178,21 @@ func _ledge_jumps_along(start: Vector2, destination: Vector2, character_id: int)
 			"end": start.lerp(destination, minf(upper, crossing_t + half_span_t)),
 		})
 	return jumps
+
+
+func _cat_jumps_ledge(from: Vector2i, to: Vector2i) -> bool:
+	if not GAME_ENGINE_SCRIPT.NAV._crossing_allowed(_engine, _state, from, to, GS.CharacterId.CAT):
+		return false
+	var segments: Array = [[from, to]]
+	var delta := to - from
+	if absi(delta.x) == 1 and absi(delta.y) == 1:
+		var horizontal := from + Vector2i(delta.x, 0)
+		var vertical := from + Vector2i(0, delta.y)
+		segments = [[from, horizontal], [horizontal, to], [from, vertical], [vertical, to]]
+	for segment in segments:
+		if _height_at_cell(segment[0]) != _height_at_cell(segment[1]) and not _engine.has_traversal_crossing(_state, segment[0], segment[1]):
+			return true
+	return false
 
 
 func _height_at_cell(cell: Vector2i) -> int:
@@ -1632,12 +1650,12 @@ func _render_state() -> void:
 		_result_sub_label.text = LEVEL_SCRIPT.localize({
 			"en": "All enemies defeated.", "de": "Alle Gegner sind besiegt."
 		})
-	elif _practice_load_failed:
+	elif _board_load_failed:
 		_result_panel.visible = true
 		_result_label.text = LEVEL_SCRIPT.localize({"en": "Trail unavailable", "de": "Pfad nicht verfügbar"})
 		_result_sub_label.text = LEVEL_SCRIPT.localize({
-			"en": "This Practice trail could not be loaded. Check the Godot output for details.",
-			"de": "Dieser Übungspfad konnte nicht geladen werden. Details stehen in der Godot-Ausgabe.",
+			"en": "This trail could not be loaded. Check the Godot output for details.",
+			"de": "Dieser Pfad konnte nicht geladen werden. Details stehen in der Godot-Ausgabe.",
 		})
 	elif _state.game_over:
 		_result_panel.visible = true
@@ -1648,7 +1666,7 @@ func _render_state() -> void:
 	else:
 		_result_panel.visible = false
 	_continue_button.visible = _state.victory and not _state.game_over and _victory_reveal == null
-	_retry_button.visible = _state.game_over and not script_pending and not _practice_load_failed
+	_retry_button.visible = _state.game_over and not script_pending and not _board_load_failed
 	_pounce_button.visible = not _mobile_controls_enabled and _state.pounce_enabled and _state.selected_character_id == GS.CharacterId.CAT and not _state.game_over and not _state.victory and not script_pending
 	_pounce_button.disabled = _moving_character_id != -1 or _state.cat_pounces_remaining <= 0 or not _state.cat.alive
 	_pounce_button.text = LEVEL_SCRIPT.localize(
@@ -2054,8 +2072,7 @@ func _animate_character_path(character_id: int, path: Array, attack_positions: D
 			break
 		var jumps_ledge: bool = (
 			character_id == GS.CharacterId.CAT
-			and _height_at_cell(from_pos) != _height_at_cell(to_pos)
-			and _engine._can_traverse(_state, from_pos, to_pos, character_id)
+			and _cat_jumps_ledge(from_pos, to_pos)
 		)
 		if jumps_ledge:
 			await _animate_cat_jump(

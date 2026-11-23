@@ -8,7 +8,7 @@ const RENDERER = preload("res://scripts/rendering/board_renderer.gd")
 const CHAPTERS := [
 	["chapter_1_meadow", "flower_meadow", "stone_wall", "meadow_flowers"],
 	["chapter_2_foothills", "forest_moss", "pine", "forest_litter"],
-	["chapter_3_rocky_pass", "light_woodland", "thick_bush", "woodland_ferns"],
+	["chapter_3_rocky_pass", "light_woodland", "bush_", "woodland_ferns"],
 	["chapter_4_cliffs", "mountain_meadow", "wooden_fence", "mountain_flowers"],
 	["chapter_5_summit", "summit_dirt", "boulder", "summit_lupine"],
 ]
@@ -48,7 +48,7 @@ func _test_content() -> void:
 			if cell.asset_key == chapter[1]:
 				ground_count += 1
 		for blocker in state.blockers_by_pos.values():
-			if blocker.asset_key == chapter[2] and blocker.blocks_movement:
+			if (blocker.asset_key.begins_with("bush_") if chapter[2] == "bush_" else blocker.asset_key == chapter[2]) and blocker.blocks_movement:
 				obstacle_count += 1
 		if chapter[0] != "chapter_5_summit":
 			_check(ground_count >= state.width * state.height / 2, "%s needs its own dominant ground" % chapter[0])
@@ -142,8 +142,9 @@ func _test_art() -> void:
 	for token in [
 		"forest_moss", "light_woodland", "mountain_meadow", "hilltop",
 		"decor_meadow_flowers", "decor_forest_litter", "decor_woodland_ferns",
-		"decor_mountain_flowers", "decor_scree", "decor_dry_bush",
+		"decor_mountain_flowers", "decor_scree",
 		"blocker_stone_wall", "blocker_thick_bush", "blocker_fence",
+		"blocker_bush_hazel", "blocker_bush_berry", "blocker_bush_sage", "blocker_bush_holly",
 		"loot_tree_stump", "loot_barrel", "loot_cracked_stone",
 	] + summit_tiles + SUMMIT_PLANTS.map(func(key): return "decor_" + key):
 		var texture := load(RENDERER.TOKEN_FILES[token]) as Texture2D
@@ -166,7 +167,14 @@ func _test_art() -> void:
 		_check(colors.size() > 4, "%s must contain pixel art rather than a flat fallback" % token)
 		var is_prop: bool = token.begins_with("decor_") or token.begins_with("blocker_") or token.begins_with("loot_")
 		_check(has_transparency == is_prop, "%s must have the correct background transparency" % token)
-		if token.begins_with("decor_summit_"):
+		if token.begins_with("blocker_bush_"):
+			_check(Rect2i(8, 8, 48, 50).encloses(image.get_used_rect()),
+				"%s must be a standalone bush with transparent clearance, not a ground tile" % token)
+			for i in 64:
+				_check(image.get_pixel(i, 0).a == 0.0 and image.get_pixel(i, 63).a == 0.0
+					and image.get_pixel(0, i).a == 0.0 and image.get_pixel(63, i).a == 0.0,
+					"%s must have fully transparent canvas edges" % token)
+		elif token.begins_with("decor_summit_"):
 			var bounds := image.get_used_rect()
 			_check(Rect2i(12, 8, 40, 42).encloses(bounds), "%s must leave clear space around its footprint" % token)
 		elif token in summit_tiles:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3bm0drm8080k"
-path="res://.godot/imported/dry_bush.png-51b52b1849db2e85b560ac4d809f2f08.ctex"
+uid="uid://byf55rg3my1kf"
+path="res://.godot/imported/bush_berry.png-3e919aab5c2a97a5368c89b0aabad108.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://resources/assets/decorations/dry_bush.png"
-dest_files=["res://.godot/imported/dry_bush.png-51b52b1849db2e85b560ac4d809f2f08.ctex"]
+source_file="res://resources/assets/blockers/bush_berry.png"
+dest_files=["res://.godot/imported/bush_berry.png-3e919aab5c2a97a5368c89b0aabad108.ctex"]
 
 [params]
 

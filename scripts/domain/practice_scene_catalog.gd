@@ -2,6 +2,7 @@ extends RefCounted
 
 const DIRECTORY := "res://scenes/practice/"
 const PREFIX := "practice_scene:"
+const BOARD := preload("res://scripts/domain/level_board_scene.gd")
 const ROOT := preload("res://scripts/domain/practice_level_scene.gd")
 const MARKER := preload("res://scripts/domain/practice_level_marker.gd")
 const CELL_SIZE := 64
@@ -47,9 +48,31 @@ static func definition(id: String) -> Dictionary:
 	if not node is ROOT:
 		node.free()
 		return _error(id, "Root must use the Practice level script.")
-	var result := _read_board(node, id)
+	var result := read_practice_board(node, id)
 	node.free()
 	return result
+
+
+static func read_practice_board(root: ROOT, id: String) -> Dictionary:
+	var board := _read_board(root, id, false)
+	if not board.is_empty():
+		board["meta"] = {"id": id, "name": root.practice_title, "width": board.width, "height": board.height}
+		board["abilities"] = {"shellCharge": root.shell_charge, "pounce": root.pounce, "catClimb": root.cat_climb, "catCarry": root.cat_carry}
+		board.initialState.catPounces = root.cat_pounces
+	return board
+
+
+static func story_board(id: String, path: String) -> Dictionary:
+	var scene := load(path) as PackedScene
+	if scene == null:
+		return _error(id, "Could not load Story board %s." % path)
+	var node := scene.instantiate()
+	if node.get_script() != BOARD:
+		node.free()
+		return _error(id, "Root must use the Story board script.")
+	var board := _read_board(node, id, true)
+	node.free()
+	return board
 
 
 static func _scene(id: String) -> PackedScene:
@@ -60,7 +83,7 @@ static func _scene(id: String) -> PackedScene:
 	return load(path) as PackedScene if ResourceLoader.exists(path, "PackedScene") else null
 
 
-static func _read_board(root: ROOT, id: String) -> Dictionary:
+static func _read_board(root: BOARD, id: String, story: bool) -> Dictionary:
 	var ground := root.get_node_or_null("Ground") as TileMapLayer
 	var blockers := root.get_node_or_null("Blockers") as TileMapLayer
 	var decorations := root.get_node_or_null("Decorations") as TileMapLayer
@@ -70,6 +93,8 @@ static func _read_board(root: ROOT, id: String) -> Dictionary:
 	var bounds := ground.get_used_rect()
 	if not bounds.has_area() or bounds.size.x > 128 or bounds.size.y > 128:
 		return _error(id, "Paint a map between 1 and 128 tiles on each axis.")
+	if story and bounds.position != Vector2i.ZERO:
+		return _error(id, "Story ground must start at (0, 0) to preserve script coordinates.")
 	var tiles := {"void": {"id": "void", "assetKey": "meadow"}}
 	var assigned: Array = []
 	var logic: Array = []
@@ -87,6 +112,10 @@ static func _read_board(root: ROOT, id: String) -> Dictionary:
 				if key.is_empty() or data.get_custom_data("role") != "ground":
 					return _error(id, "Invalid Ground tile at %s." % cell)
 				tile_id = "%s:%d" % [key, height]
+				if story:
+					var authored_id := str(data.get_custom_data("tile_id"))
+					if not authored_id.is_empty():
+						tile_id = authored_id
 				tiles[tile_id] = {"id": tile_id, "assetKey": key, "heightLevel": height}
 			else:
 				solid[cell] = true
@@ -95,11 +124,10 @@ static func _read_board(root: ROOT, id: String) -> Dictionary:
 		assigned.append(row)
 		logic.append(flags)
 	var result := {
-		"meta": {"id": id, "name": root.practice_title, "width": bounds.size.x, "height": bounds.size.y},
+		"width": bounds.size.x, "height": bounds.size.y,
 		"tileDefinitions": tiles.values(), "assignedTiles": assigned, "logicTiles": logic,
 		"blockers": [], "decorations": [], "entities": [], "traversableEdges": [],
-		"abilities": {"shellCharge": root.shell_charge, "pounce": root.pounce, "catClimb": root.cat_climb, "catCarry": root.cat_carry},
-		"initialState": {"catStatus": "absent", "catPounces": root.cat_pounces},
+		"initialState": {} if story else {"catStatus": "absent"},
 	}
 	for layer in [blockers, decorations]:
 		var is_blocker: bool = layer == blockers
@@ -116,6 +144,7 @@ static func _read_board(root: ROOT, id: String) -> Dictionary:
 			result["blockers" if is_blocker else "decorations"].append(entry)
 
 	var occupied := {}
+	var entity_ids := {}
 	var initial: Dictionary = result.initialState
 	for marker in markers.get_children():
 		if not marker is MARKER:
@@ -142,11 +171,15 @@ static func _read_board(root: ROOT, id: String) -> Dictionary:
 					return _error(id, "Only one %s spawn is allowed." % key)
 				initial[key] = cell_data
 				initial[key + "Power"] = marker.power
-				if key == "cat":
+				if key == "cat" and not story:
 					initial.catStatus = marker.cat_status
 			_:
+				var entity_id: String = str(marker.name) if marker.entity_id.is_empty() else marker.entity_id
+				if entity_ids.has(entity_id):
+					return _error(id, "Duplicate entity ID: %s." % entity_id)
+				entity_ids[entity_id] = true
 				result.entities.append({
-					"id": str(marker.name), "position": cell_data, "type": marker.kind,
+					"id": entity_id, "position": cell_data, "type": marker.kind,
 					"power": marker.power, "species": marker.species,
 					"assetKey": marker.loot_asset, "powerReward": marker.power,
 				})

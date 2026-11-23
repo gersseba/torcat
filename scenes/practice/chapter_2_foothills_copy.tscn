@@ -26,7 +26,6 @@
 [ext_resource type="Texture2D" path="res://resources/assets/decorations/woodland_ferns.png" id="24_k2kn3"]
 [ext_resource type="Texture2D" path="res://resources/assets/decorations/mountain_flowers.png" id="25_0fp6p"]
 [ext_resource type="Texture2D" path="res://resources/assets/decorations/scree.png" id="26_4x4nv"]
-[ext_resource type="Texture2D" path="res://resources/assets/decorations/dry_bush.png" id="27_ayocb"]
 [ext_resource type="Texture2D" path="res://resources/assets/decorations/summit_succulent.png" id="28_58iqd"]
 [ext_resource type="Texture2D" path="res://resources/assets/decorations/summit_lupine.png" id="29_vf8cd"]
 [ext_resource type="Texture2D" path="res://resources/assets/decorations/summit_buttercup.png" id="30_pni8p"]
@@ -567,14 +566,6 @@ texture_region_size = Vector2i(64, 64)
 0:0/0/custom_data_0 = "scree"
 0:0/0/custom_data_1 = "decoration"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_kl3nm"]
-resource_name = "dry_bush"
-texture = ExtResource("27_ayocb")
-texture_region_size = Vector2i(64, 64)
-0:0/0 = 0
-0:0/0/custom_data_0 = "dry_bush"
-0:0/0/custom_data_1 = "decoration"
-
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_d2mkd"]
 resource_name = "summit_succulent"
 texture = ExtResource("28_58iqd")
@@ -720,7 +711,6 @@ sources/57 = SubResource("TileSetAtlasSource_upc0o")
 sources/58 = SubResource("TileSetAtlasSource_xi8jy")
 sources/59 = SubResource("TileSetAtlasSource_sf2t1")
 sources/60 = SubResource("TileSetAtlasSource_4ihvt")
-sources/61 = SubResource("TileSetAtlasSource_kl3nm")
 sources/62 = SubResource("TileSetAtlasSource_d2mkd")
 sources/63 = SubResource("TileSetAtlasSource_hm5mc")
 sources/64 = SubResource("TileSetAtlasSource_5a2bi")

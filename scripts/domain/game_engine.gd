@@ -393,6 +393,10 @@ func _can_traverse(state, from: Vector2i, to: Vector2i, character_id = GS.Charac
 		return true
 	if character_id == GS.CharacterId.CAT and state.cat_can_climb and from_height - to_height == 1:
 		return true
+	return has_traversal_crossing(state, from, to)
+
+
+func has_traversal_crossing(state, from: Vector2i, to: Vector2i) -> bool:
 	for edge in state.traversable_edges:
 		if edge.contains(from, to):
 			return true

@@ -93,6 +93,7 @@ func _test_map(state: Node) -> void:
 	_check(map.destinations.size() == 11 and map.markers.size() == 11, "Map needs five level circles and six story stars")
 	_check(map.markers[1].completed and not map.markers[3].completed, "Only completed levels have filled circles")
 	_check(not map.markers[2].disabled and map.markers[4].disabled and map.markers[10].disabled, "Cutscene access must follow chapter unlocks, with finale locked until victory")
+	await _test_map_stays_fitted(map)
 	var started: Array[String] = []
 	var watched: Array[String] = []
 	screen.level_selected.connect(func(id: String) -> void: started.append(id))
@@ -168,6 +169,38 @@ func _test_menu(state: Node) -> void:
 	state.language = saved_language
 
 
+func _test_map_stays_fitted(map: Control) -> void:
+	var original: Rect2 = map._image_rect
+	_check(map.get_child_count() == map.markers.size() + 1, "The selection map must not have zoom buttons")
+	var center: Vector2 = map.global_position + map.size * 0.5
+	for i in 2:
+		var touch := InputEventScreenTouch.new()
+		touch.index = i
+		touch.position = center + Vector2(-60 if i == 0 else 60, 0)
+		touch.pressed = true
+		Input.parse_input_event(touch)
+		await process_frame
+	var drag := InputEventScreenDrag.new()
+	drag.index = 1
+	drag.position = center + Vector2(180, 0)
+	Input.parse_input_event(drag)
+	await process_frame
+	for i in 2:
+		var touch := InputEventScreenTouch.new()
+		touch.index = i
+		touch.position = center
+		touch.pressed = false
+		Input.parse_input_event(touch)
+		await process_frame
+	var wheel := InputEventMouseButton.new()
+	wheel.position = center
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	Input.parse_input_event(wheel)
+	await process_frame
+	_check(map._image_rect == original, "Pinch and wheel input must not zoom or pan the selection map")
+
+
 func _tap(point: Vector2) -> void:
 	var event := InputEventScreenTouch.new()
 	event.index = 0
@@ -190,6 +223,7 @@ func _test_gameplay_camera() -> void:
 	screen.configure({"level_id": "chapter_1_meadow", "scripts": false})
 	await process_frame
 	screen._update_camera_target(true)
+	await _test_gameplay_zoom_input(screen)
 	var viewport := screen.get_viewport_rect().size
 	var usable := screen._camera_usable_rect()
 	var before := screen._board_camera.position
@@ -217,3 +251,51 @@ func _test_gameplay_camera() -> void:
 	_check(not screen._overview_running and not screen._script_camera_active and not screen._script_input_catcher.visible, "Overview restores gameplay camera and input")
 	screen.queue_free()
 	await process_frame
+
+
+func _test_gameplay_zoom_input(screen: GameplayScreen) -> void:
+	var initial_zoom: float = screen._board_camera.zoom.x
+	var selection: int = screen._state.selected_character_id
+	var preview: Array = screen._preview_path.duplicate()
+	for i in 2:
+		var touch := InputEventScreenTouch.new()
+		touch.index = i
+		touch.position = Vector2(260 + i * 120, 500)
+		touch.pressed = true
+		Input.parse_input_event(touch)
+		await process_frame
+	var drag := InputEventScreenDrag.new()
+	drag.index = 1
+	drag.position = Vector2(620, 500)
+	drag.relative = Vector2(240, 0)
+	Input.parse_input_event(drag)
+	await process_frame
+	_check(is_equal_approx(screen._board_camera.zoom.x, 2.0), "Spreading two fingers must zoom into the level and respect the upper limit")
+	drag.position = Vector2(270, 500)
+	drag.relative = Vector2(-350, 0)
+	Input.parse_input_event(drag)
+	await process_frame
+	_check(is_equal_approx(screen._board_camera.zoom.x, 1.0), "Pinching inward must zoom out and respect the lower limit")
+	for i in 2:
+		var release := InputEventScreenTouch.new()
+		release.index = i
+		release.position = Vector2(260 + i * 10, 500)
+		Input.parse_input_event(release)
+		await process_frame
+	_check(screen._touch_positions.is_empty() and not screen._touch_gesture_active, "Pinch release must clear gesture state")
+	_check(screen._state.selected_character_id == selection and screen._preview_path == preview, "A pinch must not select or command a character")
+	var wheel := InputEventMouseButton.new()
+	wheel.position = Vector2(360, 500)
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	Input.parse_input_event(wheel)
+	await process_frame
+	_check(is_equal_approx(screen._board_camera.zoom.x, 1.1), "Mouse wheel up must zoom into a level")
+	wheel = InputEventMouseButton.new()
+	wheel.position = Vector2(360, 500)
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	Input.parse_input_event(wheel)
+	await process_frame
+	_check(is_equal_approx(screen._board_camera.zoom.x, 1.0), "Mouse wheel down must zoom out")
+	screen._set_camera_zoom(initial_zoom)

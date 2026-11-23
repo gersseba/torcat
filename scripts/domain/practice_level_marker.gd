@@ -18,6 +18,8 @@ extends Sprite2D
 		loot_asset = value
 		_refresh_preview()
 @export_enum("party", "stranded") var cat_status: String = "party"
+## Leave empty to use the node name. Give a duplicated Story actor a new ID.
+@export var entity_id := ""
 @export_enum("Right", "Down", "Left", "Up") var edge_direction := 0:
 	set(value):
 		edge_direction = value

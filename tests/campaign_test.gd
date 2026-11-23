@@ -51,6 +51,7 @@ func _run() -> void:
 
 	_test_campaign_definition()
 	_test_chapter_content()
+	_test_story_board_parity()
 	_test_cutscenes()
 	_test_engine_features()
 	_test_progress(app_state)
@@ -134,6 +135,45 @@ func _test_chapter_content() -> void:
 	_check(ch5.cat_can_climb and ch5.cat_can_carry and ch5.pounce_enabled and ch5.shell_charge_enabled, "Chapter 5 uses every ability")
 	_check(_find_enemy(ch5, "badger") != Vector2i(-1, -1), "The badger waits on the summit")
 	_check(LS.level_cutscene("chapter_5_summit", "outro") == "story_6_finale", "The finale plays after the summit")
+
+
+func _test_story_board_parity() -> void:
+	var id := "chapter_3_rocky_pass"
+	var source: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(FACTORY.LEVEL_PATHS[id]))
+	var original = _factory._create_world_from_definition(source)
+	var migrated = _factory.create_world(id)
+	_check(not migrated.game_over and migrated.tile_cells.size() == original.tile_cells.size()
+		and migrated.blocked_tiles == original.blocked_tiles
+		and migrated.decorations_by_pos == original.decorations_by_pos
+		and migrated.player.position == original.player.position and migrated.player.power == original.player.power
+		and migrated.cat.position == original.cat.position and migrated.cat.power == original.cat.power
+		and migrated.cat_pounces_remaining == original.cat_pounces_remaining,
+		"The editable Story board must preserve terrain, decorations, and starting actors")
+	for cell in original.tile_cells:
+		var expected = original.tile_cells[cell]
+		var actual = migrated.tile_cells.get(cell)
+		_check(actual != null and actual.tile_id == expected.tile_id and actual.asset_key == expected.asset_key
+			and actual.height_level == expected.height_level, "Story terrain must match at %s" % cell)
+	for cell in original.blockers_by_pos:
+		var expected = original.blockers_by_pos[cell]
+		var actual = migrated.blockers_by_pos.get(cell)
+		var allowed: Array = ["bush_hazel", "bush_berry", "bush_sage", "bush_holly"] if expected.asset_key == "thick_bush" else [expected.asset_key]
+		_check(actual != null and actual.asset_key in allowed and actual.blocks_movement == expected.blocks_movement,
+			"Story blocker must match at %s" % cell)
+	for group in [
+		[Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)],
+		[Vector2i(6, 6), Vector2i(7, 6), Vector2i(7, 7)],
+		[Vector2i(13, 0), Vector2i(14, 0), Vector2i(15, 1), Vector2i(15, 2)],
+	]:
+		var variants := {}
+		for cell: Vector2i in group:
+			variants[migrated.blockers_by_pos[cell].asset_key] = true
+		_check(variants.size() >= 2, "Each authored bush cluster must mix standalone variants")
+	for cell in original.enemies_by_pos:
+		var expected = original.enemies_by_pos[cell]
+		var actual = migrated.enemies_by_pos.get(cell)
+		_check(actual != null and actual.id == expected.id and actual.species == expected.species and actual.power == expected.power,
+			"Story enemy identity and stats must match at %s" % cell)
 
 
 func _test_cutscenes() -> void:

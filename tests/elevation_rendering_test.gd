@@ -129,10 +129,11 @@ func _check_atlas_uses_imported_textures(screen: GameplayScreen) -> void:
 			for rotation in (4 - i) % 4:
 				crossing.rotate_90(CLOCKWISE)
 			# Sample the gap in the cliff lip so only crossing pixels count.
-			var glyph := crossing.get_region(Rect2i(42, 0, 44, crossing.get_height())).get_used_rect()
+			var glyph := crossing.get_region(Rect2i(34, 0, 60, crossing.get_height())).get_used_rect()
 			var seam: int = (crossing.get_height() - renderer.TILE_SIZE.y) / 2
-			_check(glyph.size.y > 20 and absi(glyph.position.y + glyph.end.y - seam * 2) <= 1,
-				"%s must be readable and evenly straddle the shared tile edge" % token)
+			_check(glyph.size.x >= 56 and glyph.size.x <= 60 and glyph.size.y >= 24 and glyph.size.y <= 28
+				and absi(glyph.position.y + glyph.end.y - seam * 2) <= 1,
+				"%s must be nearly tile-wide, short, and centered on the shared edge; got %s" % [token, glyph])
 	for token in ["ground_a", "path", "wall", "rubble", "resupply", "blocker_tree", "tortoise", "shell_item"]:
 		var coords: Vector2i = renderer._atlas_coords_by_role[token]
 		var tile := atlas.get_region(Rect2i(coords * renderer.TILE_SIZE, renderer.TILE_SIZE))

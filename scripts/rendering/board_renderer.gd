@@ -10,6 +10,8 @@ const SHELL_ITEM_TEXTURE := preload("res://resources/assets/items/shell_charm.pn
 
 const TILE_SIZE := Vector2i(64, 64)
 const CROSSING_REGION := TILE_SIZE * 2
+const CROSSING_WIDTH := 60
+const CROSSING_DEPTH := 28
 ## A grid keeps the generated atlas well under the 4096 px WebGL/mobile texture limit.
 const ATLAS_COLUMNS := 16
 const EDGE_DIRECTIONS := [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]
@@ -89,6 +91,10 @@ const TOKEN_FILES := {
 	"blocker_pine": "res://resources/assets/blockers/pine.png",
 	"blocker_stone_wall": "res://resources/assets/blockers/stone_wall.png",
 	"blocker_thick_bush": "res://resources/assets/blockers/thick_bush.png",
+	"blocker_bush_hazel": "res://resources/assets/blockers/bush_hazel.png",
+	"blocker_bush_berry": "res://resources/assets/blockers/bush_berry.png",
+	"blocker_bush_sage": "res://resources/assets/blockers/bush_sage.png",
+	"blocker_bush_holly": "res://resources/assets/blockers/bush_holly.png",
 	"blocker_fence": "res://resources/assets/blockers/wooden_fence.png",
 	"forest_moss": "res://resources/assets/tiles/forest_moss.png",
 	"light_woodland": "res://resources/assets/tiles/light_woodland.png",
@@ -108,7 +114,6 @@ const TOKEN_FILES := {
 	"decor_woodland_ferns": "res://resources/assets/decorations/woodland_ferns.png",
 	"decor_mountain_flowers": "res://resources/assets/decorations/mountain_flowers.png",
 	"decor_scree": "res://resources/assets/decorations/scree.png",
-	"decor_dry_bush": "res://resources/assets/decorations/dry_bush.png",
 	"decor_summit_succulent": "res://resources/assets/decorations/summit_succulent.png",
 	"decor_summit_lupine": "res://resources/assets/decorations/summit_lupine.png",
 	"decor_summit_buttercup": "res://resources/assets/decorations/summit_buttercup.png",
@@ -131,6 +136,10 @@ var _blocker_token_by_asset_key := {
 	"pine": "blocker_pine",
 	"stone_wall": "blocker_stone_wall",
 	"thick_bush": "blocker_thick_bush",
+	"bush_hazel": "blocker_bush_hazel",
+	"bush_berry": "blocker_bush_berry",
+	"bush_sage": "blocker_bush_sage",
+	"bush_holly": "blocker_bush_holly",
 	"wooden_fence": "blocker_fence",
 }
 const LOOT_TOKENS := {
@@ -398,7 +407,7 @@ static func elevation_edge_image(token: String) -> Image:
 	edge.fill(Color.TRANSPARENT)
 	var rock := CLIFF_TEXTURE.get_image()
 	for x in range(TILE_SIZE.x):
-		var crossing := is_crossing and x >= 10 and x < 54
+		var crossing := is_crossing and x >= (TILE_SIZE.x - CROSSING_WIDTH) / 2 and x < (TILE_SIZE.x + CROSSING_WIDTH) / 2
 		if crossing:
 			continue
 		var depth := 12 + (x / 8) % 4
@@ -411,11 +420,7 @@ static func elevation_edge_image(token: String) -> Image:
 		var texture: Texture2D = RAMP_TEXTURE if kind == "ramp" else STAIRS_TEXTURE
 		var glyph := texture.get_image()
 		glyph = glyph.get_region(glyph.get_used_rect())
-		var glyph_scale := minf(44.0 / glyph.get_width(), 48.0 / glyph.get_height())
-		var glyph_size := Vector2i(
-			maxi(1, roundi(glyph.get_width() * glyph_scale)),
-			maxi(1, roundi(glyph.get_height() * glyph_scale))
-		)
+		var glyph_size := Vector2i(CROSSING_WIDTH, CROSSING_DEPTH)
 		glyph.resize(glyph_size.x, glyph_size.y, Image.INTERPOLATE_NEAREST)
 		var glyph_position := inset + Vector2i((TILE_SIZE.x - glyph_size.x) / 2, -glyph_size.y / 2)
 		edge.blend_rect(glyph, Rect2i(Vector2i.ZERO, glyph_size), glyph_position)

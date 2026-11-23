@@ -14,6 +14,18 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var factory := FACTORY.new()
+	for path in [
+		"res://scenes/practice/chapter_1_meadow_copy.tscn",
+		"res://scenes/practice/chapter_2_foothills_copy.tscn",
+		"res://scenes/story/chapter_3_rocky_pass.tscn",
+	]:
+		var level := (load(path) as PackedScene).instantiate()
+		var palette: TileSet = level.get_node("Decorations").tile_set
+		for i in palette.get_source_count():
+			var source := palette.get_source(palette.get_source_id(i)) as TileSetAtlasSource
+			_check(source.get_tile_data(Vector2i.ZERO, 0).get_custom_data("asset_key") != "dry_bush",
+				"%s must not offer the retired dry bush" % path)
+		level.free()
 	var foothills = factory.create_world("practice_scene:chapter_2_foothills_copy")
 	var story_foothills = factory.create_world("chapter_2_foothills")
 	_check(foothills.lootables_by_pos.size() == story_foothills.lootables_by_pos.size() + 3
@@ -31,7 +43,7 @@ func _run() -> void:
 		if packed == null:
 			continue
 		var scene := packed.instantiate() as CATALOG.ROOT
-		var definition := CATALOG._read_board(scene, id)
+		var definition := CATALOG.read_practice_board(scene, id)
 		scene.free()
 		_check(not definition.is_empty(), "%s converts to a valid playable board" % id)
 		if definition.is_empty():
@@ -56,7 +68,7 @@ func _run() -> void:
 	enemy.position += Vector2(64, 0)
 	var ground: TileMapLayer = node.get_node("Ground")
 	ground.erase_cell(Vector2i(0, 0))
-	var definition := CATALOG._read_board(node, MEADOW)
+	var definition := CATALOG.read_practice_board(node, MEADOW)
 	node.free()
 	_check(not definition.is_empty(), "Editing a marker and erasing a ground cell must still yield a board")
 	if not definition.is_empty():

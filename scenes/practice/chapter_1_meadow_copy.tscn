@@ -23,7 +23,6 @@
 [ext_resource type="Texture2D" uid="uid://bj2uud7kd6ob4" path="res://resources/assets/decorations/woodland_ferns.png" id="22_288s0"]
 [ext_resource type="Texture2D" uid="uid://bsalao22bh8ox" path="res://resources/assets/decorations/mountain_flowers.png" id="23_c1015"]
 [ext_resource type="Texture2D" uid="uid://catjbl3mfgi0h" path="res://resources/assets/decorations/scree.png" id="24_c51yr"]
-[ext_resource type="Texture2D" uid="uid://d3bm0drm8080k" path="res://resources/assets/decorations/dry_bush.png" id="25_pu75s"]
 [ext_resource type="Texture2D" uid="uid://bncqb0al0ler3" path="res://resources/assets/characters/tortoise/idle/rotations/south.png" id="26_juvad"]
 [ext_resource type="Script" uid="uid://dw2rtoy6avnd1" path="res://scripts/domain/practice_level_marker.gd" id="26_o7jkc"]
 [ext_resource type="Texture2D" uid="uid://d2wfpolg2j4ni" path="res://resources/assets/enemies/goose/rotations/south.png" id="28_6usfr"]
@@ -440,14 +439,6 @@ texture_region_size = Vector2i(64, 64)
 0:0/0/custom_data_0 = "scree"
 0:0/0/custom_data_1 = "decoration"
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_d5ydx"]
-resource_name = "dry_bush"
-texture = ExtResource("25_pu75s")
-texture_region_size = Vector2i(64, 64)
-0:0/0 = 0
-0:0/0/custom_data_0 = "dry_bush"
-0:0/0/custom_data_1 = "decoration"
-
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rug8u"]
 resource_name = "flower_meadow (height 2)"
 texture = ExtResource("11_0gdfv")
@@ -543,7 +534,6 @@ sources/49 = SubResource("TileSetAtlasSource_m5rha")
 sources/50 = SubResource("TileSetAtlasSource_gwxcp")
 sources/51 = SubResource("TileSetAtlasSource_bpkic")
 sources/52 = SubResource("TileSetAtlasSource_cwjh5")
-sources/53 = SubResource("TileSetAtlasSource_d5ydx")
 
 [node name="PracticeLevel" type="Node2D" unique_id=213613421]
 texture_filter = 1
