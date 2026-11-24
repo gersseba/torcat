@@ -38,6 +38,9 @@ func _run() -> void:
 		)
 	settings._mobile_controls_toggle.toggled.emit(true)
 	_check(bool(app_state.get("mobile_controls")), "Settings must enable the mobile control scheme")
+	settings._mobile_controls_toggle.toggled.emit(false)
+	_check(not bool(app_state.get("mobile_controls")), "Settings must restore normal touch mode")
+	settings._mobile_controls_toggle.toggled.emit(true)
 
 	root.get_node("AppRouter").navigate("gameplay", {"level_id": "level_1", "scripts": false})
 	var screen: GameplayScreen = await TEST_HELPERS.wait_for_gameplay(root)

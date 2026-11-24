@@ -52,7 +52,7 @@ func _run() -> void:
 	_check(settings != null, "Settings screen must load")
 	if settings != null:
 		_check(settings._language_button.text == "Sprache: DE", "Settings language label must be localized")
-		_check(settings._mobile_controls_toggle.text == "Touch-Steuerung", "Touch setting must be localized")
+		_check(settings._mobile_controls_toggle.text == "Virtueller Joystick", "Joystick setting must be localized")
 		_check(settings._title_label.text == "Einstellungen" and settings._music_toggle.text == "Musik"
 			and settings._sfx_toggle.text == "Geräusche" and settings._back_button.text == "Zurück",
 			"All settings labels must be localized")

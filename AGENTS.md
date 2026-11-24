@@ -14,3 +14,16 @@ This repository has a generated `openwiki/` evidence index. It is optional just-
 The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
 
 <!-- OPENWIKI:END -->
+
+## Quiet development runs
+
+- Never play the game's audio through speakers during agent-run builds, tests,
+  previews, or background processes.
+- Run Godot with `--headless` where possible; for graphical runs use
+  `--audio-driver Dummy`.
+- Launch Chromium-based browser checks with `--mute-audio`. For other browsers,
+  ensure the browser process is muted before loading the game; do not run the
+  check if it cannot be muted safely.
+- Do not change the player's saved audio settings, game defaults, or system-wide
+  volume to silence development runs. If an audible check is necessary, ask
+  first; otherwise verify audio using a non-audible capture or signal analysis.

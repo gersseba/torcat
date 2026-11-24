@@ -202,11 +202,16 @@ func _test_campaign_routes() -> void:
 			_check(not path.is_empty(), "%s loot must have a reachable attack stand" % level_id)
 
 
-func _tap(screen: GameplayScreen, point: Vector2) -> void:
+func _tap(screen: GameplayScreen, point: Vector2, jitter := false) -> void:
 	var event := InputEventScreenTouch.new()
 	event.position = screen._ground_layer.get_global_transform_with_canvas() * (point * screen.TILE_SIZE)
 	event.pressed = true
 	screen._handle_screen_touch(event)
+	if jitter:
+		var drag := InputEventScreenDrag.new()
+		drag.position = event.position + Vector2(3, 2)
+		drag.relative = Vector2(3, 2)
+		screen._handle_screen_drag(drag)
 	event = event.duplicate()
 	event.pressed = false
 	screen._handle_screen_touch(event)
@@ -390,10 +395,10 @@ func _test_screen() -> void:
 	screen._state = _flat_state()
 	screen._render_state()
 	var nearby := Vector2(1.6, 1.7)
-	_tap(screen, nearby)
-	_tap(screen, nearby)
+	_tap(screen, nearby, true)
+	_tap(screen, nearby, true)
 	await create_timer(0.3).timeout
-	_check(screen._state.player.world_position.is_equal_approx(nearby), "Tapping near the selected character must allow movement within its tile")
+	_check(screen._state.player.world_position.is_equal_approx(nearby), "Two taps with minor finger movement must walk to the selected point")
 	var destination := Vector2(2.23, 2.77)
 	_tap(screen, destination)
 	_check(screen._free_preview[screen._free_preview.size() - 1].is_equal_approx(destination), "Touch preview must retain the exact point, not the tile center")

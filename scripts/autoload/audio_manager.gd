@@ -1,6 +1,6 @@
 extends Node
-## Central music/SFX playback. Creates the Music and Sfx buses at runtime
-## (no bus layout file needed), crossfades music and pools SFX players.
+## Central music/SFX playback. Buses are loaded from default_bus_layout.tres
+## before playback to keep Godot's web sample routing connected correctly.
 
 const MUSIC_BUS := "Music"
 const SFX_BUS := "Sfx"
@@ -58,8 +58,6 @@ var _ambience: AudioStreamPlayer
 
 
 func _ready() -> void:
-	_ensure_bus(MUSIC_BUS)
-	_ensure_bus(SFX_BUS)
 	for i in 2:
 		_music_players.append(_make_player(MUSIC_BUS))
 	for i in SFX_POOL_SIZE:
@@ -154,15 +152,6 @@ func _on_node_added(node: Node) -> void:
 			return
 		play_sfx("ui_back" if button.name.to_lower().contains("back") else "ui_tap")
 	)
-
-
-func _ensure_bus(bus_name: String) -> void:
-	if AudioServer.get_bus_index(bus_name) != -1:
-		return
-	AudioServer.add_bus()
-	var index := AudioServer.bus_count - 1
-	AudioServer.set_bus_name(index, bus_name)
-	AudioServer.set_bus_send(index, "Master")
 
 
 func _make_player(bus_name: String) -> AudioStreamPlayer:

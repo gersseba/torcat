@@ -31,8 +31,8 @@ Open this directory in Godot 4 and run the project to launch the main scene.
   and use touch-sized hit areas. The leave confirmation,
   Pounce, and Shell Charge use wooden controls; unavailable abilities stay
   visible with a muted wooden finish.
-- Enable **Touch controls** in Settings for a left virtual joystick and right-side
-  attack and special-action buttons.
+- In Settings, leave **Virtual joystick** off for tap-to-move, or enable it for
+  a left virtual joystick and right-side attack and special-action buttons.
 
 The gameplay camera frames the board between the party HUD and bottom actions,
 clamps panning to the board with a narrow decorative border, and gently looks
@@ -608,3 +608,4 @@ The workflow needs read access to repository contents and permission to deploy
 Pages; it does not need permission to push to `main`. If `main` advances during
 export, the older run skips publishing; the newer push starts another run. Test
 the deployed game in mobile browsers, including sound and saved progress.
+Browsers may keep audio silent until the player first taps or clicks the game.

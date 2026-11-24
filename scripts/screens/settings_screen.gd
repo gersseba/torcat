@@ -49,7 +49,7 @@ func _sync_from_state() -> void:
 	_music_toggle.button_pressed = app_state.get("music_enabled")
 	_sfx_toggle.button_pressed = app_state.get("sfx_enabled")
 	_mobile_controls_toggle.button_pressed = app_state.get("mobile_controls")
-	_mobile_controls_toggle.text = "Touch controls" if language == APP_STATE_SCRIPT.Language.EN else "Touch-Steuerung"
+	_mobile_controls_toggle.text = "Virtual joystick" if language == APP_STATE_SCRIPT.Language.EN else "Virtueller Joystick"
 	_reduced_motion_toggle.set_pressed_no_signal(app_state.get("reduced_motion"))
 	_reduced_motion_toggle.text = "Reduced motion" if language == APP_STATE_SCRIPT.Language.EN else "Weniger Bewegung"
 	_language_button.text = "Language: EN" if language == APP_STATE_SCRIPT.Language.EN else "Sprache: DE"

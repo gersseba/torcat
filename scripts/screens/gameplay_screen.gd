@@ -54,7 +54,6 @@ const PASSIVE_TRANSITION_FRAME_DURATION := 0.16
 const PASSIVE_IDLE_FRAME_DURATION := 0.22
 const CHARACTER_ANIMATION_MIN_DELAY := 5.0
 const CHARACTER_ANIMATION_MAX_DELAY := 10.0
-const TOUCH_TAP_MAX_DURATION := 0.35
 const TOUCH_DRAG_THRESHOLD := 18.0
 const ATTACK_IMPACT_FRAMES := {
 	GS.CharacterId.CAT: {"north": 3, "south": 3, "east": 6, "west": 6},
@@ -144,7 +143,7 @@ var _special_camera_position: Vector2
 var _special_camera_offset: Vector2
 var _special_shake: Tween
 var _touch_positions: Dictionary = {}
-var _touch_started_at: Dictionary = {}
+var _touch_start_positions: Dictionary = {}
 var _touch_moved: Dictionary = {}
 var _touch_gesture_active: bool = false
 var _pinch_start_distance: float = 0.0
@@ -797,8 +796,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _script_running:
 		# Board input stays locked while a script plays; taps arrive via the input catcher.
 		_touch_positions.clear()
-		_touch_started_at.clear()
+		_touch_start_positions.clear()
 		_touch_moved.clear()
+		_touch_gesture_active = false
+		_pinch_start_distance = 0.0
 		_camera_drag_active = false
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
@@ -874,23 +875,23 @@ func _direction_for_key(keycode: int) -> int:
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:
 	if event.pressed:
 		_touch_positions[event.index] = event.position
-		_touch_started_at[event.index] = Time.get_ticks_msec() / 1000.0
+		_touch_start_positions[event.index] = event.position
 		_touch_moved[event.index] = false
 		if _touch_positions.size() == 2:
 			_touch_gesture_active = true
+			for index in _touch_positions:
+				_touch_moved[index] = true
 			_pinch_start_distance = _touch_distance()
 			_pinch_start_zoom = _board_camera.zoom.x
 		return
 
 	if not _touch_positions.has(event.index):
 		return
-	var started_at: float = float(_touch_started_at.get(event.index, 0.0))
 	var was_moved: bool = bool(_touch_moved.get(event.index, false))
-	var duration := Time.get_ticks_msec() / 1000.0 - started_at
-	if not _touch_gesture_active and not was_moved and duration <= TOUCH_TAP_MAX_DURATION:
+	if not event.canceled and not _touch_gesture_active and not was_moved:
 		_handle_board_click(event.position)
 	_touch_positions.erase(event.index)
-	_touch_started_at.erase(event.index)
+	_touch_start_positions.erase(event.index)
 	_touch_moved.erase(event.index)
 	if _touch_positions.size() < 2:
 		_pinch_start_distance = 0.0
@@ -902,14 +903,19 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 	if not _touch_positions.has(event.index):
 		return
 	_touch_positions[event.index] = event.position
-	_touch_moved[event.index] = true
 	if _touch_positions.size() >= 2:
 		var pinch_distance := _touch_distance()
 		if _pinch_start_distance > 0.0:
 			var zoom_delta := (pinch_distance - _pinch_start_distance) / 320.0
 			_set_camera_zoom(_pinch_start_zoom + zoom_delta)
 		return
-	_pan_camera(-event.relative / _board_camera.zoom.x)
+	var delta := event.relative
+	if not _touch_moved[event.index]:
+		delta = event.position - _touch_start_positions[event.index]
+		if delta.length() < TOUCH_DRAG_THRESHOLD:
+			return
+		_touch_moved[event.index] = true
+	_pan_camera(-delta / _board_camera.zoom.x)
 
 
 func _touch_distance() -> float:

@@ -257,6 +257,40 @@ func _test_gameplay_zoom_input(screen: GameplayScreen) -> void:
 	var initial_zoom: float = screen._board_camera.zoom.x
 	var selection: int = screen._state.selected_character_id
 	var preview: Array = screen._preview_path.duplicate()
+	var initial_offset: Vector2 = screen._camera_manual_offset
+	var single_touch := InputEventScreenTouch.new()
+	single_touch.position = Vector2(260, 500)
+	single_touch.pressed = true
+	Input.parse_input_event(single_touch)
+	await process_frame
+	var single_drag := InputEventScreenDrag.new()
+	single_drag.position = single_touch.position + Vector2(4, 3)
+	single_drag.relative = Vector2(4, 3)
+	Input.parse_input_event(single_drag)
+	await process_frame
+	_check(not screen._touch_moved[0], "Small finger movements must remain eligible for a tap")
+	single_drag.position = single_touch.position + Vector2(24, 0)
+	single_drag.relative = Vector2(20, -3)
+	Input.parse_input_event(single_drag)
+	await process_frame
+	_check(screen._touch_moved[0], "A drag beyond the threshold must start panning")
+	_check(not screen._camera_manual_offset.is_equal_approx(initial_offset), "A real drag must pan the camera")
+	single_touch.pressed = false
+	single_touch.position = single_drag.position
+	Input.parse_input_event(single_touch)
+	await process_frame
+	_check(screen._state.selected_character_id == selection and screen._preview_path == preview,
+		"Panning must not select a character or preview a route")
+	single_touch.position = Vector2(260, 500)
+	single_touch.pressed = true
+	Input.parse_input_event(single_touch)
+	await process_frame
+	single_touch.pressed = false
+	single_touch.canceled = true
+	Input.parse_input_event(single_touch)
+	await process_frame
+	_check(screen._state.selected_character_id == selection and screen._preview_path == preview,
+		"A canceled touch must not select a character or preview a route")
 	for i in 2:
 		var touch := InputEventScreenTouch.new()
 		touch.index = i
@@ -284,6 +318,17 @@ func _test_gameplay_zoom_input(screen: GameplayScreen) -> void:
 		await process_frame
 	_check(screen._touch_positions.is_empty() and not screen._touch_gesture_active, "Pinch release must clear gesture state")
 	_check(screen._state.selected_character_id == selection and screen._preview_path == preview, "A pinch must not select or command a character")
+	for i in 2:
+		var active_touch := InputEventScreenTouch.new()
+		active_touch.index = i
+		active_touch.position = Vector2(260 + i * 120, 500)
+		active_touch.pressed = true
+		screen._handle_screen_touch(active_touch)
+	screen._script_running = true
+	screen._unhandled_input(InputEventScreenTouch.new())
+	screen._script_running = false
+	_check(screen._touch_positions.is_empty() and not screen._touch_gesture_active,
+		"A script interrupting a pinch must not leave taps locked out")
 	var wheel := InputEventMouseButton.new()
 	wheel.position = Vector2(360, 500)
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP

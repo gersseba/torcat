@@ -42,7 +42,14 @@ func _touch(position: Vector2) -> void:
 	event.position = position
 	event.pressed = true
 	root.push_input(event)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = position + Vector2(3, 2)
+	drag.relative = Vector2(3, 2)
+	root.push_input(drag)
+	await create_timer(0.45).timeout
 	event = event.duplicate()
+	event.position = drag.position
 	event.pressed = false
 	root.push_input(event)
 
@@ -61,6 +68,8 @@ func _run() -> void:
 		push_error("Gameplay screen was not found")
 		quit(1)
 		return
+	_check(not screen._mobile_controls_enabled and not screen._mobile_controls_root.visible,
+		"Normal touch mode must not show the virtual joystick")
 	screen._update_camera_target(true)
 	screen._board_camera.force_update_scroll()
 	await process_frame
@@ -101,9 +110,9 @@ func _run() -> void:
 	screen._update_camera_target(true)
 	screen._board_camera.force_update_scroll()
 	await process_frame
-	_touch(_screen_position(screen, screen._state.player.position))
+	await _touch(_screen_position(screen, screen._state.player.position))
 	await process_frame
-	_check(screen._state.selected_character_id == GS.CharacterId.TORTOISE, "Touch should select tortoise")
+	_check(screen._state.selected_character_id == GS.CharacterId.TORTOISE, "A long touch with minor finger movement should select tortoise")
 	_check(cat.animation == "idle_transition_south" and cat.get_playing_speed() < 0.0, "Interrupting an idle transition should reverse it")
 	await create_timer(2.3).timeout
 	_check(screen._character_modes[GS.CharacterId.CAT] == "passive", "Interrupted transition must not change selected state")
