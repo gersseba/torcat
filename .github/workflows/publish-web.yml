@@ -3,8 +3,6 @@ name: Publish Web
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "web/**"
   workflow_dispatch:
 
 concurrency:
@@ -18,9 +16,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     outputs:
-      published: ${{ steps.commit.outputs.published }}
+      publish: ${{ steps.check_head.outputs.publish }}
     steps:
       - name: Check out the triggering commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -62,37 +60,29 @@ jobs:
           for file in index.html index.js index.wasm index.pck; do
             test -s "$RUNNER_TEMP/web-export/$file"
           done
-          rsync -a --delete --exclude=.gdignore "$RUNNER_TEMP/web-export/" web/
 
-      - name: Commit generated files to main
-        id: commit
+      - name: Check that main has not advanced
+        id: check_head
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main
           if [ "$(git rev-parse FETCH_HEAD)" != "$GITHUB_SHA" ]; then
             echo "::notice::Main advanced while exporting; a newer run will publish it."
-            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git add -A -- web/
-          if ! git diff --cached --quiet -- web/; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "build: update web export" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-            git push origin HEAD:refs/heads/main
-          fi
-          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload Pages artifact
-        if: steps.commit.outputs.published == 'true'
+        if: steps.check_head.outputs.publish == 'true'
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: web
+          path: ${{ runner.temp }}/web-export
 
   deploy:
     needs: export
-    if: needs.export.outputs.published == 'true'
+    if: needs.export.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       pages: write

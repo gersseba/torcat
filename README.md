@@ -593,15 +593,14 @@ Configure a release keystore before distributing an Android release build.
 
 After a push or merge to `main`, the
 [Publish Web workflow](.github/workflows/publish-web.yml) imports and exports
-with Godot 4.7.2, commits changed generated files under `web/`, and deploys
-those files to GitHub Pages. Export-only commits do not trigger another build.
+with Godot 4.7.2 and deploys the generated artifact directly to GitHub Pages.
+It does not commit or update the previously tracked files under `web/`.
 It can also be started manually on `main` from the Actions tab. The first run
 downloads Godot and its matching templates; later runs can use the Actions
-cache. `web/.gdignore` keeps committed exports out of subsequent Godot imports.
+cache. `web/.gdignore` keeps the older committed export out of Godot imports.
 
 In repository **Settings → Pages**, set the source to **GitHub Actions**.
-The workflow needs permission to write contents and deploy Pages, and any
-branch protection or rulesets must allow the Actions bot to push generated
-files to `main`. If `main` advances during export, the older run skips
-publishing; the newer push starts another run. Test the deployed game in
-mobile browsers, including sound and saved progress.
+The workflow needs read access to repository contents and permission to deploy
+Pages; it does not need permission to push to `main`. If `main` advances during
+export, the older run skips publishing; the newer push starts another run. Test
+the deployed game in mobile browsers, including sound and saved progress.
