@@ -297,6 +297,10 @@ different directories for the before and after runs.
 
 ### Editing your own Practice copy in Godot
 
+Set `practice_title` and, optionally, `practice_title_de` on the Practice
+scene root to name the level in English and German. If no German title is
+provided, the authored English title is shown.
+
 1. Open [chapter_1_meadow_copy.tscn](scenes/practice/chapter_1_meadow_copy.tscn)
    in Godot's **2D** editor. To make a fresh copy of any chapter, use
    **Project > Tools > Torcat: Copy Story to Practice** and choose the chapter.

@@ -550,7 +550,7 @@ func _mobile_attack_pressed() -> void:
 		_finish_continuous_movement()
 	var direction := _facing_direction(_state.selected_character_id)
 	var front := _direction_target(_state.character_state(_state.selected_character_id).position, direction)
-	if _state.enemies_by_pos.has(front) or _can_pick_up_shell_in_front(_state.selected_character_id, front):
+	if _state.enemies_by_pos.has(front) or _state.lootables_by_pos.has(front) or _can_pick_up_shell_in_front(_state.selected_character_id, front):
 		await _try_step(direction)
 
 
@@ -617,7 +617,7 @@ func _update_mobile_action_buttons() -> void:
 	var can_pick_up := _can_pick_up_shell_in_front(character_id, front)
 	var can_attack: bool = (
 		actor.alive and not _state.game_over and not _state.victory
-		and (_state.enemies_by_pos.has(front) or can_pick_up)
+		and (_state.enemies_by_pos.has(front) or _state.lootables_by_pos.has(front) or can_pick_up)
 		and (_moving_character_id == -1 or _continuous_move_blocked)
 	)
 	_mobile_attack_button.text = LEVEL_SCRIPT.localize({"en": "Pick up", "de": "Aufheben"}) if can_pick_up else LEVEL_SCRIPT.localize({"en": "Attack", "de": "Angriff"})
@@ -2316,7 +2316,7 @@ func _render_power_labels() -> void:
 	for position in _state.items_by_pos:
 		_add_power_label(position, str(_state.items_by_pos[position].power_bonus), "item")
 	for position in _state.shell_items_by_pos:
-		_add_power_label(position, "Shell +%d" % _state.shell_items_by_pos[position].power_bonus, "item")
+		_add_power_label(position, LEVEL_SCRIPT.localize({"en": "Shell +%d", "de": "Panzer +%d"}) % _state.shell_items_by_pos[position].power_bonus, "item")
 
 
 func _create_power_label(category: String) -> Label:

@@ -28,16 +28,19 @@ static func metadata(id: String) -> Dictionary:
 		return {}
 	var state := scene.get_state()
 	var title := ""
+	var title_de := ""
 	var backdrop := Color("#2f4a22")
 	var is_level := false
 	for i in state.get_node_property_count(0):
 		match state.get_node_property_name(0, i):
 			"script": is_level = state.get_node_property_value(0, i) == ROOT
 			"practice_title": title = state.get_node_property_value(0, i)
+			"practice_title_de": title_de = state.get_node_property_value(0, i)
 			"backdrop": backdrop = state.get_node_property_value(0, i)
 	if not is_level:
 		return {}
-	return {"id": id, "name": title if not title.is_empty() else id.trim_prefix(PREFIX).capitalize(), "backdrop": "#" + backdrop.to_html(false)}
+	var name := title if not title.is_empty() else id.trim_prefix(PREFIX).capitalize()
+	return {"id": id, "name": name, "name_de": title_de if not title_de.is_empty() else name, "backdrop": "#" + backdrop.to_html(false)}
 
 
 static func definition(id: String) -> Dictionary:

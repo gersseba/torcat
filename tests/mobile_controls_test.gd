@@ -75,7 +75,31 @@ func _run() -> void:
 		and attack_rect.end.x < special_rect.position.x and special_rect.end.x < screen.size.x,
 		"Text-sized mobile buttons must fit next to the joystick without overlapping: %s, %s" % [attack_rect, special_rect])
 
+	for hero in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
+		var loot_state = GS.new(7, 7, GS.PlayerState.new(Vector2i(1, 1), 5), GS.PlayerState.new(Vector2i(3, 3), 4))
+		loot_state.selected_character_id = hero
+		var actor = loot_state.character_state(hero)
+		var target: Vector2i = actor.position + Vector2i.RIGHT
+		loot_state.lootables_by_pos[target] = GS.LootableObject.new("cache", target, 2, "barrel")
+		loot_state.enemies_by_pos[Vector2i(6, 6)] = GS.Enemy.new("guard", Vector2i(6, 6), 8)
+		screen._state = loot_state
+		screen._facing_by_character[hero] = "south"
+		screen._render_state()
+		_check(not screen._mobile_attack_button.visible, "Loot behind the character must not expose attack")
+		screen._set_joystick_vector(Vector2.RIGHT)
+		screen._process_continuous_movement(0.2)
+		_check(screen._mobile_attack_button.visible and not screen._mobile_attack_button.disabled,
+			"Moving toward loot must offer the mobile attack action for character %d" % hero)
+		var power: int = actor.power
+		await screen._mobile_attack_pressed()
+		_check(not screen._state.lootables_by_pos.has(target) and screen._state.character_state(hero).power == power + 2,
+			"Mobile attack must break adjacent loot and grant its reward for character %d" % hero)
+		screen._update_mobile_action_buttons()
+		_check(not screen._mobile_attack_button.visible, "The attack action must hide after opening the last object in front")
+
 	state.enemies_by_pos.clear()
+	screen._state = state
+	screen._render_state()
 	var origin: Vector2 = state.cat.world_position
 	var diagonal := Vector2(1.0, -1.0).normalized()
 	screen._set_joystick_vector(diagonal)

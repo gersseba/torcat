@@ -72,7 +72,7 @@ func _ready() -> void:
 	for entry in levels:
 		_add_practice_button(column, entry[0], LS.localize(entry[1]))
 	for entry in PRACTICE_SCENES.entries():
-		_add_practice_button(column, entry.id, entry.name)
+		_add_practice_button(column, entry.id, LS.localize({"en": entry.name, "de": entry.name_de}))
 	_footer = PanelContainer.new()
 	_footer.add_theme_stylebox_override("panel", UI.panel())
 	add_child(_footer)

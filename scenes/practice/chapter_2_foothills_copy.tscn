@@ -722,6 +722,7 @@ sources/67 = SubResource("TileSetAtlasSource_j1jmr")
 texture_filter = 1
 script = ExtResource("1_42u8w")
 practice_title = "Foothills: Woodland Caches"
+practice_title_de = "Vorberge: Waldverstecke"
 backdrop = Color(0.09411765, 0.17254902, 0.1254902, 1)
 shell_charge = true
 

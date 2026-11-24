@@ -6,6 +6,7 @@ signal back_pressed
 const APP_STATE_SCRIPT := preload("res://scripts/autoload/app_state.gd")
 
 @onready var _language_button: Button = %LanguageToggleButton
+@onready var _title_label: Label = %TitleLabel
 @onready var _music_toggle: CheckButton = %MusicToggleButton
 @onready var _sfx_toggle: CheckButton = %SfxToggleButton
 @onready var _mobile_controls_toggle: CheckButton = %MobileControlsToggle
@@ -41,6 +42,10 @@ func _ready() -> void:
 func _sync_from_state() -> void:
 	var app_state := _app_state()
 	var language: int = app_state.get("language")
+	_title_label.text = "Settings" if language == APP_STATE_SCRIPT.Language.EN else "Einstellungen"
+	_music_toggle.text = "Music" if language == APP_STATE_SCRIPT.Language.EN else "Musik"
+	_sfx_toggle.text = "SFX" if language == APP_STATE_SCRIPT.Language.EN else "Geräusche"
+	_back_button.text = "Back" if language == APP_STATE_SCRIPT.Language.EN else "Zurück"
 	_music_toggle.button_pressed = app_state.get("music_enabled")
 	_sfx_toggle.button_pressed = app_state.get("sfx_enabled")
 	_mobile_controls_toggle.button_pressed = app_state.get("mobile_controls")
