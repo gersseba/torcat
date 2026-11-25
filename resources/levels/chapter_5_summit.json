@@ -152,6 +152,13 @@
   ],
   "entities": [
     {
+      "type": "ITEM",
+      "id": "summit_steak",
+      "assetKey": "steak",
+      "position": { "x": 3, "y": 6 },
+      "power": 3
+    },
+    {
       "type": "ENEMY",
       "id": "summit_goose",
       "species": "goose",

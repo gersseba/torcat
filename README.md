@@ -101,6 +101,12 @@ Shell Charge, Pounce, breakable loot, and shell transfers have distinct action
 cues. Footsteps follow the walk animation in both control schemes, and quiet
 ambient loops play during levels. The **SFX** setting controls both.
 
+Lettuce and loose berries give power to the tortoise for the rest of the level;
+fish and steak do the same for the cat. The other character can walk across the food
+without collecting it. The recipient briefly eats after stopping; movement can
+interrupt this animation. Pounce uses do not refill. Loot containers remain
+usable by either character.
+
 Power indicators follow their characters while moving. Green brush strokes
 identify characters, blue identifies loose items, and wine red identifies
 enemies. Unopened loot containers hide their reward; breaking one plays its
@@ -529,6 +535,9 @@ Level JSON options used by the campaign:
   cracks it and grants `powerReward` once. Either character can attack them.
   Unopened containers block walking and pounce landings; after opening, their
   tile becomes walkable. They do not require Shell Charge or consume Pounce.
+- `ITEM` entities accept `assetKey`: `salad` (the default) and `berry_snack`
+  for the tortoise, or `fish` and `steak` for the cat. `power` determines the
+  level-long bonus. Practice markers expose the same choices as **Food Asset**.
 
 The story chapters have distinct environments and obstacle silhouettes:
 

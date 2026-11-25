@@ -131,6 +131,20 @@
   ],
   "entities": [
     {
+      "type": "ITEM",
+      "id": "pasture_fish",
+      "assetKey": "fish",
+      "position": { "x": 2, "y": 6 },
+      "power": 2
+    },
+    {
+      "type": "ITEM",
+      "id": "pasture_berries",
+      "assetKey": "berry_snack",
+      "position": { "x": 4, "y": 7 },
+      "power": 2
+    },
+    {
       "type": "LOOT",
       "id": "pasture_barrel",
       "assetKey": "barrel",

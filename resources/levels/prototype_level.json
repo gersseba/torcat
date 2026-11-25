@@ -37,7 +37,7 @@
     { "id": "Enemy-6-5", "type": "ENEMY", "species": "goose", "position": { "x": 6, "y": 5 }, "power": 4 },
     { "id": "Boss", "type": "ENEMY", "species": "badger", "position": { "x": 8, "y": 8 }, "power": 6 },
     { "id": "Item-2-1", "type": "ITEM", "position": { "x": 2, "y": 1 }, "power": 1 },
-    { "id": "Item-5-5", "type": "ITEM", "position": { "x": 5, "y": 5 }, "power": 2 },
+    { "id": "Item-5-5", "type": "ITEM", "assetKey": "fish", "position": { "x": 5, "y": 5 }, "power": 2 },
     { "id": "Shell-1", "type": "SHELL_ITEM", "position": { "x": 1, "y": 2 }, "power": 3 },
     { "id": "Shell-2", "type": "SHELL_ITEM", "position": { "x": 4, "y": 5 }, "power": 3 },
     { "id": "Loot-1-4", "type": "LOOT", "position": { "x": 1, "y": 4 }, "snackReward": 2, "powerReward": 0 },

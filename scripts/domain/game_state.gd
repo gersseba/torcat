@@ -17,6 +17,12 @@ enum TraversalKind {
 }
 
 const DEFAULT_POUNCE_USES := 3
+const FOOD_OWNERS := {
+	"salad": CharacterId.TORTOISE,
+	"berry_snack": CharacterId.TORTOISE,
+	"fish": CharacterId.CAT,
+	"steak": CharacterId.CAT,
+}
 
 class PlayerState:
 	extends RefCounted
@@ -69,14 +75,16 @@ class Item:
 	var id: String
 	var position: Vector2i
 	var power_bonus: int
+	var asset_key: String
 
-	func _init(p_id: String, p_position: Vector2i, p_power_bonus: int) -> void:
+	func _init(p_id: String, p_position: Vector2i, p_power_bonus: int, p_asset_key: String = "salad") -> void:
 		id = p_id
 		position = p_position
 		power_bonus = p_power_bonus
+		asset_key = p_asset_key
 
 	func copy_state() -> Item:
-		return Item.new(id, position, power_bonus)
+		return Item.new(id, position, power_bonus, asset_key)
 
 
 class LootableObject:

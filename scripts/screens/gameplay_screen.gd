@@ -50,6 +50,7 @@ const POUNCE_JUMP_DURATION := 0.6
 const ENEMY_FLINCH_FRAME_DURATION := 0.07
 const ENEMY_SPECIES := ["mouse", "goose", "hedgehog", "badger", "snake"]
 const CHARACTER_IDLE_FRAME_DURATION := 0.18
+const EATING_FRAME_DURATION := 0.12
 const PASSIVE_TRANSITION_FRAME_DURATION := 0.16
 const PASSIVE_IDLE_FRAME_DURATION := 0.22
 const CHARACTER_ANIMATION_MIN_DELAY := 5.0
@@ -405,7 +406,7 @@ func _process(delta: float) -> void:
 	for character_id in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
 		if character_id == _moving_character_id:
 			continue
-		if _character_modes.get(character_id, "") in ["to_passive", "to_idle", "passive_playing", "selected_playing"]:
+		if _character_modes.get(character_id, "") in ["to_passive", "to_idle", "passive_playing", "selected_playing", "eating"]:
 			continue
 		_character_animation_elapsed[character_id] = (
 			float(_character_animation_elapsed.get(character_id, 0.0)) + delta
@@ -435,6 +436,7 @@ func _process_continuous_movement(delta: float) -> void:
 		_continuous_move_character_id = _state.selected_character_id
 		_continuous_move_origin_state = _state.duplicate_state()
 		_moving_character_id = _continuous_move_character_id
+		_character_animation_serials[_moving_character_id] = int(_character_animation_serials.get(_moving_character_id, 0)) + 1
 		_character_modes[_moving_character_id] = "selected"
 		_state.last_event = LEVEL_SCRIPT.localize({
 			"en": "%s moved.", "de": "%s bewegt sich."
@@ -535,6 +537,7 @@ func _finish_continuous_movement() -> void:
 		[previous_state.character_state(character_id).position, final_position]
 	)
 	_render_state()
+	_play_food_eating(previous_state, _state, character_id)
 	if events_queued:
 		call_deferred("_run_script_queue")
 
@@ -1768,6 +1771,15 @@ func _build_character_frames(character_name: String) -> SpriteFrames:
 		_add_character_animation(
 			frames,
 			character_name,
+			"eat_%s" % direction,
+			"eating",
+			direction,
+			EATING_FRAME_DURATION,
+			false
+		)
+		_add_character_animation(
+			frames,
+			character_name,
 			"selected_idle_%s" % direction,
 			"selected_idle",
 			direction,
@@ -1892,7 +1904,7 @@ func _set_character_visual(character_id: int, tile_pos: Vector2i) -> void:
 	if _moving_character_id == character_id:
 		return
 	var mode: String = _character_modes.get(character_id, "selected")
-	if mode in ["to_passive", "to_idle", "passive_playing", "selected_playing"]:
+	if mode in ["to_passive", "to_idle", "passive_playing", "selected_playing", "eating"]:
 		return
 	if mode == "passive":
 		_set_static_character_animation(sprite, character_id, "passive_pose", direction)
@@ -2056,6 +2068,28 @@ func _finish_scheduled_character_animation(
 		_facing_by_character.get(character_id, "south")
 	)
 	_reset_character_animation_timer(character_id)
+
+
+func _play_food_eating(previous_state, next_state, character_id: int) -> void:
+	if not next_state.character_state(character_id).alive:
+		return
+	var ate := false
+	for position in previous_state.items_by_pos:
+		if not next_state.items_by_pos.has(position) and GS.FOOD_OWNERS[previous_state.items_by_pos[position].asset_key] == character_id:
+			ate = true
+			break
+	if not ate:
+		return
+	var sprite: AnimatedSprite2D = _character_sprites.get(character_id)
+	if sprite == null:
+		push_error("Missing character sprite for eating: %d" % character_id)
+		return
+	var serial := int(_character_animation_serials.get(character_id, 0)) + 1
+	_character_animation_serials[character_id] = serial
+	_character_modes[character_id] = "eating"
+	var animation := _character_animation_name(sprite, "eat", _facing_by_character.get(character_id, "south"))
+	_play_character_animation(character_id, animation)
+	_finish_scheduled_character_animation(character_id, serial, animation, EATING_FRAME_DURATION)
 
 
 func _animate_character_path(character_id: int, path: Array, attack_positions: Dictionary = {}) -> void:
@@ -2320,7 +2354,10 @@ func _render_power_labels() -> void:
 			_set_power_label_value(label, str(_state.enemies_by_pos[position].power))
 			label.position = _tile_center_world(position) - Vector2(label.size.x * 0.5, 44.0)
 	for position in _state.items_by_pos:
-		_add_power_label(position, str(_state.items_by_pos[position].power_bonus), "item")
+		var item = _state.items_by_pos[position]
+		var owner: int = GS.FOOD_OWNERS[item.asset_key]
+		var text := LEVEL_SCRIPT.localize({"en": "Cat %+d", "de": "Katze %+d"}) if owner == GS.CharacterId.CAT else LEVEL_SCRIPT.localize({"en": "Tortoise %+d", "de": "Schildkröte %+d"})
+		_add_power_label(position, text % item.power_bonus, "item")
 	for position in _state.shell_items_by_pos:
 		_add_power_label(position, LEVEL_SCRIPT.localize({"en": "Shell +%d", "de": "Panzer +%d"}) % _state.shell_items_by_pos[position].power_bonus, "item")
 
@@ -2365,6 +2402,7 @@ func _commit_state(next_state, actor_id: int, path: Array, grants_enemy_power :=
 	_state = next_state
 	var events_queued := _queue_triggered_events(previous_state, next_state, actor_id, path)
 	_render_state()
+	_play_food_eating(previous_state, next_state, actor_id)
 	var handoff_delay := 0.0
 	if picked_shell != Vector2i(-1, -1):
 		handoff_delay = _combat_rewards.play_shell_pickup(

@@ -138,6 +138,8 @@ static func build_scene(source: Dictionary, story := false) -> PackedScene:
 		marker.species = entry.get("species", "mouse")
 		if entry.type == "LOOT":
 			marker.loot_asset = entry.get("assetKey", "berries")
+		elif entry.type == "ITEM":
+			marker.food_asset = entry.get("assetKey", "salad")
 	for edge in source.get("traversableEdges", []):
 		var from := _cell(edge.from)
 		var step := _cell(edge.to) - from

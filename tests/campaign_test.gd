@@ -615,7 +615,8 @@ func _branch_options(state, fired: Dictionary) -> Array:
 		if state.enemies_by_pos[enemy_pos].power > state.cat.power:
 			pounce_targets.append(enemy_pos)
 	for target in _pickups(state, false):
-		if not cat_parents.has(target):
+		if not cat_parents.has(target) and (not state.items_by_pos.has(target)
+				or GS.FOOD_OWNERS[state.items_by_pos[target].asset_key] == GS.CharacterId.CAT):
 			pounce_targets.append(target)
 	for target in pounce_targets:
 		for stand in _line_tiles(target):
@@ -638,6 +639,8 @@ func _pickups(state, include_shells: bool) -> Array:
 func _pickup_reachable(state, parents: Dictionary, target: Vector2i, character_id) -> bool:
 	if state.lootables_by_pos.has(target):
 		return _stand_tile(state, parents, target, character_id) != Vector2i(-1, -1)
+	if state.items_by_pos.has(target) and GS.FOOD_OWNERS[state.items_by_pos[target].asset_key] != character_id:
+		return false
 	return parents.has(target)
 
 

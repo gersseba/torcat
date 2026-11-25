@@ -50,6 +50,10 @@ func _run() -> void:
 			continue
 		var original = factory.create_world(id)
 		var copy = factory._create_world_from_definition(definition)
+		_check(copy.items_by_pos.size() == original.items_by_pos.size(), "%s must preserve food count" % id)
+		for cell in copy.items_by_pos:
+			_check(original.items_by_pos.has(cell) and copy.items_by_pos[cell].asset_key == original.items_by_pos[cell].asset_key,
+				"%s must preserve food types when converted to a Practice board" % id)
 		_check(copy.width == original.width and copy.height == original.height
 			and copy.enemies_by_pos.keys().all(func(cell): return original.enemies_by_pos.has(cell))
 			and copy.enemies_by_pos.size() == original.enemies_by_pos.size()

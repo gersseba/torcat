@@ -184,7 +184,8 @@ static func _read_board(root: BOARD, id: String, story: bool) -> Dictionary:
 				result.entities.append({
 					"id": entity_id, "position": cell_data, "type": marker.kind,
 					"power": marker.power, "species": marker.species,
-					"assetKey": marker.loot_asset, "powerReward": marker.power,
+					"assetKey": marker.food_asset if marker.kind == "ITEM" else marker.loot_asset,
+					"powerReward": marker.power,
 				})
 	if not initial.has("tortoise"):
 		return _error(id, "Place a Tortoise spawn marker.")

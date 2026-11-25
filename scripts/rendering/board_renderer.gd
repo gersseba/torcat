@@ -124,6 +124,9 @@ const TOKEN_FILES := {
 	"loot_barrel": "res://resources/assets/items/barrel.png",
 	"loot_cracked_stone": "res://resources/assets/items/cracked_stone.png",
 	"item": "res://resources/assets/items/salad.png",
+	"item_berry_snack": "res://resources/assets/items/berry_snack.png",
+	"item_fish": "res://resources/assets/items/fish.png",
+	"item_steak": "res://resources/assets/items/steak.png",
 	"loot": "res://resources/assets/items/berries.png",
 	"tortoise": "res://resources/assets/characters/tortoise_idle_south.png",
 	"cat": "res://resources/assets/characters/cat_idle_south.png",
@@ -147,6 +150,12 @@ const LOOT_TOKENS := {
 	"tree_stump": "loot_tree_stump",
 	"barrel": "loot_barrel",
 	"cracked_stone": "loot_cracked_stone",
+}
+const FOOD_TOKENS := {
+	"salad": "item",
+	"berry_snack": "item_berry_snack",
+	"fish": "item_fish",
+	"steak": "item_steak",
 }
 
 
@@ -212,7 +221,7 @@ func render(
 		_set_role_cell(preview_layer, preview_path[i], "preview")
 
 	for item_pos in state.items_by_pos.keys():
-		_set_role_cell(marker_layer, item_pos, "item")
+		_set_role_cell(marker_layer, item_pos, FOOD_TOKENS[state.items_by_pos[item_pos].asset_key])
 	for item_pos in state.shell_items_by_pos.keys():
 		_set_role_cell(marker_layer, item_pos, "shell_item")
 	for loot_pos in state.lootables_by_pos.keys():
@@ -248,7 +257,7 @@ func _build_tile_set() -> void:
 	var tokens: Array[String] = [
 		"ground_a", "ground_b", "ground_c", "ground_d", "path", "trail", "wall", "rubble", "resupply",
 		"blocker_tree", "blocker_log", "blocker_bush", "blocker_boulder", "blocker_pine",
-		"tortoise", "cat", "enemy", "item", "shell_item", "loot", "resupply_marker", "preview", "selection",
+		"tortoise", "cat", "enemy", "item", "item_berry_snack", "item_fish", "item_steak", "shell_item", "loot", "resupply_marker", "preview", "selection",
 		"pounce_empty", "pounce_enemy", "pounce_selected"
 	]
 	for direction in EDGE_NAMES:

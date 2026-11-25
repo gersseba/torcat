@@ -30,6 +30,7 @@ func _flat_state(width := 7, height := 6):
 
 func _run() -> void:
 	_test_precision()
+	_test_food_ownership()
 	_test_collisions()
 	_test_elevation()
 	_test_attacks()
@@ -62,6 +63,26 @@ func _test_precision() -> void:
 	_check(engine.find_free_path(state, Vector2.INF).is_empty(), "Nonfinite destinations must be rejected")
 	next = engine.move_free(state, Vector2(-1, 2))
 	_check(next.player.world_position == state.player.world_position and next.last_event.contains("blocks"), "Invalid movement must report a blocked route without moving")
+
+
+func _test_food_ownership() -> void:
+	for key in GS.FOOD_OWNERS:
+		var owner: int = GS.FOOD_OWNERS[key]
+		var other := GS.CharacterId.CAT if owner == GS.CharacterId.TORTOISE else GS.CharacterId.TORTOISE
+		var state = _flat_state()
+		var cell := Vector2i(3, 2)
+		state.items_by_pos[cell] = GS.Item.new("food", cell, 3, key)
+		var original_power: int = state.character_state(other).power
+		var crossed = engine.move_free(state, Vector2(3.5, 2.5), other)
+		_check(crossed.items_by_pos.has(cell) and crossed.character_state(other).power == original_power,
+			"%s must remain when the wrong character crosses it" % key)
+		var picked = engine._apply_tile_rewards(state, cell, owner)
+		_check(not picked.items_by_pos.has(cell) and picked.character_state(owner).power == state.character_state(owner).power + 3,
+			"%s must award its owner permanent power exactly once" % key)
+		_check(state.items_by_pos.has(cell) and state.duplicate_state().items_by_pos[cell].asset_key == key,
+			"Food ownership must survive state copying without mutating the source")
+		_check(engine._apply_tile_rewards(picked, cell, owner).character_state(owner).power == picked.character_state(owner).power,
+			"Food cannot be collected twice")
 
 
 func _test_collisions() -> void:
@@ -274,6 +295,73 @@ func _check_crossing_walks(screen: GameplayScreen, terrain) -> void:
 		"A diagonal route that still crosses a bare downhill edge must keep its hop")
 
 
+func _test_food_feedback(screen: GameplayScreen) -> void:
+	var visual_state = _flat_state()
+	var x := 1
+	for key in GS.FOOD_OWNERS:
+		var cell := Vector2i(x, 2)
+		visual_state.items_by_pos[cell] = GS.Item.new(key, cell, 2, key)
+		x += 1
+	screen._state = visual_state
+	screen._render_state()
+	for cell in visual_state.items_by_pos:
+		var key: String = visual_state.items_by_pos[cell].asset_key
+		var token: String = screen._board_renderer.FOOD_TOKENS[key]
+		_check(screen._marker_layer.get_cell_atlas_coords(cell) == screen._board_renderer._atlas_coords_by_role[token],
+			"%s must render its own food artwork" % key)
+	for character_id in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
+		var state = _flat_state()
+		state.selected_character_id = character_id
+		var actor = state.character_state(character_id)
+		var origin: Vector2 = actor.world_position
+		var destination := origin + Vector2.LEFT
+		var food_cell := NAV.cell_at(destination)
+		var key := "salad" if character_id == GS.CharacterId.TORTOISE else "fish"
+		state.items_by_pos[food_cell] = GS.Item.new("food", food_cell, 2, key)
+		screen._state = state
+		screen._render_state()
+		await screen._walk_freely(character_id, PackedVector2Array([origin, destination]))
+		var sprite: AnimatedSprite2D = screen._character_sprites[character_id]
+		for direction in ["north", "east", "south", "west"]:
+			_check(sprite.sprite_frames.get_frame_count("eat_" + direction) > 1,
+				"Both characters need eating frames in each cardinal direction")
+		_check(sprite.animation == "eat_west" and sprite.is_playing(),
+			"Walking onto food must play the owner's facing eating animation")
+		screen._set_joystick_vector(Vector2.RIGHT)
+		screen._process_continuous_movement(0.1)
+		_check(sprite.animation == "walk_east", "Movement must interrupt eating immediately")
+		screen._set_joystick_vector(Vector2.ZERO)
+		screen._process_continuous_movement(0.0)
+		await create_timer(1.0).timeout
+		_check(not screen._character_sprites[GS.CharacterId.CAT].animation.begins_with("eat_"),
+			"Eating must return to idle when it finishes")
+		_check(not sprite.animation.begins_with("eat_"), "Interrupted eating must not restart after its timer")
+
+	var state = _flat_state()
+	state.selected_character_id = GS.CharacterId.CAT
+	var food_cell: Vector2i = state.cat.position + Vector2i.LEFT
+	state.items_by_pos[food_cell] = GS.Item.new("fish", food_cell, 2, "fish")
+	screen._state = state
+	screen._render_state()
+	await screen._perform_pounce(food_cell)
+	_check(screen._character_sprites[GS.CharacterId.CAT].animation == "eat_west",
+		"Pouncing onto cat food must play the eating animation")
+	await create_timer(1.0).timeout
+	state = _flat_state()
+	state.selected_character_id = GS.CharacterId.CAT
+	food_cell = state.cat.position + Vector2i.LEFT
+	state.items_by_pos[food_cell] = GS.Item.new("steak", food_cell, 2, "steak")
+	screen._state = state
+	screen._render_state()
+	screen._set_joystick_vector(Vector2.LEFT)
+	screen._process_continuous_movement(0.3)
+	screen._set_joystick_vector(Vector2.ZERO)
+	screen._process_continuous_movement(0.0)
+	_check(not screen._state.items_by_pos.has(food_cell)
+		and screen._character_sprites[GS.CharacterId.CAT].animation == "eat_west",
+		"Releasing the joystick after collecting food must play eating")
+
+
 func _test_screen() -> void:
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
@@ -283,6 +371,8 @@ func _test_screen() -> void:
 	_check(screen != null, "Gameplay must load")
 	if screen == null:
 		return
+	await _test_food_feedback(screen)
+	await create_timer(1.0).timeout
 	var travel_sprite := screen._character_sprites[GS.CharacterId.TORTOISE] as AnimatedSprite2D
 	var authored_state = screen._state
 	screen._state = GS.new(9, 3, GS.PlayerState.new(Vector2i(1, 1), 5), GS.PlayerState.new(Vector2i(1, 2), 5))

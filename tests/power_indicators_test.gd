@@ -71,7 +71,7 @@ func _run() -> void:
 	var player_label: Label = screen._character_power_labels[GS.CharacterId.TORTOISE]
 	_check(player_label.text == "123456" and player_label.size.x >= player_label.get_minimum_size().x + 8.0, "Player indicator must fit large values")
 	_check_player_label(screen, GS.CharacterId.TORTOISE)
-	var expected := {"12345": screen.ENEMY_POWER_TEXTURE, "-42": screen.ITEM_POWER_TEXTURE, "Shell +6": screen.ITEM_POWER_TEXTURE}
+	var expected := {"12345": screen.ENEMY_POWER_TEXTURE, "Tortoise -42": screen.ITEM_POWER_TEXTURE, "Shell +6": screen.ITEM_POWER_TEXTURE}
 	var static_count := 0
 	for child in screen._marker_layer.get_children():
 		if not child is Label:

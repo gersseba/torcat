@@ -17,6 +17,10 @@ extends Sprite2D
 	set(value):
 		loot_asset = value
 		_refresh_preview()
+@export_enum("salad", "berry_snack", "fish", "steak") var food_asset: String = "salad":
+	set(value):
+		food_asset = value
+		_refresh_preview()
 @export_enum("party", "stranded") var cat_status: String = "party"
 ## Leave empty to use the node name. Give a duplicated Story actor a new ID.
 @export var entity_id := ""
@@ -45,7 +49,7 @@ func _refresh_preview() -> void:
 	match kind:
 		"TORTOISE", "CAT": path = "res://resources/assets/characters/%s/idle/rotations/south.png" % kind.to_lower()
 		"ENEMY": path = "res://resources/assets/enemies/%s/rotations/south.png" % species
-		"ITEM": path = "res://resources/assets/items/salad.png"
+		"ITEM": path = "res://resources/assets/items/%s.png" % food_asset
 		"SHELL_ITEM": path = "res://resources/assets/items/shell_charm.png"
 		"LOOT": path = "res://resources/assets/items/%s.png" % loot_asset
 	texture = load(path) if not path.is_empty() and ResourceLoader.exists(path) else null

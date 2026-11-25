@@ -219,6 +219,8 @@ func bake(graph: Dictionary, seed_value: int) -> Dictionary:
 					entity["species"] = "goose"
 				elif room == "boss":
 					entity["species"] = "mouse"
+			elif kind == "ITEM":
+				entity["assetKey"] = "salad" if index % 2 == 0 else "berry_snack"
 			entities.append(entity)
 			room_targets.append({"cell": cell, "kind": kind, "power": slot.power, "id": id})
 		targets[room] = room_targets

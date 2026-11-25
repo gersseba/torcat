@@ -226,7 +226,7 @@ func _apply_tile_rewards(state, position: Vector2i, character_id):
 	var event_parts: Array[String] = []
 	var actor = next.character_state(character_id)
 
-	if next.items_by_pos.has(position):
+	if next.items_by_pos.has(position) and GS.FOOD_OWNERS[next.items_by_pos[position].asset_key] == character_id:
 		var item = next.items_by_pos[position]
 		actor = actor.copy_state()
 		actor.power += item.power_bonus

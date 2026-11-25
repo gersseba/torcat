@@ -244,10 +244,15 @@ func _create_world_from_definition(source_definition: Dictionary):
 					species
 				)
 			"ITEM":
+				var food_asset := str(entity.get("assetKey", "salad"))
+				if not GS.FOOD_OWNERS.has(food_asset):
+					push_error("Unknown food asset key: %s" % food_asset)
+					return _create_fallback_state("Invalid food asset.")
 				state.items_by_pos[position] = GS.Item.new(
 					str(entity.get("id", "item")),
 					position,
-					int(entity.get("power", 0))
+					int(entity.get("power", 0)),
+					food_asset
 				)
 			"SHELL_ITEM":
 				var shell_bonus: int = int(entity.get("power", 0))
@@ -591,7 +596,7 @@ func _build_procedural_candidate(rng: RandomNumberGenerator, backward_variant: b
 		reserved[item_pos] = true
 		var item_power: int = rng.randi_range(1, 3)
 		item_power_total += item_power
-		state.items_by_pos[item_pos] = GS.Item.new("item_%d" % i, item_pos, item_power)
+		state.items_by_pos[item_pos] = GS.Item.new("item_%d" % i, item_pos, item_power, "salad" if i % 2 == 0 else "berry_snack")
 
 	for i in range(min(loot_count, available_tiles.size())):
 		var loot_pos: Vector2i = available_tiles.pop_back()
@@ -699,7 +704,7 @@ func _build_guaranteed_procedural_fallback(backward_variant: bool):
 		var enemy_pos: Vector2i = enemy_positions[i]
 		state.enemies_by_pos[enemy_pos] = GS.Enemy.new("Enemy-%d" % i, enemy_pos, 4 + (i % 3), ["mouse", "goose", "hedgehog"][i % 3])
 	state.items_by_pos[Vector2i(2, 3)] = GS.Item.new("Item-0", Vector2i(2, 3), 2)
-	state.items_by_pos[Vector2i(7, 3)] = GS.Item.new("Item-1", Vector2i(7, 3), 2)
+	state.items_by_pos[Vector2i(7, 3)] = GS.Item.new("Item-1", Vector2i(7, 3), 2, "berry_snack")
 	state.items_by_pos[Vector2i(3, 7)] = GS.Item.new("Item-2", Vector2i(3, 7), 3)
 	var boss_power: int = state.player.power
 	for enemy in state.enemies_by_pos.values():
