@@ -49,6 +49,7 @@ func _ready() -> void:
 	_practice_tab = _button(LS.localize({"en": "Practice", "de": "Übung"}))
 	for tab in [_story_tab, _practice_tab]:
 		tab.custom_minimum_size.x = 220
+		tab.toggle_mode = true
 		tabs.add_child(tab)
 	_story_tab.pressed.connect(_show_practice.bind(false))
 	_practice_tab.pressed.connect(_show_practice.bind(true))
@@ -155,8 +156,10 @@ func _show_practice(enabled: bool) -> void:
 	_story_map.visible = not enabled
 	_practice.visible = enabled
 	_legend.visible = not enabled
-	_story_tab.disabled = not enabled
-	_practice_tab.disabled = enabled
+	for tab in [_story_tab, _practice_tab]:
+		var active: bool = (tab == _practice_tab) == enabled
+		UI.button(tab, active)
+		tab.set_pressed_no_signal(active)
 	_start_button.visible = not enabled
 	_selected_title.visible = not enabled
 	if enabled:

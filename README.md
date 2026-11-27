@@ -18,6 +18,9 @@ Open this directory in Godot 4 and run the project to launch the main scene.
   back down for turns and arrivals. Short walks and joystick speed are unchanged.
 - Drag with one finger to pan the board.
 - Pinch with two fingers or use the mouse wheel to zoom the level.
+- The objective appears between the top controls when enemies are present.
+  A short pan hint appears after the opening dialogue and disappears after a
+  drag or eight seconds.
 - Use **Center** to return the camera to the selected character.
 - **Back** opens a confirmation above the board. Choose **Stay** to resume or
   **Leave level** to return to the main menu.
@@ -28,11 +31,17 @@ Open this directory in Godot 4 and run the project to launch the main scene.
   **Enemy Defeat Glow Enabled** and **Power Transfer Orbs Enabled** separately
   under **Combat Feedback** on `GameplayScreen`.
 - Menu and gameplay buttons give localized labels room inside the wooden frame
-  and use touch-sized hit areas. The leave confirmation,
-  Pounce, and Shell Charge use wooden controls; unavailable abilities stay
-  visible with a muted wooden finish.
+  and use touch-sized hit areas. The leave confirmation, Pounce, and Shell Charge
+  use wooden controls; unavailable tap-mode abilities stay visible with a
+  muted wooden finish.
 - In Settings, leave **Virtual joystick** off for tap-to-move, or enable it for
   a left virtual joystick and right-side attack and special-action buttons.
+  The cat's Pounce button shows its remaining uses and stays visible but
+  disabled when those uses run out.
+
+On the story map, the selected tab is highlighted and locked destinations
+show a lock. Destination touch regions extend beyond their visible symbols;
+where regions overlap, the nearest destination receives the tap.
 
 The gameplay camera frames the board between the party HUD and bottom actions,
 clamps panning to the board with a narrow decorative border, and gently looks

@@ -35,8 +35,23 @@ func _draw() -> void:
 		if completed:
 			draw_circle(center, 15, color)
 		draw_arc(center, 19, 0, TAU, 32, color, 4)
+	if disabled:
+		var lock := center + Vector2(18, -17)
+		draw_circle(lock, 10, Color("263421"))
+		draw_arc(lock + Vector2(0, -2), 4, PI, TAU, 12, Color("d3c59b"), 2)
+		draw_rect(Rect2(lock + Vector2(-5, -1), Vector2(10, 7)), Color("d3c59b"))
 
 
 func _has_point(point: Vector2) -> bool:
 	var radius := size.x * 0.5
-	return point.distance_squared_to(size * 0.5) <= radius * radius
+	var distance := point.distance_squared_to(size * 0.5)
+	if distance > radius * radius:
+		return false
+	var map_point := position + point
+	# Split overlapping touch areas at the midpoint, including locked markers.
+	var markers: Array = get_parent().get("markers")
+	for other: Button in markers:
+		if other != self and other.visible:
+			if map_point.distance_squared_to(other.position + other.size * 0.5) < distance:
+				return false
+	return true

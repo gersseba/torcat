@@ -24,6 +24,7 @@ func _check_player_label(screen: GameplayScreen, character_id: int) -> void:
 		"Player indicator must keep its position relative to the moving sprite"
 	)
 	_check(label.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Player indicator must not intercept input")
+	_check(label.get_theme_font_size("font_size") >= 18, "Power indicators must be readable at mobile scale")
 	_check(label.get_theme_color("font_color") == screen.POWER_TEXT_COLOR, "Power text must be beige")
 	var style: StyleBoxTexture = label.get_theme_stylebox("normal")
 	_check(style.texture == screen.PLAYER_POWER_TEXTURE, "Players must use the green brush stroke")
@@ -82,6 +83,8 @@ func _run() -> void:
 		_check(expected.has(label.text) and style.texture == expected.get(label.text), "Static indicator must use its category's brush stroke")
 		_check(label.get_theme_color("font_color") == screen.POWER_TEXT_COLOR, "Static indicator text must be beige")
 		_check(label.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Static indicator must not intercept input")
+		_check(label.get_theme_font_size("font_size") >= 18 and label.size.y >= label.get_minimum_size().y,
+			"Pickup and enemy indicators must use readable text without clipping")
 		_check(label.size.x >= label.get_minimum_size().x + 8.0, "Static indicator must fit its value")
 	_check(static_count == 3, "Only enemies, loose items and shell charms should reveal power; unopened loot must not")
 	screen._render_power_labels()

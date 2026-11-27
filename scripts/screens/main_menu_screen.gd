@@ -37,7 +37,8 @@ func _ready() -> void:
 	_start_button = Button.new()
 	_start_button.name = "StartButton"
 	_start_button.text = LS.localize({"en": "Continue journey", "de": "Reise fortsetzen"}) if AppState.unlocked_chapters > 1 else LS.localize({"en": "Begin journey", "de": "Reise beginnen"})
-	UI.button(_start_button)
+	UI.button(_start_button, true)
+	_start_button.add_theme_font_size_override("font_size", 28)
 	column.add_child(_start_button)
 	_settings_button = Button.new()
 	_settings_button.name = "SettingsButton"

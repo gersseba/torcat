@@ -188,6 +188,10 @@ var _overview_running := false
 var _victory_reported := false
 var _overview_enabled := true
 var _board_load_failed := false
+var _objective_text := ""
+var _pan_hint_visible := false
+var _pan_hint_started := false
+var _pan_hint_timer: Timer
 var _audio_pickups := -1
 var _audio_shell_pickups := -1
 var _result_sting_played := false
@@ -248,6 +252,10 @@ func _ready() -> void:
 	_pounce_button.pressed.connect(_toggle_pounce_mode)
 	_shell_button.pressed.connect(_toggle_shell_mode)
 	_setup_mobile_controls()
+	_pan_hint_timer = Timer.new()
+	_pan_hint_timer.one_shot = true
+	_pan_hint_timer.timeout.connect(_dismiss_pan_hint)
+	add_child(_pan_hint_timer)
 	_back_button.pressed.connect(_show_back_confirmation)
 	_back_stay_button.pressed.connect(_back_confirmation.hide)
 	_back_leave_button.pressed.connect(func() -> void:
@@ -628,14 +636,18 @@ func _update_mobile_action_buttons() -> void:
 	var can_special: bool = (
 		not _state.game_over and not _state.victory and actor.alive
 		and (
-			(character_id == GS.CharacterId.CAT and _state.cat_pounces_remaining > 0 and _state.pounce_enabled)
+			(character_id == GS.CharacterId.CAT and _state.pounce_enabled)
 			or (character_id == GS.CharacterId.TORTOISE and _state.shell_power > 0 and _state.shell_charge_enabled)
 		)
 	)
 	_mobile_special_button.visible = can_special
-	_mobile_special_button.disabled = not can_special or (_moving_character_id != -1 and not _continuous_move_blocked)
+	_mobile_special_button.disabled = not can_special or (
+		character_id == GS.CharacterId.CAT and _state.cat_pounces_remaining <= 0
+	) or (_moving_character_id != -1 and not _continuous_move_blocked)
 	if character_id == GS.CharacterId.CAT:
-		_mobile_special_button.text = LEVEL_SCRIPT.localize({"en": "Pounce", "de": "Sprung"})
+		_mobile_special_button.text = LEVEL_SCRIPT.localize({
+			"en": "Pounce %d/%d", "de": "Sprung %d/%d",
+		}) % [_state.cat_pounces_remaining, _state.cat_pounces_max]
 	else:
 		_mobile_special_button.text = _shell_toggle_text()
 
@@ -673,11 +685,16 @@ func prepare_level(payload: Dictionary) -> void:
 		"en": "Tap a spot to preview a path, then tap again to move.",
 		"de": "Tippe für eine Wegvorschau und erneut, um loszugehen.",
 	})
-	_meadow_goal.text = ""
+	_objective_text = LEVEL_SCRIPT.localize({
+		"en": "Defeat all enemies", "de": "Alle Gegner besiegen",
+	})
+	_pan_hint_visible = false
+	_pan_hint_started = false
+	_pan_hint_timer.stop()
 	if is_meadow:
 		for enemy in _state.enemies_by_pos.values():
 			if enemy.id == "boss_0":
-				_meadow_goal.text = LEVEL_SCRIPT.localize({
+				_objective_text = LEVEL_SCRIPT.localize({
 					"en": "Hill mouse: %d\nStart on the side trails",
 					"de": "Hügelmaus: %d\nBeginne auf den Nebenpfaden",
 				}) % enemy.power
@@ -701,6 +718,37 @@ func render_prepared_level() -> void:
 		call_deferred("_show_chapter_overview")
 	elif not _level_events.is_empty():
 		call_deferred("_start_level_script")
+	else:
+		_show_pan_hint()
+
+
+func _show_pan_hint() -> void:
+	if _pan_hint_started or _state.game_over or _state.victory:
+		return
+	_pan_hint_started = true
+	_pan_hint_visible = true
+	_update_objective()
+	_pan_hint_timer.start(8.0)
+
+
+func _dismiss_pan_hint() -> void:
+	_pan_hint_timer.stop()
+	if _pan_hint_visible:
+		_pan_hint_visible = false
+		_update_objective()
+
+
+func _update_objective() -> void:
+	_meadow_goal.text = _objective_text if not _state.enemies_by_pos.is_empty() else ""
+	if _pan_hint_visible:
+		var touch := _mobile_controls_enabled or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+		var hint := LEVEL_SCRIPT.localize({
+			"en": "Drag to look around", "de": "Ziehen: Karte bewegen",
+		}) if touch else LEVEL_SCRIPT.localize({
+			"en": "Right-drag to look around", "de": "Rechts ziehen: Karte bewegen",
+		})
+		_meadow_goal.text += ("\n" if not _meadow_goal.text.is_empty() else "") + hint
+	_meadow_goal.visible = not _meadow_goal.text.is_empty() and not _state.game_over and not _state.victory
 
 
 func _on_view_resized() -> void:
@@ -1513,6 +1561,8 @@ func _update_camera_target(immediate: bool) -> void:
 func _pan_camera(delta: Vector2) -> void:
 	if _special_camera_active:
 		return
+	if _pan_hint_visible:
+		_dismiss_pan_hint()
 	var framing_offset := (_camera_usable_rect().get_center() - get_viewport_rect().size * 0.5) / _board_camera.zoom.x
 	var focus := _board_camera.position - _camera_shake_offset + framing_offset + delta
 	var bounded_focus := _camera_position_for(focus, _board_camera.zoom.x) + framing_offset
@@ -1639,7 +1689,7 @@ func _render_state() -> void:
 	_recenter_button.text = LEVEL_SCRIPT.localize({"en": "Center", "de": "Zentrieren"})
 	_continue_button.text = LEVEL_SCRIPT.localize({"en": "Continue", "de": "Weiter"})
 	_retry_button.text = LEVEL_SCRIPT.localize({"en": "Retry", "de": "Erneut versuchen"})
-	_meadow_goal.visible = not _meadow_goal.text.is_empty() and not _state.game_over and not _state.victory
+	_update_objective()
 	_free_path_line.clear_points()
 	if _state.shell_power <= 0 or not _state.player.alive or not _state.shell_charge_enabled or _state.game_over or _state.victory:
 		_shell_mode = false
@@ -2370,7 +2420,7 @@ func _create_power_label(category: String) -> Label:
 	label.z_index = 6
 	label.z_as_relative = false
 	label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color", POWER_TEXT_COLOR)
 	label.add_theme_stylebox_override("normal", _power_styles[category])
 	return label
@@ -2378,7 +2428,7 @@ func _create_power_label(category: String) -> Label:
 
 func _set_power_label_value(label: Label, value: String) -> void:
 	label.text = value
-	label.size = Vector2(maxf(48.0, label.get_minimum_size().x + 8.0), 26.0)
+	label.size = Vector2(maxf(48.0, label.get_minimum_size().x + 8.0), 30.0)
 
 
 func _add_power_label(tile_pos: Vector2i, value: String, category: String) -> Label:
@@ -2394,6 +2444,8 @@ func _start_level_script() -> void:
 		return
 	_queue_events(LEVEL_SCRIPT.events_for(_level_events, _fired_events, "level_start"))
 	await _run_script_queue()
+	if is_inside_tree():
+		_show_pan_hint()
 
 
 func _commit_state(next_state, actor_id: int, path: Array, grants_enemy_power := true, picked_shell := Vector2i(-1, -1)) -> void:

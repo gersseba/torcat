@@ -93,20 +93,37 @@ func _test_map(state: Node) -> void:
 	_check(map.destinations.size() == 11 and map.markers.size() == 11, "Map needs five level circles and six story stars")
 	_check(map.markers[1].completed and not map.markers[3].completed, "Only completed levels have filled circles")
 	_check(not map.markers[2].disabled and map.markers[4].disabled and map.markers[10].disabled, "Cutscene access must follow chapter unlocks, with finale locked until victory")
+	_check(screen._story_tab.button_pressed and not screen._practice_tab.button_pressed
+		and not screen._story_tab.disabled and not screen._practice_tab.disabled,
+		"The active tab must remain visibly selected, not disabled")
+	_check(map.markers[0].size == Vector2(96, 96), "Map destinations must use enlarged touch targets")
+	var first: Button = map.markers[0]
+	var second: Button = map.markers[1]
+	var first_center := first.position + first.size * 0.5
+	var second_center := second.position + second.size * 0.5
+	var closer_to_first := first_center.lerp(second_center, 0.45)
+	var closer_to_second := first_center.lerp(second_center, 0.55)
+	_check(first._has_point(closer_to_first - first.position) and not second._has_point(closer_to_first - second.position)
+		and second._has_point(closer_to_second - second.position) and not first._has_point(closer_to_second - first.position),
+		"Overlapping touch regions must resolve to the nearest destination")
 	await _test_map_stays_fitted(map)
 	var started: Array[String] = []
 	var watched: Array[String] = []
 	screen.level_selected.connect(func(id: String) -> void: started.append(id))
 	screen.cutscene_selected.connect(func(id: String) -> void: watched.append(id))
 	var origin: Vector2 = map._walker.position
-	await _tap(map.markers[3].get_global_rect().get_center())
-	_check(map.selected_index == 3, "Touching a level circle must select that destination")
+	var overlap_point: Vector2 = map.markers[2].get_global_rect().get_center().lerp(
+		map.markers[3].get_global_rect().get_center(), 0.55)
+	await _tap(overlap_point)
+	_check(map.selected_index == 3, "Touching overlapping map targets must select the nearest destination")
 	screen._start_selected()
 	_check(started.is_empty() and screen._start_button.disabled, "Selecting a dot must not start a level during travel")
 	await create_timer(0.3).timeout
 	_check(not map._walker.position.is_equal_approx(origin), "The tortoise must visibly move along the map")
 	await create_timer(0.8).timeout
 	_check(map.can_start() and not screen._start_button.disabled, "Start enables after arrival")
+	_check(map._walker.position.distance_to(map.markers[3].position + map.markers[3].size * 0.5) > 48,
+		"The walker must not cover the selected destination")
 	await _tap(screen._start_button.get_global_rect().get_center())
 	_check(started == ["chapter_2_foothills"], "Start launches the chosen unlocked level")
 	map.select_destination(9)
@@ -118,6 +135,8 @@ func _test_map(state: Node) -> void:
 	_check(watched == ["story_2_climb"], "Stars replay their cutscene independently")
 	screen._show_practice(true)
 	_check(not map.visible and screen._practice.visible and not screen._start_button.visible, "Practice stays separate from the Story map")
+	_check(screen._practice_tab.button_pressed and not screen._story_tab.button_pressed,
+		"Practice must become the visibly selected tab")
 	_check(screen._practice_buttons.size() >= 4, "Practice keeps the generators and includes the editable Meadow")
 	screen._practice_buttons[0].pressed.emit()
 	_check(started.back() == "random", "The forward generated level remains available")
@@ -156,6 +175,11 @@ func _test_menu(state: Node) -> void:
 		_check(menu._panel.size.y < menu.size.y * 0.6, "The menu panel must stay compact after localized text wraps")
 		_check(menu._panel.get_global_rect().end.y < menu.size.y - 20, "Main-menu actions must stay in the safe portrait area")
 		_check(menu._start_button.size.y >= 80 and menu._settings_button.size.y >= 80, "Main-menu buttons need generous touch targets")
+		var primary_style: StyleBoxTexture = menu._start_button.get_theme_stylebox("normal")
+		var secondary_style: StyleBoxTexture = menu._settings_button.get_theme_stylebox("normal")
+		_check(primary_style.modulate_color.r > secondary_style.modulate_color.r
+			and menu._start_button.get_theme_font_size("font_size") > menu._settings_button.get_theme_font_size("font_size"),
+			"The journey action must have stronger visual emphasis than Settings")
 		for button: Button in [menu._start_button, menu._settings_button]:
 			var font_size := button.get_theme_font_size("font_size")
 			var line_height := button.get_theme_font("font").get_height(font_size)

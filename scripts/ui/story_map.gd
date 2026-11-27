@@ -118,7 +118,9 @@ func _face_waypoint(index: int) -> void:
 
 func _place_walker(point: Vector2) -> void:
 	_walker_point = point
-	_walker.position = _image_rect.position + point * _image_rect.size + Vector2(0, -30)
+	var position := _image_rect.position + point * _image_rect.size + Vector2(-64, -8)
+	var inset := Vector2(40, 40).min(_image_rect.size * 0.5)
+	_walker.position = position.clamp(_image_rect.position + inset, _image_rect.end - inset)
 
 
 func _finish_travel() -> void:
@@ -132,10 +134,11 @@ func _layout_map() -> void:
 	var texture_size := MAP_TEXTURE.get_size()
 	var scale_factor := minf(size.x / texture_size.x, size.y / texture_size.y)
 	_image_rect = Rect2((size - texture_size * scale_factor) * 0.5, texture_size * scale_factor)
+	var target_size := 96.0
 	for index in markers.size():
 		markers[index].visible = _image_rect.has_area()
-		markers[index].size = Vector2(72, 72)
-		markers[index].position = _image_rect.position + ANCHORS[index] * _image_rect.size - Vector2(36, 36)
+		markers[index].size = Vector2.ONE * target_size
+		markers[index].position = _image_rect.position + ANCHORS[index] * _image_rect.size - Vector2.ONE * target_size * 0.5
 	if _walker != null:
 		_walker.visible = _image_rect.has_area()
 		_place_walker(_walker_point)

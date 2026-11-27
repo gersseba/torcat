@@ -15,6 +15,7 @@ func _check(condition: bool, message: String) -> void:
 
 func _run() -> void:
 	root.size = Vector2i(720, 1280)
+	root.get_node("AppState").language = 0
 	root.get_node("AppState").mobile_controls = false
 	var app: Node = load("res://scenes/app_root.tscn").instantiate()
 	root.add_child(app)
@@ -46,6 +47,26 @@ func _run() -> void:
 	_check(gameplay != null and gameplay.visible, "Gameplay should appear after setup completes")
 	if gameplay != null:
 		_check(gameplay._level_id == "chapter_5_summit", "The requested level should be the one rendered")
+		_check(gameplay._meadow_goal.text.contains("Defeat all enemies") and gameplay._pan_hint_visible,
+			"Gameplay must show its objective and a temporary camera gesture hint")
+		_check(is_equal_approx(gameplay._pan_hint_timer.wait_time, 8.0) and not gameplay._pan_hint_timer.is_stopped(),
+			"The camera hint must initially remain visible for eight seconds")
+		gameplay._pan_hint_timer.start(0.02)
+		await create_timer(0.05).timeout
+		_check(not gameplay._pan_hint_visible and gameplay._meadow_goal.text == "Defeat all enemies",
+			"The camera hint must expire without removing the objective")
+		gameplay.prepare_level({"level_id": "chapter_5_summit", "scripts": false, "overview": false})
+		gameplay.render_prepared_level()
+		_check(gameplay._pan_hint_visible, "A new level must restart its camera gesture hint")
+		gameplay._pan_camera(Vector2(1, 0))
+		_check(not gameplay._pan_hint_visible and gameplay._meadow_goal.text == "Defeat all enemies",
+			"Panning must dismiss the gesture hint while retaining the objective")
+		var enemies: Dictionary = gameplay._state.enemies_by_pos
+		gameplay._state.enemies_by_pos = {}
+		gameplay._update_objective()
+		_check(not gameplay._meadow_goal.visible, "An empty practice board must not advertise an enemy objective")
+		gameplay._state.enemies_by_pos = enemies
+		gameplay._update_objective()
 		_check(gameplay._board_exterior != null and gameplay._board_exterior.is_visible_in_tree()
 			and gameplay._backdrop_rect.is_visible_in_tree(), "The summit should render its rim, scenery, and valley")
 		var start: Vector2i = gameplay._state.player.position
@@ -71,12 +92,21 @@ func _check_opening_dialogue() -> void:
 	if bubble == null or not bubble.visible:
 		_check(false, "The Meadow opening dialogue should appear after loading")
 		return
+	var gameplay := root.find_child("GameplayScreen", true, false) as GameplayScreen
+	if gameplay == null:
+		_check(false, "Gameplay must remain present during the opening dialogue")
+		return
+	_check(not gameplay._pan_hint_started, "The gesture hint must wait until the opening dialogue finishes")
 	var largest := Vector2.ZERO
 	for _frame in 8:
 		largest = largest.max(bubble.size)
 		await process_frame
 	_check(largest.x <= 520.0 and largest.y < 240.0,
 		"The first dialogue must stay bubble-sized on every frame, got %s" % str(largest))
+	gameplay._script_advance_requested = true
+	await create_timer(0.8).timeout
+	_check(gameplay._pan_hint_started and gameplay._pan_hint_visible,
+		"The camera hint must appear after the opening dialogue")
 
 
 func _check_meadow_practice() -> void:

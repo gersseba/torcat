@@ -23,6 +23,7 @@ func _run() -> void:
 	await process_frame
 	var app_state: Node = root.get_node("AppState")
 	app_state.settings_path = TEST_SETTINGS_PATH
+	app_state.language = 0
 	app_state.set("mobile_controls", false)
 	root.get_node("AppRouter").navigate("settings")
 	await process_frame
@@ -61,6 +62,7 @@ func _run() -> void:
 	state.enemies_by_pos[Vector2i(4, 3)] = GS.Enemy.new("guard", Vector2i(4, 3), 8)
 	screen._render_state()
 	_check(screen._mobile_special_button.visible, "Mobile special action must be available for the selected cat")
+	_check(screen._mobile_special_button.text == "Pounce 3/3", "Mobile Pounce must show its remaining and maximum uses")
 	_check(not screen._mobile_attack_button.visible, "Attack button must stay hidden until an enemy is in front")
 	var blocked_position: Vector2 = state.cat.world_position
 	screen._set_joystick_vector(Vector2.RIGHT)
@@ -77,6 +79,15 @@ func _run() -> void:
 	_check(attack_rect.position.x > screen._joystick_base.get_rect().end.x
 		and attack_rect.end.x < special_rect.position.x and special_rect.end.x < screen.size.x,
 		"Text-sized mobile buttons must fit next to the joystick without overlapping: %s, %s" % [attack_rect, special_rect])
+	app_state.language = 1
+	screen._update_mobile_action_buttons()
+	await process_frame
+	attack_rect = screen._mobile_attack_button.get_rect()
+	special_rect = screen._mobile_special_button.get_rect()
+	_check(attack_rect.position.x > screen._joystick_base.get_rect().end.x
+		and attack_rect.end.x < special_rect.position.x and special_rect.end.x <= screen.size.x,
+		"German mobile actions must fit beside the joystick without overlapping")
+	app_state.language = 0
 
 	for hero in [GS.CharacterId.TORTOISE, GS.CharacterId.CAT]:
 		var loot_state = GS.new(7, 7, GS.PlayerState.new(Vector2i(1, 1), 5), GS.PlayerState.new(Vector2i(3, 3), 4))
@@ -119,6 +130,12 @@ func _run() -> void:
 	await screen._mobile_special_pressed()
 	_check(screen._state.cat.position == diagonal_target and screen._state.cat_pounces_remaining == 2,
 		"Mobile Pounce must jump two tiles along the last joystick diagonal")
+	_check(screen._mobile_special_button.text == "Pounce 2/3", "Mobile Pounce count must update after use")
+	screen._state.cat_pounces_remaining = 0
+	screen._update_mobile_action_buttons()
+	_check(screen._mobile_special_button.visible and screen._mobile_special_button.disabled
+		and screen._mobile_special_button.text == "Pounce 0/3",
+		"An exhausted Pounce must remain visible with zero uses and be disabled")
 
 	var wasd_vector := screen._movement_vector_from_axes(true, false, false, true)
 	var arrow_vector := screen._movement_vector_from_axes(true, false, false, true)

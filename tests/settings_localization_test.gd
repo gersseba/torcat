@@ -86,7 +86,8 @@ func _run() -> void:
 			"Shell pickups must show a German power label")
 		screen._select_character(GS.CharacterId.CAT)
 		_check(screen._selected_character_name() == "Katze", "Character names must be localized")
-		_check(screen._mobile_special_button.text == "Sprung", "Cat special control must be localized")
+		_check(screen._mobile_special_button.text == "Sprung %d/%d" % [screen._state.cat_pounces_remaining, screen._state.cat_pounces_max],
+			"Cat special control and remaining uses must be localized")
 		screen._toggle_pounce_mode()
 		_check(
 			screen._state.last_event == "Wähle ein markiertes Feld. Tippe erneut zum Springen.",

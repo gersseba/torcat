@@ -14,7 +14,7 @@ static func panel() -> StyleBoxFlat:
 	return style
 
 
-static func button(control: Button) -> void:
+static func button(control: Button, primary := false) -> void:
 	# Trim transparent padding so the visible frame fills the button bounds.
 	var wood_face := AtlasTexture.new()
 	wood_face.atlas = WOOD
@@ -32,11 +32,13 @@ static func button(control: Button) -> void:
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var variant := style.duplicate() as StyleBoxTexture
 		if state == "pressed":
-			variant.modulate_color = Color("c6ae7d")
+			variant.modulate_color = Color(1.12, 1.05, 0.82) if primary else Color("c6ae7d")
 		elif state == "hover":
-			variant.modulate_color = Color(1.13, 1.09, 1.03)
+			variant.modulate_color = Color(1.4, 1.24, 0.9) if primary else Color(1.13, 1.09, 1.03)
 		elif state == "disabled":
 			variant.modulate_color = Color("aeaa99")
+		elif primary:
+			variant.modulate_color = Color(1.25, 1.14, 0.85)
 		control.add_theme_stylebox_override(state, variant)
 	var focus := StyleBoxFlat.new()
 	focus.draw_center = false
